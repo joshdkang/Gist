@@ -1,2 +1,6 @@
-/.env
+.env
 .gitignore
+node_modules
+src/.venv
+src/yelp_academic_dataset_business.json
+src/yelp_academic_dataset_review.json
