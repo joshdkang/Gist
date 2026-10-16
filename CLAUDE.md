@@ -93,7 +93,7 @@ The existing data can be reloaded from source files, so dropping the old tables 
 ## Roadmap
 1. Set up Alembic and migrate to the target schema. (Done: the baseline migration is applied.)
 2. Add Supabase Auth: JWT verification in a `get_current_user` dependency, and the ownership helpers. Confirm the Supabase Data API is disabled or RLS is on.
-3. Build the CSV ingestion: column mapping, normalization, `content_hash`, dedupe, and an import record. Rework `load_yelp.py` to use it, and reload the Yelp restaurants as public sample entities (each created with its `other` and `general` themes). (Code is written and checked on a rolled-back transaction; the Yelp load itself hasn't been run yet.)
+3. Build the CSV ingestion: column mapping, normalization, `content_hash`, dedupe, and an import record. Rework `load_yelp.py` to use it, and reload the Yelp restaurants as public sample entities (each created with its `other` and `general` themes). (Done: 10 public entities and 56,901 reviews loaded, none skipped.)
 4. Add entity endpoints (create, list, get, delete) and an upload endpoint with size limits that records an import.
 5. Generalize `discover_themes.py`: remove categories, parameterize the prompt by entity name and description, add the sampling fallback when there are no ratings. Run it on the restaurant with about 4,400 reviews, check the themes by hand, and run the stability check.
 6. Build the classification pass and the job worker.
