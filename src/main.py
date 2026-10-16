@@ -4,13 +4,11 @@ from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
 
-from database import engine, Base, get_db
+from database import engine, get_db
 from models import Feedback
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 
