@@ -214,6 +214,10 @@ class ReviewTheme(Base):
     )
     # Null only for code fallbacks (a review the model failed to classify, assigned to "general").
     sentiment: Mapped[Sentiment | None] = mapped_column(string_enum(Sentiment))
+    # Set only on "other" tags: a short, opinion-free title for the specific point the review makes
+    # that no theme covers, named as it would be if it became a theme ("Fish entrees"). It makes
+    # those tags checkable by hand and is the raw material for rediscovery.
+    theme_title: Mapped[str | None] = mapped_column(Text)
     run_id: Mapped[int] = mapped_column(
         ForeignKey("analysis_runs.id", ondelete="CASCADE"), index=True
     )

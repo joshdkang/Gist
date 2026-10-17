@@ -5,3 +5,5 @@ src/.venv
 src/yelp_academic_dataset_business.json
 src/yelp_academic_dataset_review.json
 __pycache__/
+src/themes/
+src/classifications/
