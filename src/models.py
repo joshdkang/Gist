@@ -41,8 +41,8 @@ class RunStatus(enum.StrEnum):
 
 
 class ThemeKind(enum.StrEnum):
-    DISCOVERED = "discovered"  # found by the model for this entity
-    OTHER = "other"            # system theme: specific feedback that no discovered theme covers
+    DISCOVERED = "discovered"  # an established theme for this entity
+    CANDIDATE = "candidate"    # an uncovered point the classifier found; may be merged or promoted
     GENERAL = "general"        # system theme: no discernible topic ("great", "would recommend")
 
 
@@ -145,13 +145,15 @@ class Review(Base):
 class Theme(Base):
     __tablename__ = "themes"
     __table_args__ = (
+        # Exactly one `general` theme per entity, but any number of candidates.
         Index(
-            "uq_themes_entity_system_kind",
+            "uq_themes_entity_general",
             "entity_id",
-            "kind",
             unique=True,
-            postgresql_where=sql_text("kind <> 'discovered'"),
+            postgresql_where=sql_text("kind = 'general'"),
         ),
+        # One theme name per entity, whatever the kind and case.
+        Index("uq_themes_entity_name", "entity_id", sql_text("lower(name)"), unique=True),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -160,16 +162,24 @@ class Theme(Base):
     )
     name: Mapped[str]
     description: Mapped[str] = mapped_column(Text)
-    # Code finds the system themes by kind, not by name. Each entity has exactly one "other" and
-    # one "general", created by code (not the model). The "other" share (not "general") drives
-    # rediscovery. Themes are never deleted or retired: they accumulate across rediscoveries.
+    # Each entity has exactly one "general" theme, created by code. The classifier creates a
+    # "candidate" for each uncovered point it finds. Consolidation merges overlapping candidates,
+    # and promotion turns a candidate that recurs enough into a "discovered" theme. Themes are never
+    # deleted or retired: they accumulate.
     kind: Mapped[ThemeKind] = mapped_column(
         string_enum(ThemeKind),
         default=ThemeKind.DISCOVERED,
         server_default=ThemeKind.DISCOVERED.value,
     )
-    # The discovery run that introduced this theme. Null for the system themes.
+    # The run that created this theme (discovery, classification, or consolidation). Null for general.
     discovered_in_run_id: Mapped[int | None] = mapped_column(
+        ForeignKey("analysis_runs.id", ondelete="SET NULL")
+    )
+    # Set when consolidation folded this candidate into another theme. Tags stay on this row, and
+    # counts follow merged_into_id. Always points at a root (a theme that isn't itself merged), and
+    # clearing it undoes the merge. merged_in_run_id records the consolidation run.
+    merged_into_id: Mapped[int | None] = mapped_column(ForeignKey("themes.id", ondelete="SET NULL"))
+    merged_in_run_id: Mapped[int | None] = mapped_column(
         ForeignKey("analysis_runs.id", ondelete="SET NULL")
     )
 
@@ -202,8 +212,9 @@ class AnalysisRun(Base):
 
 
 class ReviewTheme(Base):
-    """One row per (review, theme). A review that fits no discovered theme gets a row for the
-    "other" or "general" theme, so a review is unprocessed exactly when it has no rows here."""
+    """One row per (review, theme). A review that fits no established theme gets rows for candidate
+    themes (one per uncovered point) or for the "general" theme, so a review is unprocessed
+    exactly when it has no rows here."""
     __tablename__ = "review_themes"
 
     review_id: Mapped[int] = mapped_column(
@@ -214,10 +225,6 @@ class ReviewTheme(Base):
     )
     # Null only for code fallbacks (a review the model failed to classify, assigned to "general").
     sentiment: Mapped[Sentiment | None] = mapped_column(string_enum(Sentiment))
-    # Set only on "other" tags: a short, opinion-free title for the specific point the review makes
-    # that no theme covers, named as it would be if it became a theme ("Fish entrees"). It makes
-    # those tags checkable by hand and is the raw material for rediscovery.
-    theme_title: Mapped[str | None] = mapped_column(Text)
     run_id: Mapped[int] = mapped_column(
         ForeignKey("analysis_runs.id", ondelete="CASCADE"), index=True
     )

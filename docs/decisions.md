@@ -108,3 +108,91 @@ Changes from v5:
 - **Minimum sample.** Discovery fails, without calling the API, if fewer than `MIN_THEMES * MIN_THEME_REVIEWS` = 50 reviews are sampled, because five themes at ten mentions each would be impossible. The failure is recorded on the run.
 
 For the 600-review samples used so far the prompt is the same as v5 apart from wording (30 reviews, 5%), so no new real run was made. The behavior was checked with the stub client.
+
+## Candidate themes replace `other` (2026-10-26)
+
+Direction change. The single `other` theme per entity is gone. The classifier now creates a **candidate** theme (a `themes` row) for each specific point no established theme covers, and a later consolidation step merges overlapping candidates. This supersedes the `other` and `theme_title` design and the rediscovery described above (`rediscover_themes.py`, now deleted).
+
+Why: a review could have only one `other` row, so a second uncovered point was lost or crammed into one title; the 818 free-text titles needed clustering anyway; and adding a rediscovered theme meant reclassifying the `other` reviews. With candidates, every point is its own countable theme from the start, and promoting one needs no reclassification.
+
+- **Schema** (migration `de22bf45d938`): `kind` is discovered, candidate, or general. `themes` gains `merged_into_id` (self-reference) and `merged_in_run_id` (the consolidation run). There is one `general` theme per entity (partial unique index) and theme names are unique per entity, case-insensitively. `review_themes.theme_title` is dropped.
+- **Data conversion** (same migration, rehearsed in a rolled-back transaction first, with a check that no review lost its tags): each distinct normalized `other` title became a candidate theme named after its most common spelling, and each `other` tag became a tag on it. 817 candidates were created from 818 titles (one title matched the existing "Rabbit and dumplings" theme, so its tag went there). All 18,898 tags and 4,480 tagged reviews were preserved. The `other` themes and tags were deleted. The migration cannot be reversed.
+- **Classifier (prompt v4).** The prompt lists established themes first, then candidates that at least 10 reviews raised (23 for Cochon), then `general`. Each assignment is a listed theme ID (an enum) or null plus a short title. Code matches titles to existing themes by normalized name (lower case, spacing, a plural s) and otherwise creates a candidate, one title at a time on the single writing session, backed by the unique index. Merged candidates are not shown, and their names resolve to the theme they merged into. A dry run with `--include-processed` on 100 reviews showed candidates being reused and new ones appearing.
+- **Consolidation** (`consolidate_themes.py`, prompt v1 and v2). The model sees all candidates with review counts (817 for Cochon, 17k input tokens, 12k to 15k output tokens, roughly $0.2 per run on Sonnet) and returns groups of overlapping candidates plus descriptions for large ungrouped ones. Merging sets `merged_into_id` on the non-canonical members; nothing is retagged. A group named like a candidate that isn't among its members takes that candidate in. Promotion makes a candidate `discovered` when 2% of classified reviews (90 of 4,480) raise it, counting merged members, and only if it has a real description. `--undo` clears a run's merges, exactly when it is the latest consolidation.
+- **First dry runs on Cochon** (runs 118 and 119; nothing applied): 817 candidates became 44 to 46 groups. The groups were sensible: Desserts (about 243 reviews, with spelling variants like "Desert"), Fish (about 197), Catfish (about 107), Salads (about 101), Braised beef (about 87), Shrimp (about 83), Crawfish pie (about 60), Crab dishes (about 41), Location and parking, Menu variety, Splitting checks, and many smaller ones. Four would pass the promotion threshold. v2 added a rule against overlapping groups; it did not merge Catfish into Fish, since catfish courtbouillon is raised by about 2% of reviews on its own.
+- **Known limitations.** Merged counts are distinct reviews through the mapping. A review tagged with several merged candidates gets one combined sentiment for the merged theme: positive together with negative (or any mixed) is mixed, and neutral gives way to positive or negative (`theme_stats.py`, added after the first dry runs). The candidate list shown to the classifier is a snapshot per run, so the same new point can get slightly different titles within one run; consolidation cleans those up. Undo is exact only for the latest consolidation, because a later run can re-point earlier merges. The model-written group names can include words like "entrees" that individual reviews don't use; that matters less at theme level.
+
+### Consolidation applied to Cochon (run 119, 2026-10-26)
+
+Applied from the dry-run report, with no further API cost. 705 candidates were merged into 46 groups (26 new canonical candidates, 20 descriptions written for large ungrouped ones), and four were promoted to established themes. No tags moved (18,898 tags, 4,480 tagged reviews before and after), every merge points at a root, and Cochon now has 19 established themes, 839 candidates (705 of them merged), and `general`.
+
+| New theme | Reviews | Positive | Negative | Neutral | Mixed |
+|---|---|---|---|---|---|
+| Desserts | 242 | 202 | 24 | 10 | 6 |
+| Fish | 197 | 149 | 25 | 17 | 6 |
+| Salads | 101 | 81 | 14 | 4 | 2 |
+| Catfish | 107 | 78 | 16 | 10 | 3 |
+
+- The classifier now sees 19 established themes and 18 candidates (those raised by at least 10 reviews after merging), the largest being Brisket (89), Braised beef (87), Shrimp (83), Crawfish pie (60), Offal and head cheese (58) and Sandwiches (56). Brisket and Braised beef are just under the 90-review promotion threshold.
+- **Open design problem: the trigger.** 32.9% of classified reviews still carry a candidate tag, because the long tail of small candidates remains. A trigger of "15% of reviews carry a candidate tag" will therefore keep firing after every consolidation. A better trigger measures what is new since the last consolidation (unmerged candidates created after it, or the share of reviews classified since). To decide.
+- "Fish" and "Catfish" overlap as themes; "Catfish" stays separate because it is raised by about 2% of reviews alone.
+
+### Candidate descriptions (2026-10-26)
+
+Candidates were created with a placeholder description ("Candidate theme from an uncovered point titled ..."), and only promoted or grouped ones got a real one. `describe_themes.py` now writes a one or two sentence description, in the style of the established themes, for every candidate that still has a placeholder, merged ones included.
+
+- **Input is only names.** The model sees the candidate's name and the names merged into it (up to 12), plus three established descriptions as style examples, and is told not to add facts or items. No review text is shown. Haiku 5.5, 60 candidates per request, low effort.
+- **When it runs.** At the end of every classification run (for the candidates the run created; a failure is a warning on the run, not a failure), and in consolidation after merging and before promotion, since a candidate with a placeholder is not promoted.
+- **Backfill on Cochon:** 797 candidates described in one pass, 0 placeholders left, 22k input and 37k output tokens (a few cents). Descriptions average 95 characters.
+- **Quality.** Mostly accurate and in the right style, but shorter and plainer than discovered ones, and some pad with generic phrases ("including its preparation, taste, or texture") or merge unrelated members ("Pasta dishes such as pasta with chicken and cheese macaroni"). Showing a few review snippets per candidate would likely sharpen them; not done because the names alone are enough to define scope.
+
+### Descriptions rewritten on promotion (2026-10-26)
+
+A promoted theme kept the description it had as a candidate: a Sonnet-written group description from consolidation, based on candidate names and not on what reviews say, with no scope boundary against neighbouring themes. Established themes' descriptions are what the classifier uses to decide what belongs, so they matter more than a candidate's.
+
+`describe_themes.refine_description` now rewrites the description at promotion (and on demand with `--refine NAME ...`). It shows Sonnet the theme's name and merged member names, the names and descriptions of the other established themes, and 40 random reviews that raised the theme (the candidate or anything merged into it), each cut to about 500 characters around the first mention of a keyword from the names. It asks for one or two sentences that define what belongs, name the specific items found in the reviews, and say how the theme differs where it could be confused with a neighbour. All promotions are saved before any rewrite, so new themes appear among each other's neighbours. A failed or unusable rewrite (empty, a placeholder, over 500 characters) keeps the old description.
+
+Applied to Cochon's four promoted themes (30k input, under 1k output tokens, a few cents). Example, Fish: before, "Fish entrees and specials such as redfish, gulf fish, fisherman-style fish, snapper, drum, grouper, trout and whole fish." After: "Reviews of the non-catfish fish entrees at Cochon, such as the oven-roasted Gulf fish 'fisherman's style,' redfish, amberjack, red snapper, drum, and the catch of the day or fish special, whether praised or criticized for freshness, cooking, flavor, bland or muddy taste, price, or being served without sides. Excludes catfish dishes and courtbouillon, which are their own theme, and excludes oysters, alligator, and other seafood or non-fish dishes." Catfish now says it excludes the other fish entrees, and Desserts and Salads each name what they exclude (savory dishes and sides, cooked sides and potato salad).
+
+- **Longer than the discovered themes' descriptions** (about 400 to 500 characters against 86 to 138), because they carry boundaries and named items. That makes the classifier prompt somewhat longer.
+- **Entity name in the text.** The rewrites say "at Cochon". That is harmless inside one entity's themes.
+- **Existing neighbours are not updated.** The discovered themes from run 46 do not mention the new themes. For example "Sides, bread and small plates" still lists nothing about salads. Consider refining them as well (`--refine` with their names), or at least when a theme overlaps a newly promoted one.
+
+### Descriptions say only what a theme covers (2026-10-26, reverses part of the entry above)
+
+The first rewrite told the model to say how a theme differs from its neighbours, which produced "Excludes catfish dishes ..." sentences. Descriptions now describe only the topics the theme covers.
+
+- **Prompt.** It no longer asks for boundaries. It says to describe only what the theme covers, never to say what it excludes or refer to other themes, and to leave out any item that belongs to one of the neighbouring themes (the neighbours are still shown, so Fish no longer lists catfish).
+- **Check in code.** The first run of the new prompt still produced "non-catfish fish entrees", so a rewrite that contains exclude/excluding/except/other than/apart from/separate from/rather than/not including/non-... is rejected. The retry says which phrase to drop, and if the second answer fails too, the old description is kept. The pattern is deliberately blunt: it also rejects harmless uses such as "non-stop", which only costs a retry.
+- **Applied to Cochon** (Desserts, Fish, Catfish, Salads, about 55k input tokens in all, a few cents). Fish now reads: "The whole-fish and fillet entrees at Cochon, chiefly the oven- or wood-fire-roasted Gulf fish served 'fisherman's style' (skin-on fillet), plus redfish, red snapper, drum, amberjack and the daily catch or fish special, whether blackened, baked, grilled or crispy. Comments praise or criticize how freshly and perfectly it was cooked, its tenderness, moistness, crispy skin, seasoning or blandness, saltiness, muddy or fishy taste, portion, and whether it is worth the price." Catfish, Desserts and Salads read the same way, listing items and what reviewers comment on.
+- **Trade-off.** Without stated boundaries, the overlap between Fish and Catfish is handled only by which items each description lists. The classifier can still tag a review with both.
+
+## Trigger thresholds (2026-10-26)
+
+The first trigger ("15% of classified reviews carry a candidate tag") was wrong in practice. After the first consolidation of Cochon, 32.9% of reviews still carried a candidate tag, because the long tail of small, unmerged candidates stays, so it would have fired after every classification run. A share of tagged reviews cannot go down once the work is done.
+
+Two separate triggers replace it (`consolidate_themes.py`, `trigger_status`; `--status` prints them without changing anything):
+
+- **Consolidation: new candidates since the last applied consolidation.** Fire when at least `max(15, 1% of classified reviews)` unmerged candidates were created by runs that started after the last applied consolidation finished (45 for Cochon). This counts work that has not been looked at, so it is zero right after a consolidation and grows only as classification creates new titles. A grouping call costs about the same (roughly $0.2 on Cochon, 17k input tokens) however many candidates are new, so waiting for a batch is cheaper than running after every upload; the floor of 15 lets a small review set consolidate at all. Candidates a consolidation creates for itself are not new.
+- **Promotion: any unmerged candidate that passes the promotion threshold.** Fire when a root candidate (counting merged members) is raised by 2% of classified reviews, at least 10 (90 for Cochon). Deciding this takes a count, no model call, so it can be checked after every classification run; only the description rewrite costs anything (`--promote-only`). Cochon has none today: the nearest, Brisket, has 89 reviews against 90.
+
+How "last applied consolidation" is found: the run's `error` note. A proposal is saved as "Consolidation proposed, not applied." (a dry run, or a run nobody applied), and applying it changes the note to "Consolidation applied." The notes sit in `analysis_runs.error`, which already holds warnings on succeeded runs. Run 119 was marked applied by hand, so Cochon now reads "0 new candidates since run 119".
+
+Not decided: the numbers 1%, 15, 2%, and 10 are judgment calls to tune against more entities. A consolidation that finds nothing to merge still counts as applied once applied, so it will not fire again until more candidates arrive. A time-based trigger ("at least a week old") was left out because a count is enough for now.
+
+### Promotion threshold changed to 3% (at least 25) (2026-10-26)
+
+The promotion threshold, previously 2% of classified reviews with a floor of 10 (90 reviews for Cochon), is now 3% with a floor of 25 (`PROMOTE_MIN_SHARE`, `PROMOTE_MIN_REVIEWS`; 134 reviews for Cochon). The same share-plus-floor form as discovery's rule: a share for large review sets, and a minimum count so a small set can't promote a topic only a handful of reviews mention.
+
+- **Effect on Cochon.** Nothing is demoted, since themes are never retired. Catfish (107 reviews) and Salads (101), promoted at the old threshold, would not qualify now, while Desserts (242) and Fish (197) still would. The nearest unpromoted candidates (Brisket 89, Braised beef 87, Shrimp 83) are further from the line than before.
+- **Consolidation prompt.** It tells the model which candidates can become established themes using the same number, so it now asks for a standalone description only for candidates of 134 reviews or more.
+- Earlier entries above describe the old 2% rule and its numbers.
+
+### Consolidation after every batch: considered, not adopted (2026-10-26)
+
+Kept the trigger above (at least max(15, 1% of classified reviews) new candidates since the last applied consolidation). Running after every batch would not be expensive, but it would not be stable either.
+
+- **Measured cost per run** (Sonnet 5.5): $0.16 to $0.18 for the first consolidation (817 candidates, 17k input and 12k to 15k output tokens), and $0.07 in the steady state (134 unmerged candidates, run 161: 5.5k input and 6.1k output). Output tokens are about 85% of it. The cost grows with the number of unmerged candidates shown, up to about $0.30 at the cap of 1,500. Classification costs about $0.16 per 1,000 reviews, so a per-batch consolidation would add roughly 10 to 100% depending on batch size.
+- **Why not.** Run 161 (forced, dry run, nothing applied) proposed 29 groups with no new candidates, merging existing roots into broader ones ("Shellfish dishes" 200 reviews from shrimp, crab, crawfish pie and mussels; "Beef dishes" 190 from brisket and braised beef). Each additional run can keep coarsening the themes. The trigger is there to prevent that churn, not only to save money.
+- **Not built:** an option to show the model only the new candidates plus a short list of existing roots to match them against, so a run groups new titles without re-merging old groups. Revisit if forcing runs turns out to be wanted.
+

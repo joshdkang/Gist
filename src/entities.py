@@ -6,10 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import Entity, Theme, ThemeKind
 
 SYSTEM_THEMES = {
-    ThemeKind.OTHER: (
-        "Other",
-        "Specific feedback that none of the other themes covers.",
-    ),
     ThemeKind.GENERAL: (
         "General",
         'Reviews with no discernible topic, such as "Great!" or "meh".',
