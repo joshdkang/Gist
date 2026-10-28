@@ -23,11 +23,11 @@ The project started as a Yelp restaurant tool and is being generalized. Yelp is 
 - Backend code lives in `src/`. The venv is `src/.venv` (Python 3.14). Run commands from `src/`.
 - Activate the venv with `.venv\Scripts\activate`.
 - An older `.venv` at the repo root uses Python 3.9. Don't use it, because it breaks `X | None` type syntax. Delete it if it's still there.
-- Config lives in `.env` at the repo root and is loaded by `config.py`. `DATABASE_URL` must use the `postgresql+asyncpg://` scheme. `ANTHROPIC_API_KEY` is also read from there. Never commit `.env`.
+- Config lives in `.env` at the repo root and is loaded by `config.py`. `DATABASE_URL` must use the `postgresql+asyncpg://` scheme. `ANTHROPIC_API_KEY` is also read from there. `SUPABASE_URL` (the project URL) is optional: it is taken from a direct `db.<project>.supabase.co` database URL, and must be set if `DATABASE_URL` uses the connection pooler. Never commit `.env`.
 - Run the API with `uvicorn main:app --reload` from `src/`.
 
 ## Current files (`src/`)
-`main.py` still uses the old `Business` and `Feedback` models, which no longer exist, so it won't import until it's ported (roadmap step 4).
+`main.py` has been reduced to the authenticated `/me` endpoint. The old unauthenticated `/upload` and `/businesses` were removed, and the entity and upload endpoints come in roadmap step 4.
 
 - `config.py`: `Settings` via pydantic-settings (`SettingsConfigDict`, with `env_file` pointing at the repo-root `.env`)
 - `database.py`: async engine, `async_session_maker`, `Base(DeclarativeBase)`, and the `get_db` dependency
@@ -35,7 +35,11 @@ The project started as a Yelp restaurant tool and is being generalized. Yelp is 
 - `alembic/`: migrations. The baseline migration creates the target schema.
 - `entities.py`: `create_entity`, which creates an entity together with its `general` system theme
 - `ingestion.py`: generic ingestion. `ColumnMapping`, rating scales, `content_hash`, dedupe, and the import record. `ingest_rows` takes any iterable of row dicts and `ingest_csv` takes a text-mode CSV file. It has no knowledge of users or HTTP.
-- `main.py` (pre-generalization): FastAPI app. The lifespan creates tables. Endpoints: `/upload` (CSV) and `/businesses`
+- `auth.py`: Supabase Auth. `get_current_user` verifies the bearer token against the project's public signing keys (asymmetric algorithms only, audience `authenticated`, issuer checked, expiry required) and finds or creates the `users` row on first sight; the user's email is kept in sync. A missing or bad token is a 401, unreachable keys a 503, and an email already used by another account a 409.
+- `access.py`: `get_readable_entity` (the user owns it, or it is public) and `get_owned_entity` (the user owns it). An entity the user can't see is a 404 whether or not it exists. A public entity they can see but don't own is a 403 on writes.
+- `check_rls.py`: checks that every public table has row level security on and that the Data API roles hold no privileges (`python check_rls.py`, exit status 1 on a problem). Run it after migrations and in CI.
+- `main.py`: FastAPI app with the lifespan and `/me`. Tables come from Alembic, not the app.
+- `requirements.txt`: the direct dependencies, pinned.
 - `load_yelp.py`: script that loads the top 10 Yelp restaurants as public entities through `ingestion.py`. Re-running it is safe (existing entities are reused and duplicate reviews are skipped).
 - `discover_themes.py`: theme discovery for one entity (`python discover_themes.py <entity_id> [--runs N] [--save]`). Samples, calls the model with structured output, validates, and records the run and tokens in `analysis_runs`. By default it writes a JSON report to `src/themes/` for checking by hand; `--save` stores the themes, and `--save-report PATH` stores the themes from an earlier run's report. The functions take their session and client as arguments so the worker can reuse them.
 - `classify_reviews.py`: classification pass (`python classify_reviews.py <entity_id> [--limit N] [--seed S] [--model M] [--dry-run] [--include-processed]`). Tags each unprocessed review with the entity's themes and a sentiment for each. The prompt lists the discovered themes first, then candidates that at least 10 reviews have raised, then `general`. For a point no listed theme covers, the model gives a short title, and code creates a candidate theme (or reuses one with the same normalized title), so a review can carry several. A new candidate gets a real description right after the run. Saves each chunk of 20 reviews as it finishes, so an interrupted run resumes. Writes a report to `src/classifications/`. Direct requests only for now; the Batch API and the job worker are still to do.
@@ -63,10 +67,11 @@ The existing data can be reloaded from source files, so dropping the old tables 
 - Use descriptive variable names. Single letters are fine only for conventional cases like a file handle `f`.
 - Structured LLM output comes from `output_config.format` (JSON schema built from the Pydantic model with the SDK's `transform_schema`) plus Pydantic `model_validate_json`. Forced tool use isn't an option because Sonnet 5.5 rejects it. Don't parse free-form JSON from unconstrained model text.
 - Every endpoint that touches user data depends on `get_current_user`. Read endpoints allow entities the user owns or that are public. Write endpoints require ownership. Return 404, not 403, for resources the user can't see, so IDs can't be probed. Put these checks in shared helpers (`get_readable_entity` and `get_owned_entity`) rather than repeating them per endpoint.
+- Every migration that creates a table in `public` also runs `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` and revokes the Supabase roles' privileges (see `415000255ba0`). Run `python check_rls.py` after migrating.
 
 ## Design decisions
-- **Authentication.** Supabase Auth handles sign-up, login, and password storage. Don't build password handling. The frontend signs in with Supabase and sends the access token. FastAPI verifies the JWT in a `get_current_user` dependency and creates the `users` row on first sight.
-- **Authorization lives in the API.** The backend connects to Postgres as a privileged role, which bypasses Row Level Security, so ownership checks must happen in FastAPI. Keep the Supabase Data API disabled, or enable RLS on every table, so tables aren't reachable directly with the public anon key.
+- **Authentication.** Supabase Auth handles sign-up, login, and password storage. Don't build password handling. The frontend signs in with Supabase and sends the access token. FastAPI verifies the JWT in `get_current_user` against the project's public JWKS (the project uses ES256 signing keys, so there is no shared secret to keep) and creates the `users` row on first sight. Tokens signed with a shared secret (HS256) or unsigned are rejected. Users without an email address (anonymous sign-ins) are rejected, because `users.email` is required.
+- **Authorization lives in the API.** The backend connects to Postgres as `postgres`, which bypasses Row Level Security, so ownership checks must happen in FastAPI (`access.py`). Supabase's Data API (PostgREST) is enabled for this project and exposes every table in the `public` schema to anyone holding the anon key, so RLS is enabled on every table with no policies, and the `anon` and `authenticated` roles have no privileges on them (migration `415000255ba0`). The roles can't read or write anything directly. Every migration that creates a table must enable RLS the same way; `check_rls.py` verifies it.
 - **Public sample data.** The Yelp restaurants are public sample entities (`is_public = true`, no owner) that every signed-in user can browse, so a new visitor sees real results immediately without uploading anything. They're loaded and analyzed by scripts. Users can't upload to them or trigger analysis on them, so visitors don't cost API money.
 - **No taxonomies or categories.** Themes are discovered freely per entity. Domain context for the prompt comes from the entity's name and optional description, not a predefined category list.
 - **Domain-agnostic.** Source-specific logic lives only in the ingestion layer and the scripts that feed it. Prompts are parameterized by the entity, never hardcoded to restaurants.
@@ -96,7 +101,7 @@ The existing data can be reloaded from source files, so dropping the old tables 
 
 ## Roadmap
 1. Set up Alembic and migrate to the target schema. (Done: the baseline migration is applied.)
-2. Add Supabase Auth: JWT verification in a `get_current_user` dependency, and the ownership helpers. Confirm the Supabase Data API is disabled or RLS is on.
+2. Add Supabase Auth: JWT verification in a `get_current_user` dependency, and the ownership helpers. Confirm the Supabase Data API is disabled or RLS is on. (Done: `auth.py`, `access.py`, and RLS enabled on every table. Not yet tried with a real sign-in, since there is no frontend.)
 3. Build the CSV ingestion: column mapping, normalization, `content_hash`, dedupe, and an import record. Rework `load_yelp.py` to use it, and reload the Yelp restaurants as public sample entities (each created with its `general` theme). (Done: 10 public entities and 56,901 reviews loaded, none skipped.)
 4. Add entity endpoints (create, list, get, delete) and an upload endpoint with size limits that records an import.
 5. Generalize `discover_themes.py`: remove categories, parameterize the prompt by entity name and description, add the sampling fallback when there are no ratings. Run it on the restaurant with about 4,400 reviews, check the themes by hand, and run the stability check. (Code is written and checked with a stub client; the first real run is pending. Prompt versions go in `docs/decisions.md`.)
