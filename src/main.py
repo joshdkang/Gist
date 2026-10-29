@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI
 from auth import get_current_user
 from database import engine
 from models import User
+from routers import entities, imports, runs
 
 # Tables are created by Alembic migrations (alembic upgrade head), not by the app.
 @asynccontextmanager
@@ -13,6 +14,9 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(entities.router)
+app.include_router(imports.router)
+app.include_router(runs.router)
 
 
 @app.get("/me")

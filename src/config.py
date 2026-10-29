@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -10,6 +10,16 @@ class Settings(BaseSettings):
     # from a direct database URL (db.<project>.supabase.co). Set it when DATABASE_URL points at the
     # connection pooler, whose host doesn't contain the project.
     supabase_url: str | None = None
+    # Only create_user.py needs these, to create test users and sign in as them. The service role key
+    # bypasses all security, so keep it in .env only: never in the frontend, never committed.
+    supabase_service_role_key: SecretStr | None = None
+    supabase_anon_key: SecretStr | None = None
+
+    # Limits that keep each user's analysis cost bounded (see "Cost controls" in CLAUDE.md).
+    max_upload_bytes: int = 5 * 1024 * 1024
+    max_upload_rows: int = 5000
+    max_entities_per_user: int = 20
+    max_runs_per_user_per_day: int = 20
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / "../.env",

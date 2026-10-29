@@ -23,11 +23,11 @@ The project started as a Yelp restaurant tool and is being generalized. Yelp is 
 - Backend code lives in `src/`. The venv is `src/.venv` (Python 3.14). Run commands from `src/`.
 - Activate the venv with `.venv\Scripts\activate`.
 - An older `.venv` at the repo root uses Python 3.9. Don't use it, because it breaks `X | None` type syntax. Delete it if it's still there.
-- Config lives in `.env` at the repo root and is loaded by `config.py`. `DATABASE_URL` must use the `postgresql+asyncpg://` scheme. `ANTHROPIC_API_KEY` is also read from there. `SUPABASE_URL` (the project URL) is optional: it is taken from a direct `db.<project>.supabase.co` database URL, and must be set if `DATABASE_URL` uses the connection pooler. Never commit `.env`.
+- Config lives in `.env` at the repo root and is loaded by `config.py`. `DATABASE_URL` must use the `postgresql+asyncpg://` scheme. `ANTHROPIC_API_KEY` is also read from there. `SUPABASE_URL` (the project URL) is optional: it is taken from a direct `db.<project>.supabase.co` database URL, and must be set if `DATABASE_URL` uses the connection pooler. `SUPABASE_SERVICE_ROLE_KEY` (and optionally `SUPABASE_ANON_KEY`) are needed only by `create_user.py`: the service role key bypasses all security, so it lives in `.env` only. Never commit `.env`.
 - Run the API with `uvicorn main:app --reload` from `src/`.
 
 ## Current files (`src/`)
-`main.py` has been reduced to the authenticated `/me` endpoint. The old unauthenticated `/upload` and `/businesses` were removed, and the entity and upload endpoints come in roadmap step 4.
+`main.py` is the FastAPI app: the lifespan, `/me`, and the entity, upload, and run-status routers.
 
 - `config.py`: `Settings` via pydantic-settings (`SettingsConfigDict`, with `env_file` pointing at the repo-root `.env`)
 - `database.py`: async engine, `async_session_maker`, `Base(DeclarativeBase)`, and the `get_db` dependency
@@ -38,7 +38,13 @@ The project started as a Yelp restaurant tool and is being generalized. Yelp is 
 - `auth.py`: Supabase Auth. `get_current_user` verifies the bearer token against the project's public signing keys (asymmetric algorithms only, audience `authenticated`, issuer checked, expiry required) and finds or creates the `users` row on first sight; the user's email is kept in sync. A missing or bad token is a 401, unreachable keys a 503, and an email already used by another account a 409.
 - `access.py`: `get_readable_entity` (the user owns it, or it is public) and `get_owned_entity` (the user owns it). An entity the user can't see is a 404 whether or not it exists. A public entity they can see but don't own is a 403 on writes.
 - `check_rls.py`: checks that every public table has row level security on and that the Data API roles hold no privileges (`python check_rls.py`, exit status 1 on a problem). Run it after migrations and in CI.
-- `main.py`: FastAPI app with the lifespan and `/me`. Tables come from Alembic, not the app.
+- `create_user.py`: creates a confirmed development user through Supabase's admin API, signs in as them, verifies the access token the way the API does, and creates the `users` row (`python create_user.py you@example.com [--password P] [--name N] [--print-token]`). A successful run proves the whole login path against the real project. It needs `SUPABASE_SERVICE_ROLE_KEY` in `.env`.
+- `main.py`: FastAPI app with the lifespan, `/me`, and the three routers. Tables come from Alembic, not the app.
+- `schemas.py`: request and response models (entity create and update, run, import, upload result). Names and descriptions are collapsed to one line, because the description goes into prompts.
+- `queueing.py`: decides what analysis an upload needs and queues it (`queue_analysis`). A waiting run of the same type is reused (coalescing), a running run is never reused, and no second discover run is queued while the first is active. `count_runs_today` backs the daily run limit.
+- `routers/entities.py`: `POST /entities`, `GET /entities?scope=all|mine|public`, `GET/PATCH/DELETE /entities/{id}`. Delete cascades and is refused with 409 while a run is queued or running.
+- `routers/imports.py`: `POST /entities/{id}/imports` (multipart: `file`, `mapping` JSON, `rating_scale` JSON) and `GET /entities/{id}/imports`. Ingestion runs inside the request; the upload then queues analysis through `queueing.py`. Errors: 413 over the size or row cap, 422 for a bad mapping or scale, missing columns, or a non-UTF-8 file, 429 at the daily run limit.
+- `routers/runs.py`: `GET /entities/{id}/runs` (newest first, `?status=`, `limit`) and `GET /entities/{id}/runs/{run_id}`, so a frontend can poll a queued run.
 - `requirements.txt`: the direct dependencies, pinned.
 - `load_yelp.py`: script that loads the top 10 Yelp restaurants as public entities through `ingestion.py`. Re-running it is safe (existing entities are reused and duplicate reviews are skipped).
 - `discover_themes.py`: theme discovery for one entity (`python discover_themes.py <entity_id> [--runs N] [--save]`). Samples, calls the model with structured output, validates, and records the run and tokens in `analysis_runs`. By default it writes a JSON report to `src/themes/` for checking by hand; `--save` stores the themes, and `--save-report PATH` stores the themes from an earlier run's report. The functions take their session and client as arguments so the worker can reuse them.
@@ -101,9 +107,9 @@ The existing data can be reloaded from source files, so dropping the old tables 
 
 ## Roadmap
 1. Set up Alembic and migrate to the target schema. (Done: the baseline migration is applied.)
-2. Add Supabase Auth: JWT verification in a `get_current_user` dependency, and the ownership helpers. Confirm the Supabase Data API is disabled or RLS is on. (Done: `auth.py`, `access.py`, and RLS enabled on every table. Not yet tried with a real sign-in, since there is no frontend.)
+2. Add Supabase Auth: JWT verification in a `get_current_user` dependency, and the ownership helpers. Confirm the Supabase Data API is disabled or RLS is on. (Done: `auth.py`, `access.py`, and RLS enabled on every table. Tried end to end with a real Supabase sign-in through `create_user.py`.)
 3. Build the CSV ingestion: column mapping, normalization, `content_hash`, dedupe, and an import record. Rework `load_yelp.py` to use it, and reload the Yelp restaurants as public sample entities (each created with its `general` theme). (Done: 10 public entities and 56,901 reviews loaded, none skipped.)
-4. Add entity endpoints (create, list, get, delete) and an upload endpoint with size limits that records an import.
+4. Add entity endpoints (create, list, get, edit, delete), an upload endpoint with size limits that records an import and queues analysis, and run status endpoints. (Done: tested over HTTP with signed tokens against a rolled-back database. The limits are in `config.py`: 5 MB and 5,000 rows per upload, 20 entities per user, 20 analysis runs per user per 24 hours.)
 5. Generalize `discover_themes.py`: remove categories, parameterize the prompt by entity name and description, add the sampling fallback when there are no ratings. Run it on the restaurant with about 4,400 reviews, check the themes by hand, and run the stability check. (Code is written and checked with a stub client; the first real run is pending. Prompt versions go in `docs/decisions.md`.)
 6. Build the classification pass and the job worker. (Classification pass written and tried on 100 reviews with Haiku 5.5 and Sonnet 5.5; a full run of the Cochon reviews is done (run 73, Haiku, about $0.70). The Batch API option and the worker are still to do. Prompt versions go in `docs/decisions.md`.)
 7. Upload the second dataset through the normal user flow and run the full pipeline on it to prove the engine generalizes.

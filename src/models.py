@@ -190,6 +190,15 @@ class AnalysisRun(Base):
     __table_args__ = (
         # Lets the worker find the oldest queued job quickly.
         Index("ix_analysis_runs_status_created_at", "status", "created_at"),
+        # At most one waiting run of each type per entity. An upload that finds one reuses it
+        # instead of queueing another, and this makes that safe when two uploads arrive together.
+        Index(
+            "uq_analysis_runs_entity_type_queued",
+            "entity_id",
+            "type",
+            unique=True,
+            postgresql_where=sql_text("status = 'queued'"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
