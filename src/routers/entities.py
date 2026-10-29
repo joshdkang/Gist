@@ -11,7 +11,7 @@ from config import settings
 from database import get_db
 from entities import create_entity
 from models import AnalysisRun, Entity, Import, Review, User
-from queueing import ACTIVE_STATUSES
+from queueing import ACTIVE_STATUSES, is_analysis_run
 from schemas import EntityCreate, EntityDetail, EntityOut, EntityUpdate, RunOut
 
 router = APIRouter(prefix="/entities", tags=["entities"])
@@ -78,7 +78,7 @@ async def read(
     )
     latest_run = await db.scalar(
         select(AnalysisRun)
-        .where(AnalysisRun.entity_id == entity.id)
+        .where(AnalysisRun.entity_id == entity.id, is_analysis_run())
         .order_by(AnalysisRun.id.desc())
         .limit(1)
     )

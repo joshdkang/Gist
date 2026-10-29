@@ -15,7 +15,7 @@ arriving together can't both queue one: the loser catches the conflict and reuse
 from dataclasses import dataclass
 from datetime import timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, exists, func, not_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +23,29 @@ from discover_themes import MIN_SAMPLE_SIZE
 from models import AnalysisRun, Entity, Review, RunStatus, RunType, Theme, ThemeKind
 
 ACTIVE_STATUSES = (RunStatus.QUEUED, RunStatus.RUNNING)
+
+
+def is_analysis_run():
+    """A classify run or a real discovery, as opposed to the other work the scripts log in `analysis_runs`.
+
+    consolidate_themes.py records its consolidation as a `discover` run whose `error` starts with
+    "Consolidation", and dry runs of classify_reviews.py start with "Dry run". A discovery that
+    succeeded counts only if it saved themes, because discover_themes.py writes a report without
+    saving by default. A queued, running, or failed run counts, so a user sees a failure.
+    """
+    is_script_note = func.coalesce(
+        or_(AnalysisRun.error.startswith("Consolidation"), AnalysisRun.error.startswith("Dry run")),
+        False,
+    )
+    saved_themes = exists().where(Theme.discovered_in_run_id == AnalysisRun.id)
+    return and_(
+        not_(is_script_note),
+        or_(
+            AnalysisRun.type == RunType.CLASSIFY,
+            AnalysisRun.status != RunStatus.SUCCEEDED,
+            saved_themes,
+        ),
+    )
 
 
 @dataclass
