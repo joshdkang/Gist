@@ -229,3 +229,18 @@ Roadmap step 4. The design was reviewed before it was built; these are the choic
 - **Tested** over HTTP with tokens from a generated key and a rolled-back database: sign-in required on every endpoint, every access case (owner, other user, public sample), validation, each limit, each error status, discovery and classify coalescing including the running case, the unique-index race, run status and imports lists, and delete with cascade.
 - **`latest_run` on an entity** is the latest classify run or real discovery, not simply the newest row. The scripts log other work in `analysis_runs`: consolidation as a `discover` run whose `error` starts with "Consolidation" (three wordings exist, from earlier versions), and dry runs of `classify_reviews.py` starting with "Dry run". A succeeded discovery counts only if it saved themes, since `discover_themes.py` writes a report without saving by default. Queued, running, and failed runs always count so a user sees a failure. Cochon's `latest_run` is now its full classification (run 73). `GET /entities/{id}/runs` still lists every row. A distinct run type for consolidation would remove the need for this filter, and it would also stop a running consolidation from looking like an active discovery to `queueing.py`; that change is left for the worker step.
 
+### Stability check on prompt v6 (2026-10-29)
+
+Two independent discoveries on Cochon (runs 190 and 191, 120 reviews per rating level, 600 reviews each, Sonnet 5.5, nothing saved). Both returned 15 themes. Run 191 needed the retry (235k input tokens against 119k for run 190), so the pair cost about 354k input tokens.
+
+**13 of the topics match across the two runs.** Same topic, near-identical names: service and attentiveness, host and seating, reservations and wait times, fried alligator, wood-fired oysters, the Louisiana cochon dish, rabbit and dumplings, pork dishes (smoked meats in one run, cheeks, ribs and charcuterie in the other), saltiness and seasoning, price and portions, hype and expectations, and ambiance and noise. The sides, bread and desserts area is one theme in run 191 and two in run 190 (mac and cheese and sides, and bread, desserts and starters), so it counts as one match with a granularity difference.
+
+**Three topics appear in only one run:**
+- Cocktails and bar (run 190 only). A keyword count puts drinks and bar at about 21% of all reviews, so it clears the threshold and run 191 missed it.
+- Pace of service (run 191 only), which run 190 may have folded into reservations and wait times.
+- Dietary restrictions and vegetarian options (run 191 only). The keyword count puts dietary needs at about 2%, under the 5% threshold, so run 191 probably included a topic it should have dropped.
+
+**Reading.** The stability is good, better than any earlier pair (7 to 9 of 12), and every disagreement is at the edge of the threshold or a grouping choice, not a different reading of the reviews. The saved themes (run 46) already agree with these lists. Both runs again returned exactly 15, so the cap may still be acting as a target even with the numeric threshold.
+
+**Known weakness.** The samples are not fully independent: Cochon has only 168 one-star and 256 two-star reviews, so both runs share them whole. The check should be repeated on the second dataset (roadmap step 7), ideally one with more reviews per rating level or no ratings.
+
