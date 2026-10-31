@@ -244,3 +244,25 @@ Two independent discoveries on Cochon (runs 190 and 191, 120 reviews per rating 
 
 **Known weakness.** The samples are not fully independent: Cochon has only 168 one-star and 256 two-star reviews, so both runs share them whole. The check should be repeated on the second dataset (roadmap step 7), ideally one with more reviews per rating level or no ratings.
 
+## Worker design decisions (2026-10-30)
+
+Decided before building roadmap step 6:
+
+- **The Batch API is dropped.** A batch can take hours, and a user waiting for results won't accept that for a 50% discount. Classification stays on direct requests with Haiku (Cochon's 4,480 reviews cost about $0.70). `CLAUDE.md` no longer lists it.
+- **Consolidation gets its own run type, `consolidate`.** It is currently logged as a `discover` run whose `error` holds a marker, which is why `latest_run` needs a filter and why a running consolidation looks like an active discovery to `queueing.py`. The migration converts the existing consolidation rows (runs 118, 119, 161) by their markers, and `consolidate_themes.py` and the filter in `queueing.py` follow.
+- **One running and one queued run per entity.** The limit is on the entity as a whole, not per type. It replaces the per-type unique index on queued runs with `UNIQUE (entity_id) WHERE status = 'queued'`, next to `UNIQUE (entity_id) WHERE status = 'running'`.
+- **Stuck runs** are detected with a heartbeat the worker updates while a job runs; a run whose heartbeat is stale is put back in the queue. Column name to be settled when it is built (proposed: `heartbeat_at`).
+
+### One `analyze` job, steps, and the worker (2026-10-30)
+
+Roadmap step 6. The three job types in the earlier design (discover, classify, consolidate) became one, `analyze`, which inspects the entity when it runs and does whatever is needed, in order. This replaces the claim-time re-check, the chained classify, the "reconcile after every run" rule, and the `consolidate` run type for worker runs: the state is read when the job runs, so none of them is needed.
+
+- **Steps.** `run_steps` records each step with its own model, tokens, and outcome (the cost log is the sum of steps by model). It replaces the markers that were kept in `analysis_runs.error` ("Consolidation applied.", "Dry run: ..."): the last applied consolidation is the latest consolidate step with outcome `applied`, and `latest_run` leaves out steps whose outcome is `dry run`, `report only`, or `proposed`. The migration (`9d3b6e1f4a82`, rehearsed on the real data and rolled back first) gave every existing run one step, turned the three consolidation rows (runs 118, 119, 161) into `consolidate` runs, and kept tokens and counts exactly. The promote step's model is the rewrite model, and its tokens include the cheap description calls.
+- **One running and one queued run per entity**, for any type, by partial unique indexes. A script that tries to start a run on an entity that has one going gets a clear refusal instead of overlapping with it.
+- **Cooldown.** A step that failed is not tried again for one hour (`FAILED_STEP_COOLDOWN`). During it the step is recorded as `skipped`, the job finishes as succeeded with a note, and the steps after it still run. A step that fails stops the job, since later steps depend on it or would fail the same way. A failed discovery is not retried by the worker (it was tried and dropped: the step already retries once when the model's answer is invalid, and a worker-level retry could double that cost); the job ends, classification doesn't run, and the cooldown applies.
+- **Heartbeat** (`heartbeat_at`, every 15 seconds, stale after 2 minutes) instead of a column named for the crash: a stale heartbeat is how a crash is detected. A worker job whose worker stopped goes back in the queue, unless the entity already has one waiting, in which case it is marked failed. A script's run is marked failed. Open steps of a stale run are marked failed.
+- **Progress.** The classify step updates `reviews_processed` after each saved chunk, so `GET /entities/{id}/runs/{run_id}` shows how far it has got.
+- **Batch API dropped:** it can take hours, which is not worth a 50% discount for someone waiting on results.
+- **Tested** with a stub client against a rolled-back database: too few reviews, the whole pipeline (discover, classify, consolidate, promote, with totals equal to the sum of steps), a job with nothing to do, a failed step and its cooldown including retrying after it, a failed discovery, claiming around a busy entity, a script refused on a busy entity, stale runs of every kind, and the heartbeat on real connections (with a throwaway entity that is deleted again). The earlier endpoint and pipeline checks were updated and pass.
+- **Not tested:** the worker against the real API, and two worker processes claiming at once (`SKIP LOCKED` and the unique index are the safeguards, but a single test connection can't show that).
+

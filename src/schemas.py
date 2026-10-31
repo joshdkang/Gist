@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from models import Entity, ImportStatus, RunStatus, RunType
+from models import Entity, ImportStatus, RunStatus, RunType, StepKind, StepStatus
 
 MAX_METADATA_BYTES = 10 * 1024
 
@@ -69,6 +69,27 @@ class RunOut(BaseModel):
     completed_at: datetime | None
 
 
+class StepOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    kind: StepKind
+    status: StepStatus
+    model: str | None
+    outcome: str | None
+    reviews_processed: int  # for a classify step that is running, how many are done so far
+    input_tokens: int
+    output_tokens: int
+    error: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+
+
+class RunDetail(RunOut):
+    """A run with the steps it has taken so far, in order."""
+    steps: list[StepOut]
+
+
 class EntityOut(BaseModel):
     id: int
     name: str
@@ -95,7 +116,7 @@ class EntityOut(BaseModel):
 
 class EntityDetail(EntityOut):
     import_count: int
-    latest_run: RunOut | None
+    latest_run: RunDetail | None
 
 
 class ImportOut(BaseModel):

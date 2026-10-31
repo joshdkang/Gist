@@ -27,7 +27,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from database import async_session_maker, engine
-from models import AnalysisRun, Entity, Review, RunStatus, RunType, Theme, ThemeKind
+from models import AnalysisRun, Entity, Review, RunStatus, RunType, StepKind, Theme, ThemeKind
+from tracking import begin_step, set_step_outcome
 
 MODEL = "claude-sonnet-5-5"
 PROMPT_VERSION = 6  # see docs/decisions.md
@@ -235,26 +236,26 @@ async def request_themes(
 
 
 async def run_discovery(
-    db: AsyncSession, client: AsyncAnthropic, entity: Entity, per_level: int = SAMPLE_PER_LEVEL
+    db: AsyncSession,
+    client: AsyncAnthropic,
+    entity: Entity,
+    per_level: int = SAMPLE_PER_LEVEL,
+    run: AnalysisRun | None = None,
 ) -> tuple[AnalysisRun, DiscoveryResult, list[SampledReview]]:
-    """Sample, ask the model, and record the run (status, tokens, errors) in analysis_runs.
+    """Sample, ask the model, and record the step (status, tokens, errors) in run_steps.
 
-    On failure the session is rolled back before the failed run is recorded, so objects loaded
+    Inside a worker job, pass the job as `run`. Without one, the step gets a run of its own. The
+    outcome is "report only" until the themes are saved (save_discovered_themes).
+
+    On failure the session is rolled back before the failed step is recorded, so objects loaded
     earlier (such as the entity) are expired and need refreshing before reuse.
     """
-    run = AnalysisRun(
-        entity_id=entity.id,
-        type=RunType.DISCOVER,
-        status=RunStatus.RUNNING,
-        model=MODEL,
-        started_at=datetime.now(UTC),
-    )
-    db.add(run)
-    await db.commit()
+    entity_id = entity.id
+    tracked = await begin_step(db, entity_id, StepKind.DISCOVER, MODEL, run)
 
     usage = TokenUsage()
     try:
-        sample = await fetch_sample(db, entity.id, per_level)
+        sample = await fetch_sample(db, entity_id, per_level)
         if len(sample) < MIN_SAMPLE_SIZE:
             raise RuntimeError(
                 f"Too few reviews to find themes: {len(sample)} sampled, at least "
@@ -262,22 +263,17 @@ async def run_discovery(
             )
         result = await request_themes(client, entity, sample, usage)
     except Exception as error:
-        await db.rollback()
-        run.status = RunStatus.FAILED
-        run.error = str(error)
-        run.input_tokens = usage.input_tokens
-        run.output_tokens = usage.output_tokens
-        run.completed_at = datetime.now(UTC)
-        await db.commit()
+        await tracked.fail(db, error, input_tokens=usage.input_tokens, output_tokens=usage.output_tokens)
         raise
 
-    run.status = RunStatus.SUCCEEDED
-    run.reviews_processed = len(sample)
-    run.input_tokens = usage.input_tokens
-    run.output_tokens = usage.output_tokens
-    run.completed_at = datetime.now(UTC)
-    await db.commit()
-    return run, result, sample
+    await tracked.succeed(
+        db,
+        reviews_processed=len(sample),
+        input_tokens=usage.input_tokens,
+        output_tokens=usage.output_tokens,
+        outcome="report only",
+    )
+    return tracked.run, result, sample
 
 
 async def has_discovered_themes(db: AsyncSession, entity_id: int) -> bool:
@@ -305,6 +301,7 @@ async def save_discovered_themes(
             for theme in result.themes
         ],
     )
+    await set_step_outcome(db, run_id, StepKind.DISCOVER, "saved")
     await db.commit()
 
 

@@ -44,12 +44,12 @@ from models import (
     Entity,
     Review,
     ReviewTheme,
-    RunStatus,
-    RunType,
     Sentiment,
+    StepKind,
     Theme,
     ThemeKind,
 )
+from tracking import begin_step
 
 MODEL = "claude-haiku-5-5"  # the cheapest model; compare against Sonnet with --model
 PROMPT_VERSION = 4  # see docs/decisions.md
@@ -444,11 +444,13 @@ async def run_classification(
     seed: str = "0",
     dry_run: bool = False,
     include_processed: bool = False,
+    run: AnalysisRun | None = None,
 ) -> tuple[AnalysisRun, ClassificationOutcome, ThemeSet]:
     """Classify the entity's unprocessed reviews, saving each chunk as it finishes.
 
+    Inside a worker job, pass the job as `run`. Without one, the step gets a run of its own.
     Because chunks are committed one by one, a failed or interrupted run keeps its progress and a
-    re-run picks up where it stopped. On failure the session is rolled back before the failed run
+    re-run picks up where it stopped. On failure the session is rolled back before the failed step
     is recorded, so objects loaded earlier (such as the entity) are expired.
     """
     if include_processed and not dry_run:
@@ -458,16 +460,8 @@ async def run_classification(
     system_prompt = build_system_prompt(entity, themes)
     schema = build_output_schema(themes)
 
-    run = AnalysisRun(
-        entity_id=entity_id,
-        type=RunType.CLASSIFY,
-        status=RunStatus.RUNNING,
-        model=model,
-        started_at=datetime.now(UTC),
-    )
-    db.add(run)
-    await db.commit()
-    run_id = run.id
+    tracked = await begin_step(db, entity_id, StepKind.CLASSIFY, model, run)
+    run_id = tracked.run.id
     general_id = themes.general.id
 
     outcome = ClassificationOutcome()
@@ -510,6 +504,7 @@ async def run_classification(
                 if not dry_run:
                     chunk_result = [await resolve_review(review, resolver) for review in chunk_result]
                     await save_classifications(db, run_id, chunk_result)
+                    await tracked.progress(db, len(outcome.classified) + len(chunk_result))
                 outcome.classified.extend(chunk_result)
         except BaseException:
             for task in tasks:
@@ -522,23 +517,20 @@ async def run_classification(
             )
             outcome.theme_info = {theme_id: (name, kind) for theme_id, name, kind in rows.all()}
     except Exception as error:
-        await db.rollback()
-        run.status = RunStatus.FAILED
-        run.error = str(error)
-        run.reviews_processed = len(outcome.classified)
-        run.input_tokens = outcome.usage.input_tokens
-        run.output_tokens = outcome.usage.output_tokens
-        run.completed_at = datetime.now(UTC)
-        await db.commit()
+        await tracked.fail(
+            db,
+            error,
+            reviews_processed=len(outcome.classified),
+            input_tokens=outcome.usage.input_tokens,
+            output_tokens=outcome.usage.output_tokens,
+        )
         raise
 
     warnings = []
     if outcome.fallbacks:
         counts = Counter(review.fallback for review in outcome.fallbacks)
         warnings.append("Assigned to `general` by code: " + ", ".join(f"{n} ({why})" for why, n in counts.items()))
-    if dry_run:
-        warnings.append("Dry run: tags were not saved.")
-    else:
+    if not dry_run:
         # Give the candidates this run created real descriptions. A failure here is only a warning.
         from describe_themes import describe_candidates  # imported here: it imports this module
 
@@ -550,16 +542,18 @@ async def run_classification(
                 warnings.append(f"{described.missing} candidates still have a placeholder description")
         except Exception as error:
             await db.rollback()
-            await db.refresh(run)
+            await db.refresh(tracked.run)
+            await db.refresh(tracked.step)
             warnings.append(f"Candidate descriptions failed: {error}")
-    run.status = RunStatus.SUCCEEDED
-    run.reviews_processed = len(outcome.classified)
-    run.input_tokens = outcome.usage.input_tokens
-    run.output_tokens = outcome.usage.output_tokens
-    run.error = "; ".join(warnings) or None  # warnings only; a succeeded run has no error
-    run.completed_at = datetime.now(UTC)
-    await db.commit()
-    return run, outcome, themes
+    await tracked.succeed(
+        db,
+        reviews_processed=len(outcome.classified),
+        input_tokens=outcome.usage.input_tokens,
+        output_tokens=outcome.usage.output_tokens,
+        outcome="dry run" if dry_run else "saved",
+        warnings="; ".join(warnings) or None,  # notes on a step that worked; a succeeded step has no error
+    )
+    return tracked.run, outcome, themes
 
 
 def build_report(

@@ -29,8 +29,10 @@ class ImportStatus(enum.StrEnum):
 
 
 class RunType(enum.StrEnum):
-    DISCOVER = "discover"
+    ANALYZE = "analyze"          # a worker job: looks at the entity and does whatever it needs, step by step
+    DISCOVER = "discover"        # the kinds below are runs a script made for a single step
     CLASSIFY = "classify"
+    CONSOLIDATE = "consolidate"
 
 
 class RunStatus(enum.StrEnum):
@@ -38,6 +40,20 @@ class RunStatus(enum.StrEnum):
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+
+
+class StepKind(enum.StrEnum):
+    DISCOVER = "discover"        # find the first themes from a sample
+    CLASSIFY = "classify"        # tag the reviews that have no tags
+    CONSOLIDATE = "consolidate"  # group overlapping candidates
+    PROMOTE = "promote"          # describe candidates and make the ones enough reviews raise discovered themes
+
+
+class StepStatus(enum.StrEnum):
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    SKIPPED = "skipped"          # not attempted, for example during the cooldown after a failure
 
 
 class ThemeKind(enum.StrEnum):
@@ -190,14 +206,19 @@ class AnalysisRun(Base):
     __table_args__ = (
         # Lets the worker find the oldest queued job quickly.
         Index("ix_analysis_runs_status_created_at", "status", "created_at"),
-        # At most one waiting run of each type per entity. An upload that finds one reuses it
-        # instead of queueing another, and this makes that safe when two uploads arrive together.
+        # One entity has at most one run waiting and one running, whatever their type. An upload that
+        # finds a waiting run reuses it, and this makes that safe when two uploads arrive together.
         Index(
-            "uq_analysis_runs_entity_type_queued",
+            "uq_analysis_runs_entity_queued",
             "entity_id",
-            "type",
             unique=True,
             postgresql_where=sql_text("status = 'queued'"),
+        ),
+        Index(
+            "uq_analysis_runs_entity_running",
+            "entity_id",
+            unique=True,
+            postgresql_where=sql_text("status = 'running'"),
         ),
     )
 
@@ -215,6 +236,34 @@ class AnalysisRun(Base):
     input_tokens: Mapped[int] = mapped_column(default=0)
     output_tokens: Mapped[int] = mapped_column(default=0)
     error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = created_at_column()
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The worker updates this while a job runs. A running run whose heartbeat is old belongs to a
+    # worker that stopped, and is put back in the queue.
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class RunStep(Base):
+    """One piece of work inside a run, with its own model and token counts. An analyze run has one step
+    for each thing it did; a run a script made has one. The cost log is the sum of these, by model."""
+    __tablename__ = "run_steps"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[int] = mapped_column(
+        ForeignKey("analysis_runs.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[StepKind] = mapped_column(string_enum(StepKind))
+    status: Mapped[StepStatus] = mapped_column(string_enum(StepStatus), default=StepStatus.RUNNING)
+    model: Mapped[str | None]
+    # What the step did with its result: classify "saved" or "dry run"; discover "saved" or "report only"
+    # (a report is written without saving the themes); consolidate "applied" or "proposed" (groups found,
+    # nothing merged); promote "promoted". Null while running, after a failure, and when skipped.
+    outcome: Mapped[str | None]
+    reviews_processed: Mapped[int] = mapped_column(default=0)
+    input_tokens: Mapped[int] = mapped_column(default=0)
+    output_tokens: Mapped[int] = mapped_column(default=0)
+    error: Mapped[str | None] = mapped_column(Text)  # the failure, or the warnings of a succeeded step
     created_at: Mapped[datetime] = created_at_column()
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

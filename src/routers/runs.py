@@ -5,10 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from access import get_readable_entity
 from database import get_db
-from models import AnalysisRun, Entity, RunStatus
-from schemas import RunOut
+from models import AnalysisRun, Entity, RunStatus, RunStep
+from schemas import RunDetail, RunOut, StepOut
 
 router = APIRouter(prefix="/entities/{entity_id}/runs", tags=["runs"])
+
+
+async def run_detail(db: AsyncSession, run: AnalysisRun) -> RunDetail:
+    steps = await db.scalars(select(RunStep).where(RunStep.run_id == run.id).order_by(RunStep.id))
+    return RunDetail(
+        **RunOut.model_validate(run).model_dump(),
+        steps=[StepOut.model_validate(step) for step in steps],
+    )
 
 
 @router.get("", response_model=list[RunOut])
@@ -26,7 +34,7 @@ async def list_runs(
     return list(runs)
 
 
-@router.get("/{run_id}", response_model=RunOut)
+@router.get("/{run_id}", response_model=RunDetail)
 async def read_run(
     run_id: int,
     entity: Entity = Depends(get_readable_entity),
@@ -35,4 +43,4 @@ async def read_run(
     run = await db.get(AnalysisRun, run_id)
     if run is None or run.entity_id != entity.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Run not found.")
-    return run
+    return await run_detail(db, run)

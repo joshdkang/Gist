@@ -12,7 +12,8 @@ from database import get_db
 from entities import create_entity
 from models import AnalysisRun, Entity, Import, Review, User
 from queueing import ACTIVE_STATUSES, is_analysis_run
-from schemas import EntityCreate, EntityDetail, EntityOut, EntityUpdate, RunOut
+from routers.runs import run_detail
+from schemas import EntityCreate, EntityDetail, EntityOut, EntityUpdate
 
 router = APIRouter(prefix="/entities", tags=["entities"])
 
@@ -86,7 +87,7 @@ async def read(
     return EntityDetail(
         **base.model_dump(),
         import_count=import_count,
-        latest_run=RunOut.model_validate(latest_run) if latest_run else None,
+        latest_run=await run_detail(db, latest_run) if latest_run else None,
     )
 
 

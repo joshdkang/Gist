@@ -27,7 +27,7 @@ import asyncio
 import json
 import sys
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -41,8 +41,19 @@ import classify_reviews as classify
 import discover_themes as discover
 from config import settings
 from database import async_session_maker, engine
-from describe_themes import describe_candidates, refine_description
-from models import AnalysisRun, Entity, ReviewTheme, RunStatus, RunType, Theme, ThemeKind
+from describe_themes import DescribeSummary, describe_candidates, refine_description
+from models import (
+    AnalysisRun,
+    Entity,
+    ReviewTheme,
+    RunStatus,
+    RunStep,
+    StepKind,
+    StepStatus,
+    Theme,
+    ThemeKind,
+)
+from tracking import begin_step, set_step_outcome
 
 PROMPT_VERSION = 2  # see docs/decisions.md
 # A candidate becomes a theme when this share of classified reviews raise it, but never fewer
@@ -55,9 +66,6 @@ PROMOTE_MIN_REVIEWS = 25
 # same however many candidates are new, so waiting for a batch saves money.
 CONSOLIDATE_MIN_NEW_SHARE = 0.01
 CONSOLIDATE_MIN_NEW_CANDIDATES = 15
-# Markers kept in analysis_runs.error so the last applied consolidation can be found later.
-PROPOSED_NOTE = "Consolidation proposed, not applied."
-APPLIED_NOTE = "Consolidation applied."
 MAX_CANDIDATES_SHOWN = 1500  # the most common ones; a longer tail is left for a later pass
 OUTPUT_DIR = Path(__file__).parent / "themes"
 
@@ -178,16 +186,18 @@ async def candidate_share(db: AsyncSession, entity_id: int) -> tuple[int, int]:
     return candidate_reviews, classified_reviews
 
 
-async def last_applied_consolidation(db: AsyncSession, entity_id: int) -> AnalysisRun | None:
+async def last_applied_consolidation(db: AsyncSession, entity_id: int) -> RunStep | None:
+    """The latest consolidate step whose groups were applied (its outcome is "applied")."""
     return await db.scalar(
-        select(AnalysisRun)
+        select(RunStep)
+        .join(AnalysisRun, AnalysisRun.id == RunStep.run_id)
         .where(
             AnalysisRun.entity_id == entity_id,
-            AnalysisRun.type == RunType.DISCOVER,
-            AnalysisRun.status == RunStatus.SUCCEEDED,
-            AnalysisRun.error == APPLIED_NOTE,
+            RunStep.kind == StepKind.CONSOLIDATE,
+            RunStep.status == StepStatus.SUCCEEDED,
+            RunStep.outcome == "applied",
         )
-        .order_by(AnalysisRun.id.desc())
+        .order_by(RunStep.id.desc())
         .limit(1)
     )
 
@@ -226,7 +236,7 @@ async def trigger_status(db: AsyncSession, entity_id: int) -> TriggerStatus:
         new_candidates=len(new_ids),
         new_candidate_reviews=new_candidate_reviews,
         consolidate_threshold=max(CONSOLIDATE_MIN_NEW_CANDIDATES, round(CONSOLIDATE_MIN_NEW_SHARE * classified_reviews)),
-        last_consolidation_run_id=last.id if last else None,
+        last_consolidation_run_id=last.run_id if last else None,
         promotable=[candidate.name for candidate in candidates if candidate.reviews >= promote_threshold],
         promote_threshold=promote_threshold,
     )
@@ -352,11 +362,19 @@ async def request_consolidation(
 
 
 async def run_consolidation(
-    db: AsyncSession, client: AsyncAnthropic, entity: Entity, *, force: bool = False
+    db: AsyncSession,
+    client: AsyncAnthropic,
+    entity: Entity,
+    *,
+    force: bool = False,
+    run: AnalysisRun | None = None,
 ) -> ConsolidationOutcome:
     """Decide whether to consolidate and, if so, ask the model for groups (nothing is changed yet).
 
-    On failure the session is rolled back before the failed run is recorded, so objects loaded
+    Inside a worker job, pass the job as `run`. Without one, the step gets a run of its own. The
+    step's outcome is "proposed" until apply_consolidation merges the groups.
+
+    On failure the session is rolled back before the failed step is recorded, so objects loaded
     earlier (such as the entity) are expired and need refreshing before reuse.
     """
     entity_id = entity.id
@@ -372,15 +390,7 @@ async def run_consolidation(
         )
         return outcome
 
-    run = AnalysisRun(
-        entity_id=entity_id,
-        type=RunType.DISCOVER,
-        status=RunStatus.RUNNING,
-        model=discover.MODEL,
-        started_at=datetime.now(UTC),
-    )
-    db.add(run)
-    await db.commit()
+    tracked = await begin_step(db, entity_id, StepKind.CONSOLIDATE, discover.MODEL, run)
 
     usage = discover.TokenUsage()
     try:
@@ -401,21 +411,17 @@ async def run_consolidation(
             client, entity, established, candidates, promote_min_reviews(classified_reviews), usage
         )
     except Exception as error:
-        await db.rollback()
-        run.status = RunStatus.FAILED
-        run.error = str(error)
-        run.input_tokens, run.output_tokens = usage.input_tokens, usage.output_tokens
-        run.completed_at = datetime.now(UTC)
-        await db.commit()
+        await tracked.fail(db, error, input_tokens=usage.input_tokens, output_tokens=usage.output_tokens)
         raise
 
-    run.status = RunStatus.SUCCEEDED
-    run.reviews_processed = len(candidates)
-    run.input_tokens, run.output_tokens = usage.input_tokens, usage.output_tokens
-    run.error = PROPOSED_NOTE
-    run.completed_at = datetime.now(UTC)
-    await db.commit()
-    outcome.run, outcome.result, outcome.candidates = run, result, candidates
+    await tracked.succeed(
+        db,
+        reviews_processed=len(candidates),
+        input_tokens=usage.input_tokens,
+        output_tokens=usage.output_tokens,
+        outcome="proposed",
+    )
+    outcome.run, outcome.result, outcome.candidates = tracked.run, result, candidates
     return outcome
 
 
@@ -429,6 +435,8 @@ class ApplySummary:
     refined: list[str] = field(default_factory=list)  # promoted themes whose description was rewritten
     refine_failed: list[str] = field(default_factory=list)  # promoted themes that kept their old description
     not_promoted_without_description: list[str] = field(default_factory=list)
+    input_tokens: int = 0  # the description and rewrite calls made after merging
+    output_tokens: int = 0
 
 
 async def apply_consolidation(
@@ -482,7 +490,7 @@ async def apply_consolidation(
         if theme and theme.kind == ThemeKind.CANDIDATE and theme.merged_into_id is None:
             theme.description = item.description.strip()
             summary.described += 1
-    await db.execute(update(AnalysisRun).where(AnalysisRun.id == run_id).values(error=APPLIED_NOTE))
+    await set_step_outcome(db, run_id, StepKind.CONSOLIDATE, "applied")
     await db.commit()
     return summary
 
@@ -501,6 +509,7 @@ async def promote_candidates(
     threshold = promote_min_reviews(classified_reviews)
     counts = await classify.candidate_review_counts(db, entity_id)
     promoted: list[tuple[int, str]] = []
+    usage = DescribeSummary()
     for candidate in await list_candidates(db, entity_id):
         if counts.get(candidate.id, 0) < threshold:
             continue
@@ -515,11 +524,13 @@ async def promote_candidates(
         return
     for theme_id, name in promoted:
         try:
-            refined = await refine_description(db, client, entity_id, theme_id)
+            refined = await refine_description(db, client, entity_id, theme_id, summary=usage)
         except Exception:
             await db.rollback()
             refined = None
         (summary.refined if refined else summary.refine_failed).append(name)
+    summary.input_tokens += usage.input_tokens
+    summary.output_tokens += usage.output_tokens
 
 
 async def describe_and_promote(
@@ -528,6 +539,8 @@ async def describe_and_promote(
     """Give the candidates real descriptions, then promote (promotion needs a real description)."""
     described = await describe_candidates(db, client, entity_id)
     summary.described += described.described
+    summary.input_tokens += described.input_tokens
+    summary.output_tokens += described.output_tokens
     if promote:
         await promote_candidates(db, entity_id, summary, client)
 
