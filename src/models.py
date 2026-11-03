@@ -46,6 +46,7 @@ class StepKind(enum.StrEnum):
     DISCOVER = "discover"        # find the first themes from a sample
     CLASSIFY = "classify"        # tag the reviews that have no tags
     CONSOLIDATE = "consolidate"  # group overlapping candidates
+    CONFIRM = "confirm"          # check the first themes against the classification and demote the ones too few reviews raise
     PROMOTE = "promote"          # describe candidates and make the ones enough reviews raise discovered themes
 
 
@@ -198,6 +199,10 @@ class Theme(Base):
     merged_in_run_id: Mapped[int | None] = mapped_column(
         ForeignKey("analysis_runs.id", ondelete="SET NULL")
     )
+    # True for themes saved by discovery until the first classification has finished: the model
+    # judged them from a sample, so confirm_themes checks them against every review's tags and
+    # demotes the ones too few reviews raise to candidates.
+    provisional: Mapped[bool] = mapped_column(default=False, server_default=sql_text("false"))
 
 
 class AnalysisRun(Base):

@@ -54,7 +54,10 @@ from tracking import begin_step
 MODEL = "claude-haiku-5-5"  # the cheapest model; compare against Sonnet with --model
 PROMPT_VERSION = 4  # see docs/decisions.md
 CHUNK_SIZE = 20  # reviews per request
-CONCURRENCY = 5  # requests in flight at once
+# Requests in flight at once. Each chunk takes about 24 seconds and writes about 6,600 tokens (the
+# model's thinking included), so 5 at a time came to about 80,000 output tokens a minute, which
+# hit a 429 at the organization's limit of 80,000. 3 keeps it near 50,000.
+CONCURRENCY = 3
 MAX_REVIEW_CHARS = 1000
 MAX_OUTPUT_TOKENS = 8000  # includes the model's adaptive thinking
 MAX_ATTEMPTS = 2
@@ -212,8 +215,9 @@ async def load_theme_set(
     ).all()
     discovered = [t for t in themes if t.kind == ThemeKind.DISCOVERED and t.merged_into_id is None]
     general = next((t for t in themes if t.kind == ThemeKind.GENERAL), None)
-    if not discovered:
-        raise RuntimeError("This entity has no discovered themes yet; run discovery first.")
+    # Confirming themes can demote every discovered theme to a candidate, so candidates count too.
+    if not any(t.kind != ThemeKind.GENERAL for t in themes):
+        raise RuntimeError("This entity has no themes yet; run discovery first.")
     if general is None:
         raise RuntimeError("This entity is missing its `general` theme.")
     counts = await candidate_review_counts(db, entity_id)
@@ -231,7 +235,7 @@ def build_system_prompt(entity: Entity, themes: ThemeSet) -> str:
     subject = f"{entity.name} ({entity.description})" if entity.description else entity.name
     discovered_list = "\n".join(
         f"- id {theme.id}, {theme.name}: {theme.description}" for theme in themes.discovered
-    )
+    ) or "(none yet)"
     candidate_section = ""
     if themes.candidates:
         candidate_list = "\n".join(f"- id {theme.id}, {theme.name}" for theme in themes.candidates)

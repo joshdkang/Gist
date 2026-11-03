@@ -22,16 +22,27 @@ from pathlib import Path
 
 from anthropic import AsyncAnthropic, transform_schema
 from pydantic import BaseModel, Field, ValidationError, model_validator
-from sqlalchemy import func, insert, select
+from sqlalchemy import exists, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from database import async_session_maker, engine
-from models import AnalysisRun, Entity, Review, RunStatus, RunType, StepKind, Theme, ThemeKind
+from models import (
+    AnalysisRun,
+    Entity,
+    Review,
+    RunStatus,
+    RunStep,
+    RunType,
+    StepKind,
+    StepStatus,
+    Theme,
+    ThemeKind,
+)
 from tracking import begin_step, set_step_outcome
 
 MODEL = "claude-sonnet-5-5"
-PROMPT_VERSION = 6  # see docs/decisions.md
+PROMPT_VERSION = 7  # see docs/decisions.md
 MIN_THEMES = 5  # loose limits: the reviews decide the count
 MAX_THEMES = 15
 # A theme must be raised by at least this share of the sampled reviews, but never by fewer than
@@ -81,7 +92,7 @@ SYSTEM_PROMPT_TEMPLATE = """You analyze customer reviews of {subject}.
 Identify the themes that recur in a significant share of the reviews. A theme must be raised
 by at least {min_reviews} of the {sample_size} reviews below ({min_share_percent}% of them).
 Let the reviews decide how many themes there are, between 5 and 15. The goal is not the most
-themes but the ones that matter, and fewer than 15 is the expected result. Together the themes
+themes but the ones that matter. Together the themes
 should cover the distinct aspects of the experience that customers discuss.
 
 """ + THEME_RULES
@@ -297,12 +308,33 @@ async def save_discovered_themes(
                 "name": theme.name.strip(),
                 "description": theme.description.strip(),
                 "discovered_in_run_id": run_id,
+                "provisional": True,
             }
             for theme in result.themes
         ],
     )
     await set_step_outcome(db, run_id, StepKind.DISCOVER, "saved")
     await db.commit()
+
+
+async def discovery_saved(db: AsyncSession, entity_id: int) -> bool:
+    """Whether themes from a discovery were ever saved for the entity.
+
+    The saved discover step is the record. It outlives the themes: confirm_themes can demote
+    every one of them, and the worker must not discover again when that happens.
+    """
+    return bool(
+        await db.scalar(
+            select(
+                exists().where(
+                    RunStep.kind == StepKind.DISCOVER,
+                    RunStep.status == StepStatus.SUCCEEDED,
+                    RunStep.outcome == "saved",
+                    RunStep.run_id.in_(select(AnalysisRun.id).where(AnalysisRun.entity_id == entity_id)),
+                )
+            )
+        )
+    )
 
 
 def build_report(

@@ -5,10 +5,11 @@
 Every job is the same kind, `analyze`. When it runs, it looks at the entity's state and does
 whatever is needed, in order, one recorded step each (see run_steps):
 
-1. discover: if the entity has no discovered themes yet (needs at least 50 reviews);
+1. discover: if themes were never discovered for the entity (needs at least 50 reviews);
 2. classify: if any review has no tags;
-3. consolidate: if enough new candidate themes have piled up;
-4. promote: if any candidate is raised by enough reviews.
+3. confirm: once every review is tagged, demote the discovered themes too few reviews raise;
+4. consolidate: if enough new candidate themes have piled up;
+5. promote: if any candidate is raised by enough reviews.
 
 Because the job reads the state when it runs, it never acts on a stale decision: an upload only has to
 make sure a job is waiting (queueing.py), and a job that was interrupted does the same inspection
@@ -40,10 +41,12 @@ from consolidate_themes import (
     run_consolidation,
     trigger_status,
 )
+from confirm_themes import confirm_provisional_themes, has_provisional_themes
 from database import async_session_maker, engine
 from describe_themes import REFINE_MODEL
 from discover_themes import (
     MIN_SAMPLE_SIZE,
+    discovery_saved,
     has_discovered_themes,
     run_discovery,
     save_discovered_themes,
@@ -237,6 +240,19 @@ async def analyze(db: AsyncSession, client: AsyncAnthropic, run: AnalysisRun) ->
         await db.refresh(entity)
         await classify.run_classification(db, client, entity, run=run)
 
+    async def confirm_step() -> None:
+        tracked = await begin_step(db, entity_id, StepKind.CONFIRM, None, run)
+        try:
+            summary = await confirm_provisional_themes(db, entity_id)
+        except Exception as error:
+            await tracked.fail(db, error)
+            raise
+        await tracked.succeed(
+            db,
+            outcome="demoted" if summary.demoted else "confirmed",
+            warnings=summary.describe() or None,
+        )
+
     async def consolidate_step() -> None:
         await db.refresh(entity)
         outcome = await run_consolidation(db, client, entity, run=run)
@@ -262,7 +278,9 @@ async def analyze(db: AsyncSession, client: AsyncAnthropic, run: AnalysisRun) ->
             warnings=f"Promoted {', '.join(summary.promoted)}." if summary.promoted else None,
         )
 
-    if not await has_discovered_themes(db, entity_id):
+    # Not "has no themes": confirming can demote every theme, and discovering again would only
+    # repeat the same sample-based guess and spend the same money.
+    if not await has_discovered_themes(db, entity_id) and not await discovery_saved(db, entity_id):
         review_count = await db.scalar(
             select(func.count()).select_from(Review).where(Review.entity_id == entity_id)
         )
@@ -274,6 +292,10 @@ async def analyze(db: AsyncSession, client: AsyncAnthropic, run: AnalysisRun) ->
 
     if await count_unclassified_reviews(db, entity_id):
         notes += await attempt(db, run, StepKind.CLASSIFY, classify_step)
+
+    # Only once every review is tagged: a count taken halfway would demote themes unfairly.
+    if await has_provisional_themes(db, entity_id) and not await count_unclassified_reviews(db, entity_id):
+        notes += await attempt(db, run, StepKind.CONFIRM, confirm_step)
 
     status = await trigger_status(db, entity_id)
     if status.should_consolidate:
@@ -322,7 +344,10 @@ async def run_worker(client: AsyncAnthropic, *, once: bool = False, poll_seconds
 
 
 async def main(once: bool) -> None:
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    # The SDK waits (honoring the retry-after header, else backing off up to 8 seconds) and retries a
+    # 429 or a server error. The default of 2 retries gave up after about 2 seconds, which is shorter
+    # than the rate limit's window, so a step could fail on a limit that clears in seconds.
+    client = AsyncAnthropic(api_key=settings.anthropic_api_key, max_retries=8)
     try:
         await run_worker(client, once=once)
     finally:

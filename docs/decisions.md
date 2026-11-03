@@ -109,6 +109,16 @@ Changes from v5:
 
 For the 600-review samples used so far the prompt is the same as v5 apart from wording (30 reviews, 5%), so no new real run was made. The behavior was checked with the stub client.
 
+### v7 (2026-11-02)
+
+Changes from v6:
+
+- **Removed "fewer than 15 is the expected result".** It assumed something about the data. Both stability pairs on prompt v6 returned exactly 15 themes, so the cap may have been acting as a target. The prompt now says only that the reviews decide the count, between 5 and 15, and that the goal is the themes that matter.
+- **The threshold is enforced after classification, not by the prompt.** The prompt still states it (5% of the sampled reviews, never fewer than 10), but the stratified sample over-represents rare ratings: for Commander's Palace the 204 one-star reviews are 4% of the reviews and 20% of the 600-review sample, so a theme mostly unhappy reviewers raise can clear "5% of the sample" and still be far under 5% of the reviews. See "Provisional themes" below.
+- Tried and dropped before it was committed: weighting each sampled review by how many reviews it stands for, telling the model the weights, and having the model cite the reviews behind each theme so code could total the weights. It asked the model for arithmetic, and v3 had already found that cited reviews are unreliable. The classification already measures the real share, so that is used instead.
+
+First real run: see "Provisional themes and promotion at 5%" below (entity 156, run 483).
+
 ## Candidate themes replace `other` (2026-10-26)
 
 Direction change. The single `other` theme per entity is gone. The classifier now creates a **candidate** theme (a `themes` row) for each specific point no established theme covers, and a later consolidation step merges overlapping candidates. This supersedes the `other` and `theme_title` design and the rediscovery described above (`rediscover_themes.py`, now deleted).
@@ -265,4 +275,48 @@ Roadmap step 6. The three job types in the earlier design (discover, classify, c
 - **Batch API dropped:** it can take hours, which is not worth a 50% discount for someone waiting on results.
 - **Tested** with a stub client against a rolled-back database: too few reviews, the whole pipeline (discover, classify, consolidate, promote, with totals equal to the sum of steps), a job with nothing to do, a failed step and its cooldown including retrying after it, a failed discovery, claiming around a busy entity, a script refused on a busy entity, stale runs of every kind, and the heartbeat on real connections (with a throwaway entity that is deleted again). The earlier endpoint and pipeline checks were updated and pass.
 - **Not tested:** the worker against the real API, and two worker processes claiming at once (`SKIP LOCKED` and the unique index are the safeguards, but a single test connection can't show that).
+
+## A second restaurant through the real flow (2026-11-02)
+
+Roadmap step 7, in part. Another Yelp restaurant was used instead of a different domain, to exercise the real flow and the worker before choosing a harder dataset. Commander's Palace was picked because its 4,969 reviews fit the 5,000-row upload cap (the other restaurants over it, except Luke, would have needed splitting), it is fine dining so its themes should differ from Cochon's, and its 204 one-star and 275 two-star reviews overlap less between two 120-per-level samples than Cochon's did.
+
+**The flow.** The reviews were exported from the database to a CSV (4.16 MB), a dev user was created with `create_user.py`, and the CSV was uploaded to a new owned entity (115) with `POST /entities/{id}/imports` and a real access token: 4,969 rows inserted, none skipped, and an `analyze` run queued. The worker claimed it and ran discovery (15 themes saved from a 600-review sample, 130k input tokens), then classification.
+
+**What failed.** Classification stopped with a 429 after 4,040 of 4,969 reviews: the organization's limit is 80,000 output tokens a minute. Five requests in flight, each about 24 seconds and about 6,600 output tokens (the model's thinking included), came to about 80,000 a minute, right at the limit. Cochon's earlier run had passed at a similar rate. The SDK retried twice, one second apart, which is shorter than the limit's window, then gave up. The step and the run were marked failed with the real error, and the 4,040 saved reviews stayed.
+
+**What changed.**
+- `CONCURRENCY` in `classify_reviews.py` went from 5 to 3, which keeps the rate near 50,000 a minute at the cost of a longer run.
+- The worker's client uses `max_retries=8`, so the SDK waits (honoring the retry-after header, else backing off up to 8 seconds) before giving up. The scripts keep the default of 2.
+- The failed step's one-hour cooldown was cleared by hand (its completion time was moved back two hours) so the run could resume at once, because the cause had been fixed. A second run (409) was queued with the normal queue code and classified the remaining 929 reviews in one pass, then consolidated (397 candidates considered) and promoted one theme, "Bread service". It made no rate-limit retries.
+
+**Result.** All 4,969 reviews are tagged, with 60 tags on the null-sentiment fallback. Entity 115 has 16 discovered themes, 416 candidates (297 merged), and `general`. The largest are service quality (74.5% of reviews), food flavor and seasoning (56.6%), entrees and appetizers (52.5%), atmosphere (39%), and desserts (39%). The themes that differ from Cochon's are the expected ones: dress code enforcement (12%, mostly neutral and negative), jazz brunch and music, 25-cent martinis, turtle soup, special occasion celebrations, and fair treatment of guests. Sentiment is sensible: wait times and fair treatment lean negative; atmosphere, desserts and cocktails lean positive. "Food flavor and seasoning" and "Entrees and appetizers" each cover over half of the reviews and overlap heavily, which is worth a hand check.
+
+**Cost** was about $1.7 by estimate: the Haiku classification tokens (1.67M input, 1.71M output over both attempts, 4,040 of them for the failed run) scaled from Cochon's $0.70, and about $0.6 of Sonnet.
+
+**Stability pair on this restaurant** (runs 410 and 411, prompt v6, 120 reviews per rating level, nothing saved; both returned 15 themes with no retry, 131k input tokens each). **13 topics match** across the two: service, pacing and wait times, dress code, seasoning, turtle soup, desserts, entrees (one theme in run 410, "Main courses" plus "Appetizers and salads" in run 411), price, hype and reputation, ambiance (run 411 adds "Noise and comfort"), the martini lunch, jazz brunch, and reservations. Only in run 410: special occasions and celebrations, and dietary needs and allergies. Only in run 411: the two splits above. Run 411 missed special occasions, which classification puts at 13.8% of reviews, so it is a real topic. The dietary theme shows up again as the over-inclusive one: it appeared in a Cochon run too, and here it is a candidate raised by 0.6% of reviews, well under the 5% threshold. Both runs again returned exactly 15, so the cap may still act as a target.
+
+**Not shown.** This is still a restaurant. The engine is not yet shown to work on a different domain.
+
+## Provisional themes and promotion at 5% (2026-11-02)
+
+**Problem.** Discovery's threshold (5% of the sampled reviews, never fewer than 10) is measured on a sample that takes 120 reviews per rating, so it over-represents rare ratings. The prompt can ask for the threshold but nothing checks it, and the model has no good way to correct for the sample. The "dietary needs" theme that one Commander's Palace run returned, which classification puts at 0.6% of the reviews as a candidate, shows the gap.
+
+**Decision.** Themes discovery saves are provisional (`themes.provisional`, migration `b2f5a8c1d704`) until the first classification has tagged every review. A new `confirm` step then counts each provisional theme's reviews from the tags, the same count promotion uses, and compares it with the promotion threshold: `max(25, 5% of the classified reviews)` (`promote_min_reviews`). A theme under that is demoted to a candidate and keeps its name, description and tags. The others become ordinary discovered themes. The step calls no model and costs a few queries (`confirm_themes.py`, `outcome` `confirmed` or `demoted`, with the demoted names and the threshold in the step's notes).
+
+**Why this and not weights.** The classification is the measure everything else uses (promotion, counts, the UI), so a theme is judged by the same number wherever it appears. It needs no arithmetic from the model, no change to the sample, and no reliance on cited reviews. The stratified sample stays because it still shows the model the complaints.
+
+**Rules that make it consistent.**
+- **Promotion threshold is now 5%** (was 3%), with the floor of 25 unchanged (`PROMOTE_MIN_SHARE` is discovery's `MIN_THEME_SHARE`). Becoming a theme and staying one use the same number: demotion is for counts under `max(25, 5%)` and promotion for counts that reach it, so a demoted theme can never be promoted straight back. (The first version of the step demoted under `max(10, 5%)`, discovery's floor. promotion's floor of 25 was chosen so there is one threshold; on small entities this demotes more themes.) Candidates are still tagged in every review and listed to the classifier once 10 reviews raise them, so an emerging topic is tracked and can be trended before it is promoted; the higher threshold only delays when it joins the main list. Themes promoted at 3% earlier are not demoted (the step only looks at provisional themes).
+- **Confirm waits for classification.** It runs only when every review has tags, so an interrupted classification doesn't demote themes on partial counts. The flag lets whichever job finishes the classification do the check.
+- **A demoted theme is a normal candidate.** It can be merged by consolidation, and it counts toward the new-candidate trigger. Promotion can bring it back if it grows.
+- **Demoting every theme must not trigger rediscovery.** The worker used to discover whenever an entity had no discovered themes. It now discovers only if no discovery was ever saved (`discovery_saved`, read from a succeeded discover step with outcome `saved`), so after every theme is demoted the entity carries on with its candidates. Classification accepts an entity with candidates and no discovered themes (the prompt says "(none yet)"). Only an entity with no themes at all still needs discovery first.
+
+**Checked** with the stub client against the real database in a rolled-back transaction: a 130-review entity (5 themes, tagged at rates of 100%, 50%, 20%, 5% and 0%) keeps three themes and demotes two; an entity whose reviews tag no listed theme demotes all five, is not rediscovered on the next upload, and still classifies the new reviews. The other checks (classification, consolidation with the 5% numbers, endpoints, authentication) pass, and `check_rls.py` is clean after the migration. 
+**First real run (2026-11-02, entity 156, run 483).** Commander's Palace was uploaded again through the API as a new entity (4,969 reviews) and run end to end by the worker: discover (15 themes, 131.7k input and 1.1k output tokens), classify (4,969 reviews, 1.68M input and 1.73M output Haiku tokens, 60 reviews sent to `general` by code after an unparseable answer), confirm, consolidate (490 candidates considered, 380 merged in the end) and no promote step, because no candidate reached the threshold. The run succeeded with no retries or rate-limit errors.
+
+**Confirm demoted nothing.** The threshold was `max(25, 5% of 4,969)` = 248 reviews, and the smallest of the 15 themes (Dress code enforcement) was raised by 617 reviews (12.4%); the largest by 2,591 (52.1%). So the run exercises the happy path of the step on real data and shows the themes this prompt produced are all well over the line, but it does not show demotion working on a real weak theme. That is only checked with the stub client. The weak themes seen earlier ("dietary needs") did not come up in this run.
+
+**Other things this run shows.** The model returned exactly 15 themes again, with "fewer than 15 is the expected result" removed, so the cap may still act as a target (one run does not settle it). The 60 reviews that came back unparseable is the same count as run 409 on the first upload of this restaurant, which suggests particular reviews or chunks, not chance; not investigated.
+
+**Not decided.** Whether a theme confirmed at 5% should be demoted later if its share falls (themes are never retired automatically today).
 

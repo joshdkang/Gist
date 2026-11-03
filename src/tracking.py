@@ -31,6 +31,7 @@ RUN_TYPE_FOR_STEP = {
     StepKind.DISCOVER: RunType.DISCOVER,
     StepKind.CLASSIFY: RunType.CLASSIFY,
     StepKind.CONSOLIDATE: RunType.CONSOLIDATE,
+    StepKind.CONFIRM: RunType.ANALYZE,
     StepKind.PROMOTE: RunType.ANALYZE,
 }
 
