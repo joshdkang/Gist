@@ -7,7 +7,16 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from models import Entity, ImportStatus, RunStatus, RunType, StepKind, StepStatus
+from models import (
+    Entity,
+    ImportStatus,
+    RunStatus,
+    RunType,
+    Sentiment,
+    StepKind,
+    StepStatus,
+    ThemeKind,
+)
 
 MAX_METADATA_BYTES = 10 * 1024
 
@@ -147,3 +156,58 @@ class UploadResult(BaseModel):
 
     import_: ImportOut = Field(serialization_alias="import")
     analysis: AnalysisQueued
+
+
+class SentimentCounts(BaseModel):
+    """Reviews by combined sentiment. A review with no sentiment (a code fallback) is in `total` only."""
+    positive: int = 0
+    negative: int = 0
+    mixed: int = 0
+    neutral: int = 0
+    total: int = 0
+
+
+class ThemeSummary(BaseModel):
+    id: int
+    kind: ThemeKind
+    name: str
+    description: str
+    review_count: int
+    share: float = Field(description="review_count as a fraction of the entity's classified reviews")
+    sentiment: SentimentCounts
+    recent_count: int = Field(description="Reviews in the recent window that raise the theme")
+    quiet: bool = Field(description="No reviews in the recent window; a UI can collapse it")
+
+
+class GeneralSummary(BaseModel):
+    review_count: int
+    share: float
+
+
+class ThemeList(BaseModel):
+    total_reviews: int
+    classified_reviews: int
+    as_of: datetime | None = Field(description="The latest review date; the recent window ends here")
+    recent_days: int
+    general: GeneralSummary
+    themes: list[ThemeSummary]
+
+
+class ThemeReviewOut(BaseModel):
+    id: int
+    title: str | None
+    text: str
+    rating: float | None
+    review_date: datetime | None
+    sentiment: Sentiment | None = Field(description="The review's combined sentiment for the theme")
+
+
+class TrendPoint(BaseModel):
+    period_start: datetime
+    sentiment: SentimentCounts
+
+
+class ThemeTrend(BaseModel):
+    theme_id: int
+    interval: str
+    points: list[TrendPoint]
