@@ -59,7 +59,9 @@ CHUNK_SIZE = 20  # reviews per request
 # hit a 429 at the organization's limit of 80,000. 3 keeps it near 50,000.
 CONCURRENCY = 3
 MAX_REVIEW_CHARS = 1000
-MAX_OUTPUT_TOKENS = 8000  # includes the model's adaptive thinking
+# Includes the model's adaptive thinking. A chunk of 20 used 7,600 of an earlier 8,000, and three
+# chunks in a real run were cut off mid-answer, so the whole chunk fell back to `general`.
+MAX_OUTPUT_TOKENS = 16000
 MAX_ATTEMPTS = 2
 MIN_LETTERS = 4  # reviews with fewer letters skip the model and go straight to `general`
 MAX_TITLE_CHARS = 80
@@ -324,7 +326,10 @@ async def classify_chunk(
             answer = next(block.text for block in response.content if block.type == "text")
             parsed = ChunkClassification.model_validate_json(answer)
         except (ValidationError, StopIteration) as error:
-            reason = f"unparseable answer ({type(error).__name__})"
+            if response.stop_reason == "max_tokens":
+                reason = "answer cut off at the output token limit"
+            else:
+                reason = f"unparseable answer ({type(error).__name__})"
             continue
         for item in parsed.reviews:
             if item.review_number in pending:

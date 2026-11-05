@@ -320,3 +320,14 @@ Roadmap step 7, in part. Another Yelp restaurant was used instead of a different
 
 **Not decided.** Whether a theme confirmed at 5% should be demoted later if its share falls (themes are never retired automatically today).
 
+
+## Classification answers cut off at the output limit (2026-11-04)
+
+Both Commander's Palace runs sent exactly 60 reviews to `general` by code, logged as "unparseable
+answer (ValidationError)". They were three whole chunks of 20 consecutive reviews, all ordinary
+text. Replaying them against the API showed answers of 7,611, 8,428 and 8,631 output tokens, against
+a limit of 8,000 that includes the model's thinking. A chunk that thought a little longer was cut off
+in the middle of its JSON, and the retry sent the same 20 reviews and was cut off the same way.
+`MAX_OUTPUT_TOKENS` is now 16,000, and a cut-off answer is logged as such (checked through
+`stop_reason`) and no longer as an unparseable one. The chunk's input is unchanged, so the retry
+still repeats it; if truncation returns at the new limit, the retry should send half the chunk.
