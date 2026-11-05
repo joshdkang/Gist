@@ -52,7 +52,7 @@ from models import (
 from tracking import begin_step
 
 MODEL = "claude-haiku-5-5"  # the cheapest model; compare against Sonnet with --model
-PROMPT_VERSION = 4  # see docs/decisions.md
+PROMPT_VERSION = 5  # see docs/decisions.md
 CHUNK_SIZE = 20  # reviews per request
 # Requests in flight at once. Each chunk takes about 24 seconds and writes about 6,600 tokens (the
 # model's thinking included), so 5 at a time came to about 80,000 output tokens a minute, which
@@ -94,8 +94,12 @@ Rules:
   reviewer's own words for the item or topic they name, and do not add words the review doesn't
   use, such as "entree", "dish", "special", or "item". Use the same wording each time the same
   point comes up. Add one assignment per distinct point.
-- Use "General" (id {general_id}) only when a review has no discernible topic, such as "Great!"
-  or "meh". Never combine it with another theme.
+- A title must name a specific topic or item that a reader could act on. Never use a verdict on
+  the whole product or visit as a title, such as "Overall satisfaction", "Overall quality",
+  "Overall experience", "Everything", or "Recommendation". A review that gives only such a
+  verdict has no discernible topic.
+- Use "General" (id {general_id}) only when a review has no discernible topic, such as "Great!",
+  "Love it", or "meh". Never combine it with another theme.
 - Every review gets at least one assignment."""
 
 CANDIDATE_SECTION_TEMPLATE = """

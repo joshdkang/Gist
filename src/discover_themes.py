@@ -42,7 +42,7 @@ from models import (
 from tracking import begin_step, set_step_outcome
 
 MODEL = "claude-sonnet-5-5"
-PROMPT_VERSION = 7  # see docs/decisions.md
+PROMPT_VERSION = 8  # see docs/decisions.md
 MIN_THEMES = 5  # loose limits: the reviews decide the count
 MAX_THEMES = 15
 # A theme must be raised by at least this share of the sampled reviews, but never by fewer than
@@ -85,7 +85,9 @@ could reasonably belong to both, combine them into one theme. Each description i
 sentences that define the theme's scope clearly enough for a reader to decide whether a given
 review belongs to it.
 
-Do not include catch-all themes such as "Other", "General", or "Overall experience". Reviews
+Do not include catch-all themes such as "Other" or "General". Do not include a theme that is a
+verdict on the whole product or visit, such as "Overall experience", "Overall satisfaction", or
+"Overall quality". Every theme must name a specific aspect that a reader could act on. Reviews
 that fit no theme are handled separately."""
 
 SYSTEM_PROMPT_TEMPLATE = """You analyze customer reviews of {subject}.

@@ -7,3 +7,6 @@ src/yelp_academic_dataset_review.json
 __pycache__/
 src/themes/
 src/classifications/
+src/Datafiniti Amazon product reviews.csv
+src/app reviews.csv
+src/app_reviews.parquet

@@ -331,3 +331,63 @@ in the middle of its JSON, and the retry sent the same 20 reviews and was cut of
 `MAX_OUTPUT_TOKENS` is now 16,000, and a cut-off answer is logged as such (checked through
 `stop_reason`) and no longer as an unparseable one. The chunk's input is unchanged, so the retry
 still repeats it; if truncation returns at the new limit, the retry should send half the chunk.
+
+## A product dataset through the full flow (2026-11-04)
+
+The Amazon Fire Tablet 7" reviews (Datafiniti, 10,966 reviews, 68% five stars, 2.4% one or two
+stars) were split by date into three CSVs of about 3,650 reviews and uploaded through the API to a
+new entity, with the rating on a 1 to 5 scale and the helpful votes and recommend flag as metadata.
+
+- **First upload (run 486):** discovery on a 463-review sample returned 15 themes. Confirmation
+  counted them across all 3,655 reviews and demoted the 5 that fewer than 183 (5%) raised: Parental
+  controls and kid profiles (180), Battery life and charging (157), Camera quality (151), Ads and
+  special offers (109) and Wi-Fi connectivity (58). This is the first time confirmation demoted
+  themes on real data; it did nothing on Commander's Palace. Parental controls missed by 3 reviews.
+- **Second upload (run 487):** discovery did not repeat. Reviews were classified against the 10
+  themes, consolidation ran, and promotion promoted Overall satisfaction (899 reviews) and Gift
+  giving (410).
+- **Third upload (run 488):** classification only. 10,966 reviews are tagged, 12 themes are
+  established, 436 are candidates.
+- **Weakness:** Overall satisfaction ("general expressions of how happy or unhappy the buyer is")
+  is close to a sentiment, which themes keep out, and it now tops the list by recent mentions. It
+  met the promotion rule, so the rule worked as written; whether it should also refuse candidates
+  that state only an overall opinion is open.
+- **Tokens:** about 674k, 645k and 690k input tokens for the three runs, mostly Haiku
+  classification, with 587k, 617k and 614k output tokens.
+
+## Prompts forbid verdict themes (2026-11-04)
+
+"Overall satisfaction" was promoted on the Fire Tablet data (24% of reviews) and is a verdict on the
+whole product, close to sentiment itself. Discovery already banned "Overall experience", but the
+classification prompt, where candidate titles are invented, said only that a title should be
+specific and opinion-free.
+
+- **Classification prompt v5:** a title must name a specific topic or item; verdict titles such as
+  "Overall satisfaction", "Overall quality", "Overall experience", "Everything" and
+  "Recommendation" are forbidden, and a review that gives only a verdict has no discernible topic,
+  so it gets General. "Love it" is added as a General example.
+- **Discovery prompt v8:** the catch-all rule now also names verdict themes and asks that every
+  theme name a specific aspect a reader could act on. Rediscovery reuses these rules.
+- **Test:** 100 short Fire Tablet reviews that had raised "Overall satisfaction" were classified
+  with that theme removed. Neither prompt invented any new title (all 100 went to existing
+  themes), so the test could not show the change; the new prompt sent 7 to General, the old 4. The
+  theme appeared over thousands of reviews and grew by being listed as an emerging candidate, which
+  a sample of 100 cannot reproduce.
+- **Not done:** the existing "Overall satisfaction" theme on entity 157 is unchanged, and no code
+  check rejects verdict titles, only the prompt.
+
+The same three Fire Tablet files were then uploaded to a fresh entity (158, runs 489 to 491) under
+discovery v8 and classification v5.
+
+- **No verdict theme.** The 13 established themes are all specific topics (Price and value,
+  Suitability for children, Gift giving, Size and portability, Amazon account and ecosystem and so
+  on). No "Overall ..." title was created as a candidate. The only verdict-like candidate names,
+  "Sales recommendation", "Shopping experience" and "Purchase experience", were merged into other
+  themes. This is one run of a model that varies between runs, so it shows no regression and is
+  not a proof; the first entity also had no "Overall" title after its first upload.
+- **More General.** 355 of 10,966 reviews (3.2%) are in General, against 156 (1.4%) on entity 157,
+  which is what the rule asks for verdict-only reviews.
+- **Same shape otherwise.** Confirmation demoted 4 of the 15 discovered themes (Parental controls
+  and kid profiles, Advertising and lock screen ads, Battery and charging, Camera quality), and
+  Battery and charging (511 reviews, 4.7%) stays a candidate. Promotion added Size and portability
+  and Gift giving. Tokens per run were similar (about 690k to 720k in, 590k to 630k out).
