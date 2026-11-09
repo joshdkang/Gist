@@ -107,10 +107,11 @@ class EntityOut(BaseModel):
     is_public: bool
     is_owner: bool
     review_count: int
+    theme_count: int = Field(description="Established (discovered) themes; 0 means not analyzed yet")
     created_at: datetime
 
     @classmethod
-    def build(cls, entity: Entity, user_id: uuid.UUID, review_count: int) -> "EntityOut":
+    def build(cls, entity: Entity, user_id: uuid.UUID, review_count: int, theme_count: int) -> "EntityOut":
         return cls(
             id=entity.id,
             name=entity.name,
@@ -119,6 +120,7 @@ class EntityOut(BaseModel):
             is_public=entity.is_public,
             is_owner=entity.owner_id == user_id,
             review_count=review_count,
+            theme_count=theme_count,
             created_at=entity.created_at,
         )
 

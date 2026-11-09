@@ -10,7 +10,7 @@ from auth import get_current_user
 from config import settings
 from database import get_db
 from entities import create_entity
-from models import AnalysisRun, Entity, Import, Review, User
+from models import AnalysisRun, Entity, Import, Review, Theme, ThemeKind, User
 from queueing import ACTIVE_STATUSES, is_analysis_run
 from routers.runs import run_detail
 from schemas import EntityCreate, EntityDetail, EntityOut, EntityUpdate
@@ -18,8 +18,25 @@ from schemas import EntityCreate, EntityDetail, EntityOut, EntityUpdate
 router = APIRouter(prefix="/entities", tags=["entities"])
 
 
-async def count_reviews(db: AsyncSession, entity_id: int) -> int:
-    return await db.scalar(select(func.count()).select_from(Review).where(Review.entity_id == entity_id))
+def review_count_of(entity_id):
+    return select(func.count()).select_from(Review).where(Review.entity_id == entity_id).scalar_subquery()
+
+
+def theme_count_of(entity_id):
+    """Established themes, so a list can tell an analyzed entity from one that isn't yet."""
+    return (
+        select(func.count())
+        .select_from(Theme)
+        .where(Theme.entity_id == entity_id, Theme.kind == ThemeKind.DISCOVERED, Theme.merged_into_id.is_(None))
+        .scalar_subquery()
+    )
+
+
+async def build_out(db: AsyncSession, entity: Entity, user: User) -> EntityOut:
+    review_count, theme_count = (
+        await db.execute(select(review_count_of(entity.id), theme_count_of(entity.id)))
+    ).one()
+    return EntityOut.build(entity, user.id, review_count, theme_count)
 
 
 @router.post("", response_model=EntityOut, status_code=status.HTTP_201_CREATED)
@@ -39,7 +56,7 @@ async def create(
     entity = await create_entity(
         db, name=body.name, description=body.description, owner_id=user.id, metadata=body.metadata
     )
-    return EntityOut.build(entity, user.id, review_count=0)
+    return EntityOut.build(entity, user.id, review_count=0, theme_count=0)
 
 
 @router.get("", response_model=list[EntityOut])
@@ -50,22 +67,19 @@ async def list_entities(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    review_count = (
-        select(func.count()).select_from(Review).where(Review.entity_id == Entity.id).scalar_subquery()
-    )
     visible = {
         "all": or_(Entity.owner_id == user.id, Entity.is_public),
         "mine": Entity.owner_id == user.id,
         "public": Entity.is_public,
     }[scope]
     rows = await db.execute(
-        select(Entity, review_count)
+        select(Entity, review_count_of(Entity.id), theme_count_of(Entity.id))
         .where(visible)
         .order_by(Entity.created_at.desc(), Entity.id.desc())
         .limit(limit)
         .offset(offset)
     )
-    return [EntityOut.build(entity, user.id, count) for entity, count in rows.all()]
+    return [EntityOut.build(entity, user.id, reviews, themes) for entity, reviews, themes in rows.all()]
 
 
 @router.get("/{entity_id}", response_model=EntityDetail)
@@ -83,7 +97,7 @@ async def read(
         .order_by(AnalysisRun.id.desc())
         .limit(1)
     )
-    base = EntityOut.build(entity, user.id, await count_reviews(db, entity.id))
+    base = await build_out(db, entity, user)
     return EntityDetail(
         **base.model_dump(),
         import_count=import_count,
@@ -106,7 +120,7 @@ async def update(
     if changes.get("metadata") is not None:
         entity.metadata_ = changes["metadata"]
     await db.commit()
-    return EntityOut.build(entity, user.id, await count_reviews(db, entity.id))
+    return await build_out(db, entity, user)
 
 
 @router.delete("/{entity_id}", status_code=status.HTTP_204_NO_CONTENT)

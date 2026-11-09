@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/* Design tokens. Sentiment colours: positive blue, mixed bluish green, neutral grey, negative orange
+   (no blue/purple pair: they are hard to tell apart). Each also has a text shade that reads on the
+   page background. */
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --subtle: #f1f5f9;
+  --fg: #0f172a;
+  --muted: #475569;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --primary: #0f172a;
+  --on-primary: #ffffff;
+  --link: #1d4ed8;
+  --pos: #2563eb;
+  --pos-fg: #1d4ed8;
+  --mixed: #009e73;
+  --mixed-fg: #00785a;
+  --neutral: #cbd5e1;
+  --neutral-fg: #475569;
+  --neg: #ea580c;
+  --neg-fg: #c2410c;
+  --info-bg: #eff6ff;
+  --info-line: #bfdbfe;
+  --warn-bg: #fff7ed;
+  --warn-line: #fed7aa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1120;
+    --surface: #111827;
+    --subtle: #1f2937;
+    --fg: #e5e7eb;
+    --muted: #9ca3af;
+    --line: #273244;
+    --line-strong: #374151;
+    --primary: #e5e7eb;
+    --on-primary: #0f172a;
+    --link: #93c5fd;
+    --pos: #3b82f6;
+    --pos-fg: #93c5fd;
+    --mixed: #10b981;
+    --mixed-fg: #6ee7b7;
+    --neutral: #4b5563;
+    --neutral-fg: #9ca3af;
+    --neg: #f97316;
+    --neg-fg: #fdba74;
+    --info-bg: #172554;
+    --info-line: #1e3a8a;
+    --warn-bg: #431407;
+    --warn-line: #7c2d12;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-link: var(--link);
+  --color-pos: var(--pos);
+  --color-pos-fg: var(--pos-fg);
+  --color-mixed: var(--mixed);
+  --color-mixed-fg: var(--mixed-fg);
+  --color-neutral: var(--neutral);
+  --color-neutral-fg: var(--neutral-fg);
+  --color-neg: var(--neg);
+  --color-neg-fg: var(--neg-fg);
+  --color-info-bg: var(--info-bg);
+  --color-info-line: var(--info-line);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-inter), sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--pos);
+  outline-offset: 2px;
+}

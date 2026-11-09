@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from auth import get_current_user
+from config import settings
 from database import engine
 from models import User
 from routers import entities, imports, runs, themes
@@ -14,6 +16,13 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 app = FastAPI(lifespan=lifespan)
+# The frontend calls the API from the browser with a bearer token, so no cookies are involved.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 app.include_router(entities.router)
 app.include_router(imports.router)
 app.include_router(runs.router)

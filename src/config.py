@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     supabase_service_role_key: SecretStr | None = None
     supabase_anon_key: SecretStr | None = None
 
+    # Browser origins allowed to call the API (the Next.js frontend). In .env, a JSON list:
+    # CORS_ORIGINS=["https://gist.example.com"]
+    cors_origins: list[str] = ["http://localhost:3000"]
+
     # Limits that keep each user's analysis cost bounded (see "Cost controls" in CLAUDE.md).
     max_upload_bytes: int = 5 * 1024 * 1024
     max_upload_rows: int = 5000

@@ -344,3 +344,26 @@ async def test_delete_cascades_and_is_owner_only(upload, call, entity, db, bob, 
     for model in (Review, Import, Theme, AnalysisRun):
         assert await count(db, model, entity_id=entity_id) == 0, model
     assert await count(db, RunStep, run_id=first) == 0                      # steps go with their runs
+
+
+async def test_entities_report_their_established_theme_count(call, seeded):
+    # Service and Price are discovered; Parking, Valet and Rare are candidates; General is not counted.
+    listed = (await call("GET", "/entities", params={"scope": "mine"})).json()
+    assert [item["theme_count"] for item in listed if item["id"] == seeded.entity_id] == [2]
+    assert (await call("GET", f"/entities/{seeded.entity_id}")).json()["theme_count"] == 2
+    created = (await call("POST", "/entities", json={"name": "Fresh"})).json()
+    assert created["theme_count"] == 0
+
+
+async def test_the_frontend_origin_may_call_the_api(client):
+    preflight = await client.options(
+        "/entities",
+        headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "POST",
+                 "Access-Control-Request-Headers": "authorization,content-type"},
+    )
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-origin"] == "http://localhost:3000"
+    other = await client.options(
+        "/entities", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"}
+    )
+    assert "access-control-allow-origin" not in other.headers
