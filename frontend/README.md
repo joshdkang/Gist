@@ -28,5 +28,9 @@ frontend's origin (the default allows `http://localhost:3000`).
 - **Upload** reads the CSV in the browser (Papa Parse) to count rows, guess the column mapping (the review
   text is the column with the longest values) and the rating scale, and preview the first rows. The API
   re-checks everything.
-- **Colours** are tokens in `src/app/globals.css`, with a dark set. Sentiment: positive blue, mixed bluish
-  green, neutral grey, negative orange; every colour also has a text label.
+- **Colours** are tokens in `src/app/globals.css`, with a dark set. Sentiment: positive green, mixed
+  yellow-orange, neutral light grey, negative red; every colour also has a text label. Colour-blind mode, a
+  switch in the account menu under the email, swaps in positive blue, mixed bluish green, neutral grey
+  and negative orange (`data-palette="colorblind"` on `<html>`). The choice is saved in the browser and
+  in the Supabase user's metadata, so it follows the user; a script in the layout applies it before the
+  page paints (`src/lib/palette.ts`).

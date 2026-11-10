@@ -122,3 +122,18 @@ export interface UploadResult {
   };
   analysis: { run: Run | null; reused: boolean; message: string | null };
 }
+
+export interface RatingScaleSummary {
+  scale: RatingScale;
+  count: number;
+  /** The number itself on a numeric scale, the share positive on binary, the mean label index on labels. */
+  average: number;
+  /** Highest rating first. */
+  buckets: { label: string; count: number }[];
+}
+
+export interface RatingSummary {
+  total_reviews: number;
+  rated_reviews: number;
+  scales: RatingScaleSummary[];
+}

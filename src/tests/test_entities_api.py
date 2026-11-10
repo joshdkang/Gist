@@ -367,3 +367,18 @@ async def test_the_frontend_origin_may_call_the_api(client):
         "/entities", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"}
     )
     assert "access-control-allow-origin" not in other.headers
+
+
+async def test_ratings_on_different_scales_are_summarized_separately(upload, entity, call):
+    entity_id = entity["id"]
+    assert (await upload(entity_id, csv_bytes(10))).status_code == 201
+    ten_point = json.dumps({"type": "numeric", "min": 1, "max": 10})
+    assert (await upload(entity_id, csv_bytes(4, start=10), scale=ten_point)).status_code == 201
+    unrated = json.dumps({"text": "review", "review_date": "when"})
+    assert (await upload(entity_id, csv_bytes(3, start=20), mapping=unrated, scale=None)).status_code == 201
+
+    body = (await call("GET", f"/entities/{entity_id}/ratings")).json()
+    assert body["total_reviews"] == 17 and body["rated_reviews"] == 14
+    five, ten = body["scales"]                     # most ratings first
+    assert five["scale"]["max"] == 5 and five["count"] == 10
+    assert ten["scale"]["max"] == 10 and ten["count"] == 4 and len(ten["buckets"]) == 10

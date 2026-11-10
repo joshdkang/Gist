@@ -155,7 +155,8 @@ class Seeded:
 async def seed_results(db: AsyncSession, entity_id: int) -> Seeded:
     run = AnalysisRun(entity_id=entity_id, type=RunType.CLASSIFY, status=RunStatus.SUCCEEDED)
     data_import = Import(
-        entity_id=entity_id, filename="seed.csv", source="csv", status=ImportStatus.COMPLETED
+        entity_id=entity_id, filename="seed.csv", source="csv", status=ImportStatus.COMPLETED,
+        rating_scale={"type": "numeric", "min": 1, "max": 5},
     )
     db.add_all([run, data_import])
     await db.flush()

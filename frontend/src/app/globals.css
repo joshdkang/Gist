@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* Design tokens. Sentiment colours: positive blue, mixed bluish green, neutral grey, negative orange
-   (no blue/purple pair: they are hard to tell apart). Each also has a text shade that reads on the
-   page background. */
+/* Design tokens. Sentiment colours: positive green, mixed yellow-orange, neutral light grey, negative red.
+   Each also has a text shade that reads on the page background. The colour-blind palette below
+   (positive blue, mixed bluish green, neutral grey, negative orange) replaces the green/red pair,
+   which many people can't tell apart; a user turns it on in the account menu (lib/palette.ts). */
 :root {
   --bg: #f8fafc;
   --surface: #ffffff;
@@ -14,14 +15,14 @@
   --primary: #0f172a;
   --on-primary: #ffffff;
   --link: #1d4ed8;
-  --pos: #2563eb;
-  --pos-fg: #1d4ed8;
-  --mixed: #009e73;
-  --mixed-fg: #00785a;
-  --neutral: #cbd5e1;
-  --neutral-fg: #475569;
-  --neg: #ea580c;
-  --neg-fg: #c2410c;
+  --pos: #16a34a;
+  --pos-fg: #15803d;
+  --mixed: #f59e0b;
+  --mixed-fg: #b45309;
+  --neutral: #d1d5db;
+  --neutral-fg: #4b5563;
+  --neg: #dc2626;
+  --neg-fg: #b91c1c;
   --info-bg: #eff6ff;
   --info-line: #bfdbfe;
   --warn-bg: #fff7ed;
@@ -40,6 +41,35 @@
     --primary: #e5e7eb;
     --on-primary: #0f172a;
     --link: #93c5fd;
+    --pos: #22c55e;
+    --pos-fg: #86efac;
+    --mixed: #fbbf24;
+    --mixed-fg: #fcd34d;
+    --neutral: #6b7280;
+    --neutral-fg: #9ca3af;
+    --neg: #ef4444;
+    --neg-fg: #fca5a5;
+    --info-bg: #172554;
+    --info-line: #1e3a8a;
+    --warn-bg: #431407;
+    --warn-line: #7c2d12;
+  }
+}
+
+/* The colour-blind palette, set by data-palette on <html>. */
+:root[data-palette="colorblind"] {
+  --pos: #2563eb;
+  --pos-fg: #1d4ed8;
+  --mixed: #009e73;
+  --mixed-fg: #00785a;
+  --neutral: #cbd5e1;
+  --neutral-fg: #475569;
+  --neg: #ea580c;
+  --neg-fg: #c2410c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="colorblind"] {
     --pos: #3b82f6;
     --pos-fg: #93c5fd;
     --mixed: #10b981;
@@ -48,10 +78,6 @@
     --neutral-fg: #9ca3af;
     --neg: #f97316;
     --neg-fg: #fdba74;
-    --info-bg: #172554;
-    --info-line: #1e3a8a;
-    --warn-bg: #431407;
-    --warn-line: #7c2d12;
   }
 }
 
@@ -88,6 +114,6 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--pos);
+  outline: 2px solid var(--link);
   outline-offset: 2px;
 }

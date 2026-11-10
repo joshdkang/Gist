@@ -169,7 +169,7 @@ function MapColumns({
   const upload = useMutation({
     mutationFn: (form: FormData) => api<UploadResult>(`/entities/${entityId}/imports`, { method: "POST", body: form }),
     onSuccess: (result) => {
-      for (const key of ["entity", "themes", "entities"]) queryClient.invalidateQueries({ queryKey: [key] });
+      for (const key of ["entity", "themes", "ratings", "entities"]) queryClient.invalidateQueries({ queryKey: [key] });
       onUploaded(result);
     },
   });

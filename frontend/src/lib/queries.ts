@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
 import { api } from "@/lib/api";
-import type { EntityDetail, RunDetail, ThemeList } from "@/lib/types";
+import type { EntityDetail, RatingSummary, RunDetail, ThemeList } from "@/lib/types";
 
 const POLL_MS = 3000;
 
@@ -26,6 +26,14 @@ export function useThemes(entityId: string) {
     queryKey: ["themes", entityId],
     // The recent window (behind "Most recent", the recent counts, and quiet themes) is the API's default.
     queryFn: () => api<ThemeList>(`/entities/${entityId}/themes?include_candidates=true`),
+  });
+}
+
+/** The entity's ratings: count, average and distribution per rating scale. Changes only on upload. */
+export function useRatings(entityId: string) {
+  return useQuery({
+    queryKey: ["ratings", entityId],
+    queryFn: () => api<RatingSummary>(`/entities/${entityId}/ratings`),
   });
 }
 

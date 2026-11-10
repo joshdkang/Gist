@@ -5,12 +5,13 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { EntityActions } from "@/components/EntityActions";
+import { RatingsCard } from "@/components/RatingsCard";
 import { RunBanner } from "@/components/RunBanner";
 import { SentimentBar, SentimentLegend } from "@/components/SentimentBar";
 import { BackLink, buttonPrimary, card, ErrorNote, Loading, Page } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent } from "@/lib/format";
-import { isActive, useEntity, useRefreshWhenRunEnds, useThemes } from "@/lib/queries";
+import { isActive, useEntity, useRatings, useRefreshWhenRunEnds, useThemes } from "@/lib/queries";
 import type { EntityDetail, ThemeList, ThemeSummary } from "@/lib/types";
 
 type Sort = "total" | "recent";
@@ -167,6 +168,7 @@ export default function EntityPage() {
   const { entityId } = useParams<{ entityId: string }>();
   const entity = useEntity(entityId);
   const themes = useThemes(entityId);
+  const ratings = useRatings(entityId);
   useRefreshWhenRunEnds(entityId, entity.data?.latest_run);
 
   if (entity.error instanceof ApiError && entity.error.status === 404) {
@@ -209,6 +211,7 @@ export default function EntityPage() {
         </div>
 
         <RunBanner run={detail.latest_run} />
+        {ratings.data && <RatingsCard ratings={ratings.data} />}
         <ErrorNote error={themes.error} />
         {themes.isPending && <Loading label="Loading themes…" />}
         {list && list.themes.length === 0 && <NoResults entity={detail} />}

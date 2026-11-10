@@ -17,6 +17,7 @@ from ingestion import (
     parse_rating,
 )
 from models import Sentiment
+from rating_stats import summarize_scale
 from theme_stats import combine_sentiments
 
 
@@ -107,3 +108,30 @@ def test_a_theme_needs_five_percent_of_reviews_and_at_least_25():
     assert promote_min_reviews(500) == 25
     assert promote_min_reviews(1000) == 50                 # 5%
     assert promote_min_reviews(4480) == 224
+
+
+# --- ratings ---------------------------------------------------------------------------------
+
+def bucket_counts(summary) -> list[tuple[str, int]]:
+    return [(bucket.label, bucket.count) for bucket in summary.buckets]
+
+
+def test_a_five_point_scale_has_a_bar_per_level_highest_first():
+    counts = {Decimal(5): 6, Decimal(4): 2, Decimal("4.5"): 1, Decimal(1): 1}
+    summary = summarize_scale(NumericScale(min=1, max=5), counts)
+    assert summary.count == 10 and summary.average == pytest.approx(4.35)
+    # A half rating counts under the level below it; levels with no ratings still get a bar.
+    assert bucket_counts(summary) == [("5", 6), ("4", 3), ("3", 0), ("2", 0), ("1", 1)]
+
+
+def test_a_wide_numeric_scale_is_split_into_five_ranges():
+    counts = {Decimal(0): 1, Decimal(19): 1, Decimal(20): 1, Decimal(100): 2}
+    summary = summarize_scale(NumericScale(min=0, max=100), counts)
+    assert bucket_counts(summary) == [("80–100", 2), ("60–80", 0), ("40–60", 0), ("20–40", 1), ("0–20", 2)]
+
+
+def test_binary_and_label_scales_summarize_their_own_way():
+    binary = summarize_scale(BinaryScale(), {Decimal(1): 3, Decimal(0): 1})
+    assert binary.average == 0.75 and bucket_counts(binary) == [("Positive", 3), ("Negative", 1)]
+    labels = summarize_scale(LabelScale(labels=["bad", "ok", "good"]), {Decimal(2): 2, Decimal(0): 2})
+    assert labels.average == 1.0 and bucket_counts(labels) == [("good", 2), ("ok", 0), ("bad", 2)]

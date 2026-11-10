@@ -207,6 +207,29 @@ class ThemeReviewOut(BaseModel):
     sentiment: Sentiment | None = Field(description="The review's combined sentiment for the theme")
 
 
+class RatingBucket(BaseModel):
+    label: str = Field(description="The level ('5'), range ('80–100'), or label ('good')")
+    count: int
+
+
+class RatingScaleSummary(BaseModel):
+    scale: dict[str, Any] = Field(description="The rating scale, as the imports declared it")
+    count: int = Field(description="Reviews with a rating on this scale")
+    average: float = Field(
+        description="The mean stored rating: the number itself on a numeric scale, the share positive "
+        "on a binary one, and the mean label index (lowest label 0) on labels"
+    )
+    buckets: list[RatingBucket] = Field(description="The distribution, highest rating first")
+
+
+class RatingSummary(BaseModel):
+    total_reviews: int
+    rated_reviews: int
+    scales: list[RatingScaleSummary] = Field(
+        description="One summary per rating scale, most ratings first; empty when no review has a rating"
+    )
+
+
 class TrendPoint(BaseModel):
     period_start: datetime
     sentiment: SentimentCounts

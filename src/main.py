@@ -7,7 +7,7 @@ from auth import get_current_user
 from config import settings
 from database import engine
 from models import User
-from routers import entities, imports, runs, themes
+from routers import entities, imports, ratings, runs, themes
 
 # Tables are created by Alembic migrations (alembic upgrade head), not by the app.
 @asynccontextmanager
@@ -25,6 +25,7 @@ app.add_middleware(
 )
 app.include_router(entities.router)
 app.include_router(imports.router)
+app.include_router(ratings.router)
 app.include_router(runs.router)
 app.include_router(themes.router)
 

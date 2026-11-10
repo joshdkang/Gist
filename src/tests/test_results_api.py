@@ -151,3 +151,18 @@ async def test_the_theme_list_takes_few_queries(call, seeded):
         event.remove(engine.sync_engine, "before_cursor_execute", count_selects)
     assert response.status_code == 200
     assert len(selects) <= 5, selects
+
+
+async def test_ratings_give_the_count_average_and_distribution(call, seeded, bob, public_entity):
+    response = await call("GET", f"/entities/{seeded.entity_id}/ratings")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_reviews"] == SEED_REVIEWS and body["rated_reviews"] == SEED_REVIEWS
+    (summary,) = body["scales"]
+    assert summary["scale"] == {"type": "numeric", "min": 1.0, "max": 5.0}
+    assert summary["count"] == SEED_REVIEWS and summary["average"] == 3.0     # ratings cycle 1-5
+    assert summary["buckets"] == [{"label": str(level), "count": 8} for level in (5, 4, 3, 2, 1)]
+
+    assert (await call("GET", f"/entities/{seeded.entity_id}/ratings", person=bob)).status_code == 404
+    empty = (await call("GET", f"/entities/{public_entity.id}/ratings", person=bob)).json()
+    assert empty == {"total_reviews": 0, "rated_reviews": 0, "scales": []}
