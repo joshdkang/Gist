@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Review, ReviewTheme, Sentiment, Theme
@@ -93,6 +93,34 @@ async def theme_sentiment_counts(
     return counts
 
 
+async def theme_sentiment_counts_with_recent(
+    db: AsyncSession, entity_id: int, since: datetime | None
+) -> tuple[dict[int, Counter[Sentiment | None]], dict[int, Counter[Sentiment | None]]]:
+    """theme_sentiment_counts for all time and for reviews dated on or after `since`, in one query.
+
+    The theme list needs both, and every query is a round trip to the database, so counting the
+    recent window with a FILTER beside the total halves the work. With no `since`, nothing is recent.
+    """
+    per_review, combined = per_review_theme_sentiment(entity_id)
+    recent = (
+        func.count().filter(Review.review_date >= since) if since is not None else literal(0)
+    )
+    rows = await db.execute(
+        select(per_review.c.theme_id, combined, func.count(), recent)
+        .select_from(per_review)
+        .join(Review, Review.id == per_review.c.review_id)
+        .group_by(per_review.c.theme_id, combined)
+    )
+    overall: dict[int, Counter[Sentiment | None]] = {}
+    recent_counts: dict[int, Counter[Sentiment | None]] = {}
+    for theme_id, sentiment, count, recent_count in rows.all():
+        key = Sentiment(sentiment) if sentiment else None
+        overall.setdefault(theme_id, Counter())[key] += count
+        if recent_count:
+            recent_counts.setdefault(theme_id, Counter())[key] += recent_count
+    return overall, recent_counts
+
+
 async def theme_trend(
     db: AsyncSession, entity_id: int, theme_id: int, interval: str
 ) -> list[tuple[datetime, Counter[Sentiment | None]]]:
@@ -114,10 +142,16 @@ async def theme_trend(
     return [(start, _to_counter(items)) for start, items in trend.items()]
 
 
-async def classified_review_count(db: AsyncSession, entity_id: int) -> int:
-    """Reviews with at least one tag."""
-    return await db.scalar(
+def classified_review_count_query(entity_id: int):
+    """A scalar subquery: reviews with at least one tag."""
+    return (
         select(func.count(func.distinct(ReviewTheme.review_id)))
         .join(Theme, Theme.id == ReviewTheme.theme_id)
         .where(Theme.entity_id == entity_id)
-    ) or 0
+        .scalar_subquery()
+    )
+
+
+async def classified_review_count(db: AsyncSession, entity_id: int) -> int:
+    """Reviews with at least one tag."""
+    return await db.scalar(select(classified_review_count_query(entity_id))) or 0

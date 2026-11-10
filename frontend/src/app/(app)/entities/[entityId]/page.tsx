@@ -115,9 +115,9 @@ function ThemesSection({ entityId, list }: { entityId: string; list: ThemeList }
   );
 }
 
-function EmergingTopics({ entityId, list }: { entityId: string; list: ThemeList }) {
-  if (list.themes.length === 0) return null;
-  const byCount = [...list.themes].sort((a, b) => b.review_count - a.review_count);
+function EmergingTopics({ entityId, topics }: { entityId: string; topics: ThemeSummary[] }) {
+  if (topics.length === 0) return null;
+  const byCount = [...topics].sort((a, b) => b.review_count - a.review_count);
   return (
     <section className={`${card} flex flex-col gap-3 px-5 py-4`}>
       <div>
@@ -166,8 +166,7 @@ function NoResults({ entity }: { entity: EntityDetail }) {
 export default function EntityPage() {
   const { entityId } = useParams<{ entityId: string }>();
   const entity = useEntity(entityId);
-  const themes = useThemes(entityId, "discovered");
-  const candidates = useThemes(entityId, "candidate");
+  const themes = useThemes(entityId);
   useRefreshWhenRunEnds(entityId, entity.data?.latest_run);
 
   if (entity.error instanceof ApiError && entity.error.status === 404) {
@@ -210,11 +209,11 @@ export default function EntityPage() {
         </div>
 
         <RunBanner run={detail.latest_run} />
-        <ErrorNote error={themes.error ?? candidates.error} />
+        <ErrorNote error={themes.error} />
         {themes.isPending && <Loading label="Loading themes…" />}
         {list && list.themes.length === 0 && <NoResults entity={detail} />}
         {list && list.themes.length > 0 && <ThemesSection entityId={entityId} list={list} />}
-        {candidates.data && <EmergingTopics entityId={entityId} list={candidates.data} />}
+        {list?.candidates && <EmergingTopics entityId={entityId} topics={list.candidates} />}
         {list && list.classified_reviews > 0 && (
           <p className="text-sm text-muted">
             {formatPercent(list.general.review_count, list.classified_reviews)} of reviews (

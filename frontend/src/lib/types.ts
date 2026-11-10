@@ -79,6 +79,7 @@ export interface ThemeList {
   recent_days: number;
   general: { review_count: number; share: number };
   themes: ThemeSummary[];
+  candidates: ThemeSummary[] | null;
 }
 
 export interface ThemeReview {

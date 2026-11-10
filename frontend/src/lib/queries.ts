@@ -20,10 +20,12 @@ export function useEntity(entityId: string) {
   });
 }
 
-export function useThemes(entityId: string, kind: "discovered" | "candidate") {
+/** The entity's themes and its listed candidates (emerging topics), in one call. */
+export function useThemes(entityId: string) {
   return useQuery({
-    queryKey: ["themes", entityId, kind],
-    queryFn: () => api<ThemeList>(`/entities/${entityId}/themes?kind=${kind}`),
+    queryKey: ["themes", entityId],
+    // The recent window (behind "Most recent", the recent counts, and quiet themes) is the API's default.
+    queryFn: () => api<ThemeList>(`/entities/${entityId}/themes?include_candidates=true`),
   });
 }
 

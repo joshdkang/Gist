@@ -1,6 +1,9 @@
 """The theme list, a theme's reviews, and its trend, over the data seeded in conftest.py."""
 from collections import Counter
 
+from sqlalchemy import event
+
+from database import engine
 from tests.conftest import SEED_REVIEWS, seed_date
 
 
@@ -32,6 +35,14 @@ async def test_candidates_list_merged_ones_under_their_root_and_hide_rare_ones(c
     # Parking positive and Valet negative, which combine to mixed.
     assert parking["sentiment"] == {"positive": 1, "negative": 2, "mixed": 1, "neutral": 11, "total": 15}
     assert parking["recent_count"] == 9
+
+
+async def test_the_recent_window_defaults_to_90_days(call, seeded):
+    body = (await call("GET", f"/entities/{seeded.entity_id}/themes")).json()
+    assert body["recent_days"] == 90
+    # Reviews are 30 days apart and the latest is index 39, so the window holds reviews 36-39: only
+    # Rare (a candidate) has recent mentions, and Service and Price are quiet.
+    assert all(theme["quiet"] for theme in body["themes"])
 
 
 async def test_general_is_not_a_listable_kind(call, seeded):
@@ -110,3 +121,33 @@ async def test_theme_trend_counts_reviews_per_period(call, seeded):
     assert sum(point["sentiment"]["total"] for point in monthly) == 30
     assert sum(point["sentiment"]["negative"] for point in monthly) == 10
     assert (await call("GET", path, params={"interval": "day"})).status_code == 422
+
+
+async def test_one_call_can_return_the_themes_and_the_candidates(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes"
+    params = {"recent_days": 400}
+    both = (await call("GET", path, params={**params, "include_candidates": "true"})).json()
+    themes = (await call("GET", path, params=params)).json()
+    candidates = (await call("GET", path, params={**params, "kind": "candidate"})).json()
+    assert both["themes"] == themes["themes"] and both["candidates"] == candidates["themes"]
+    assert themes["candidates"] is None
+
+
+async def test_the_theme_list_takes_few_queries(call, seeded):
+    # Every query is a round trip to the database: signing in and finding the entity take one each,
+    # and the list itself takes three (totals, sentiment counts, themes).
+    selects: list[str] = []
+
+    def count_selects(conn, cursor, statement, parameters, context, executemany):
+        if statement.lstrip().upper().startswith("SELECT"):
+            selects.append(statement)
+
+    event.listen(engine.sync_engine, "before_cursor_execute", count_selects)
+    try:
+        response = await call(
+            "GET", f"/entities/{seeded.entity_id}/themes", params={"include_candidates": "true"}
+        )
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", count_selects)
+    assert response.status_code == 200
+    assert len(selects) <= 5, selects

@@ -193,6 +193,9 @@ class ThemeList(BaseModel):
     recent_days: int
     general: GeneralSummary
     themes: list[ThemeSummary]
+    candidates: list[ThemeSummary] | None = Field(
+        default=None, description="The listed candidates, when asked for with include_candidates"
+    )
 
 
 class ThemeReviewOut(BaseModel):

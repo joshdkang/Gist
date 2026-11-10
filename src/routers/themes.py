@@ -21,9 +21,9 @@ from schemas import (
     TrendPoint,
 )
 from theme_stats import (
-    classified_review_count,
+    classified_review_count_query,
     per_review_theme_sentiment,
-    theme_sentiment_counts,
+    theme_sentiment_counts_with_recent,
     theme_trend,
 )
 
@@ -31,6 +31,9 @@ router = APIRouter(prefix="/entities/{entity_id}/themes", tags=["themes"])
 
 # A candidate is listed once this many reviews raise it, the same bar the classifier uses to show it.
 CANDIDATE_MIN_REVIEWS = 10
+# The recent window, in days before the entity's latest review: it ranks themes, counts recent
+# mentions, and marks quiet themes.
+RECENT_DAYS = 90
 
 
 class TrendInterval(enum.StrEnum):
@@ -63,33 +66,41 @@ async def get_theme(db: AsyncSession, entity: Entity, theme_id: int) -> Theme:
 @router.get("", response_model=ThemeList)
 async def list_themes(
     kind: ThemeKind = Query(ThemeKind.DISCOVERED, description="discovered or candidate"),
-    recent_days: int = Query(180, ge=1, le=3650),
+    include_candidates: bool = Query(
+        False, description="Also return the listed candidates in `candidates`, so one call serves an overview"
+    ),
+    recent_days: int = Query(RECENT_DAYS, ge=1, le=3650),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
     """Themes ranked by mentions in the recent window, then by total mentions.
 
     `general` is reported separately, not ranked. The recent window ends at the entity's latest
-    review date, so an old dataset still has a recent window.
+    review date, so an old dataset still has a recent window. Candidates are listed once
+    CANDIDATE_MIN_REVIEWS reviews raise them.
+
+    Every query is a round trip to the database, so this takes three: the entity's totals, the
+    sentiment counts per theme (all time and recent together), and the themes themselves.
     """
     if kind == ThemeKind.GENERAL:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "general is reported separately.")
-    total_reviews = await db.scalar(
-        select(func.count()).select_from(Review).where(Review.entity_id == entity.id)
-    )
-    classified = await classified_review_count(db, entity.id)
-    as_of = await db.scalar(select(func.max(Review.review_date)).where(Review.entity_id == entity.id))
-
-    overall = await theme_sentiment_counts(db, entity.id)
-    recent = (
-        await theme_sentiment_counts(db, entity.id, since=as_of - timedelta(days=recent_days))
-        if as_of is not None
-        else {}
-    )
+    reviews = select(Review).where(Review.entity_id == entity.id).subquery()
+    total_reviews, classified, as_of = (
+        await db.execute(
+            select(
+                select(func.count()).select_from(reviews).scalar_subquery(),
+                classified_review_count_query(entity.id),
+                select(func.max(reviews.c.review_date)).scalar_subquery(),
+            )
+        )
+    ).one()
+    since = as_of - timedelta(days=recent_days) if as_of is not None else None
+    overall, recent = await theme_sentiment_counts_with_recent(db, entity.id, since)
     themes = await db.scalars(
         select(Theme).where(Theme.entity_id == entity.id, Theme.merged_into_id.is_(None))
     )
-    summaries: list[ThemeSummary] = []
+
+    listed: dict[ThemeKind, list[ThemeSummary]] = {ThemeKind.DISCOVERED: [], ThemeKind.CANDIDATE: []}
     general = GeneralSummary(review_count=0, share=0.0)
     for theme in themes:
         counter = overall.get(theme.id, Counter())
@@ -97,9 +108,9 @@ async def list_themes(
         share = review_count / classified if classified else 0.0
         if theme.kind == ThemeKind.GENERAL:
             general = GeneralSummary(review_count=review_count, share=share)
-        elif theme.kind == kind and (kind == ThemeKind.DISCOVERED or review_count >= CANDIDATE_MIN_REVIEWS):
+        elif theme.kind == ThemeKind.DISCOVERED or review_count >= CANDIDATE_MIN_REVIEWS:
             recent_count = sum(recent.get(theme.id, Counter()).values())
-            summaries.append(
+            listed[theme.kind].append(
                 ThemeSummary(
                     id=theme.id,
                     kind=theme.kind,
@@ -112,14 +123,16 @@ async def list_themes(
                     quiet=recent_count == 0,
                 )
             )
-    summaries.sort(key=lambda summary: (-summary.recent_count, -summary.review_count))
+    for summaries in listed.values():
+        summaries.sort(key=lambda summary: (-summary.recent_count, -summary.review_count))
     return ThemeList(
         total_reviews=total_reviews,
         classified_reviews=classified,
         as_of=as_of,
         recent_days=recent_days,
         general=general,
-        themes=summaries,
+        themes=listed[kind],
+        candidates=listed[ThemeKind.CANDIDATE] if include_candidates else None,
     )
 
 

@@ -166,18 +166,17 @@ function Trend({ entityId, themeId }: { entityId: string; themeId: number }) {
 export default function ThemePage() {
   const { entityId, themeId } = useParams<{ entityId: string; themeId: string }>();
   const entity = useEntity(entityId);
-  const discovered = useThemes(entityId, "discovered");
-  const candidates = useThemes(entityId, "candidate");
+  const themes = useThemes(entityId);
   // A merged candidate's id resolves to the theme it merged into; the trend says which one that is.
   const resolved = useQuery({
     queryKey: ["trend", entityId, Number(themeId), "year"],
     queryFn: () => api<ThemeTrend>(`/entities/${entityId}/themes/${themeId}/trend?interval=year`),
   });
 
-  const all = [...(discovered.data?.themes ?? []), ...(candidates.data?.themes ?? [])];
+  const all = [...(themes.data?.themes ?? []), ...(themes.data?.candidates ?? [])];
   const theme = all.find((item) => item.id === (resolved.data?.theme_id ?? Number(themeId)));
-  const total = discovered.data?.classified_reviews ?? 0;
-  const error = entity.error ?? resolved.error ?? discovered.error ?? candidates.error;
+  const total = themes.data?.classified_reviews ?? 0;
+  const error = entity.error ?? resolved.error ?? themes.error;
 
   if (error instanceof ApiError && error.status === 404) {
     return (
@@ -188,7 +187,7 @@ export default function ThemePage() {
     );
   }
   if (error) return <Page><ErrorNote error={error} /></Page>;
-  if (!entity.data || !discovered.data || !candidates.data || !resolved.data) return <Page><Loading /></Page>;
+  if (!entity.data || !themes.data || !resolved.data) return <Page><Loading /></Page>;
   if (!theme) {
     return (
       <Page>
@@ -220,7 +219,7 @@ export default function ThemePage() {
               <strong>{formatPercent(theme.review_count, total)}</strong> of classified reviews
             </span>
             <span>
-              <strong>{formatNumber(theme.recent_count)}</strong> in the last {discovered.data.recent_days} days
+              <strong>{formatNumber(theme.recent_count)}</strong> in the last {themes.data.recent_days} days
             </span>
           </div>
         </div>
