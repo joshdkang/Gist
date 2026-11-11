@@ -4,6 +4,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { ExportButton } from "@/components/ExportButton";
 import { RatingsCard } from "@/components/RatingsCard";
 import { SentimentBar, SentimentBreakdown } from "@/components/SentimentBar";
 import { periodName, TrendChart, type TrendMode } from "@/components/TrendChart";
@@ -104,6 +105,10 @@ function Reviews({
     { key: "all", label: "All", count: counts.total },
     ...SENTIMENTS.map(({ key, label }) => ({ key, label, count: counts[key] })),
   ];
+  // The export takes the list's filters, without paging.
+  const exportParams = new URLSearchParams(params);
+  exportParams.delete("limit");
+  exportParams.set("theme_id", String(theme.id));
   const periodNames = periods
     ? [...periods.starts].sort().map((start) => periodName(start, periods.interval))
     : [];
@@ -111,7 +116,15 @@ function Reviews({
   return (
     <section className={`${card} flex flex-col gap-4 px-5 py-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Reviews</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="font-semibold">Reviews</h2>
+          {total > 0 && (
+            <ExportButton
+              path={`/entities/${entityId}/exports/reviews.csv?${exportParams}`}
+              label={`Export ${formatNumber(total)} ${total === 1 ? "review" : "reviews"}`}
+            />
+          )}
+        </div>
         <div role="group" aria-label="Filter by sentiment" className="flex flex-wrap gap-1.5">
           {filters.map((option) => (
             <button

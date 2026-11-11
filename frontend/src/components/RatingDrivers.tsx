@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { ExportButton } from "@/components/ExportButton";
 import { card } from "@/components/ui";
 import { formatNumber } from "@/lib/format";
 import type { RatingScale, ThemeRatingImpact, ThemeRatings } from "@/lib/types";
@@ -147,7 +148,10 @@ export function RatingDrivers({
   return (
     <section className={`${card} overflow-hidden`}>
       <div className="px-5 py-4">
-        <h2 className="text-lg font-semibold">Ratings by theme</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h2 className="text-lg font-semibold">Ratings by theme</h2>
+          <ExportButton path={`/entities/${entityId}/exports/themes.csv`} />
+        </div>
         <p className="mt-1 max-w-3xl text-sm text-muted">
           The average rating of reviews that mention each theme, against reviews that don&apos;t, across{" "}
           {formatNumber(data.rated_reviews)} rated reviews averaging {formatAverage(data.average, scale)}

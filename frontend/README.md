@@ -31,6 +31,9 @@ frontend's origin (the default allows `http://localhost:3000`).
   links to a theme carry it, so the theme's counts, trend and reviews cover the same ratings. A theme's page
   has its own ratings card (the ratings of the reviews that raise it), whose bars set the same filter. A period
   comparison row opens the theme with `interval` and both periods (`period`) chosen in its trend.
+- **Exports**: Export buttons on the theme list, ratings by theme, the period comparison and a theme's reviews
+  download the API's CSV exports with the page's filters. A plain link can't send the sign-in token, so
+  `downloadFile` in `src/lib/api.ts` fetches the file and hands it to the browser as a download.
 - **Upload** reads the CSV in the browser (Papa Parse) to count rows, guess the column mapping (the review
   text is the column with the longest values) and the rating scale, and preview the first rows. The API
   re-checks everything.

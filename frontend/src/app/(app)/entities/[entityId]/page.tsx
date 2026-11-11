@@ -5,6 +5,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { useMemo, useState } from "react";
 
 import { EntityActions } from "@/components/EntityActions";
+import { ExportButton } from "@/components/ExportButton";
 import { RatingDrivers } from "@/components/RatingDrivers";
 import { RatingsCard } from "@/components/RatingsCard";
 import { RunBanner } from "@/components/RunBanner";
@@ -90,6 +91,16 @@ function ThemesSection({
                 : `Only the ${formatNumber(list.total_reviews)} reviews ${describeRatingFilter(ratingFilter)}`}
             </p>
           )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <ExportButton
+              path={`/entities/${entityId}/exports/themes.csv${ratingQuery(ratingFilter)}`}
+              label="Export themes"
+            />
+            <ExportButton
+              path={`/entities/${entityId}/exports/reviews.csv${ratingQuery(ratingFilter)}`}
+              label="Export reviews"
+            />
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <SentimentLegend />

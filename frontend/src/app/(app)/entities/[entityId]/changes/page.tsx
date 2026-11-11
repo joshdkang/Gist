@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
+import { ExportButton } from "@/components/ExportButton";
 import { periodName } from "@/components/TrendChart";
 import { BackLink, card, ErrorNote, INTERVALS, inputBase, Loading, Page, PageTitle, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
@@ -132,12 +133,14 @@ function ChangeRow({
       </div>
       <div className="flex flex-col gap-1.5 text-sm">
         <span className="text-xs text-muted sm:hidden">Negative</span>
+        {/* A period with none of the theme's reviews has no negative share, so it says so instead. */}
         <span>
-          {before === null ? "—" : percent(before)} → <strong>{now === null ? "—" : percent(now)}</strong>
-          <span className="text-muted"> negative</span>
+          {before === null ? <span className="text-muted">no reviews</span> : percent(before)} →{" "}
+          {now === null ? <span className="text-muted">no reviews this period</span> : <strong>{percent(now)}</strong>}
+          {now !== null && <span className="text-muted"> negative</span>}
         </span>
         {sort === "negative" && delta !== null && <ChangeBar delta={delta} largest={largest} tone={tone} />}
-        {sort === "negative" && (
+        {sort === "negative" && delta !== null && (
           <span
             className={
               !clear || delta === null ? "text-muted" : delta > 0 ? "font-semibold text-neg-fg" : "font-semibold text-pos-fg"
@@ -232,6 +235,12 @@ export default function ChangesPage() {
     setCompareTo(null);
   }
 
+  function exportPath(chosen: string) {
+    const params = new URLSearchParams({ interval, period: period ?? chosen });
+    if (compareTo) params.set("compare_to", compareTo);
+    return `/entities/${entityId}/exports/changes.csv?${params}`;
+  }
+
   function changePeriod(next: string) {
     setPeriod(next);
     if (next === compareTo) setCompareTo(null); // a period can't be compared with itself
@@ -308,6 +317,11 @@ export default function ChangesPage() {
             <span className="text-sm font-medium">Biggest change in</span>
             <Toggle label="Sort by" options={SORTS} value={sort} onChange={setSort} />
           </div>
+          {data?.period_start && (
+            <div className="ml-auto self-end">
+              <ExportButton path={exportPath(data.period_start)} />
+            </div>
+          )}
         </div>
 
         <ErrorNote error={changes.error} />

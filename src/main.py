@@ -7,7 +7,7 @@ from auth import get_current_user
 from config import settings
 from database import engine
 from models import User
-from routers import entities, imports, ratings, runs, themes
+from routers import entities, exports, imports, ratings, runs, themes
 
 # Tables are created by Alembic migrations (alembic upgrade head), not by the app.
 @asynccontextmanager
@@ -22,8 +22,11 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
+    # The CSV exports name their file here; a browser hides the header from scripts unless exposed.
+    expose_headers=["Content-Disposition"],
 )
 app.include_router(entities.router)
+app.include_router(exports.router)
 app.include_router(imports.router)
 app.include_router(ratings.router)
 app.include_router(runs.router)
