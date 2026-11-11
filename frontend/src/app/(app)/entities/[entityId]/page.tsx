@@ -8,11 +8,11 @@ import { EntityActions } from "@/components/EntityActions";
 import { RatingsCard } from "@/components/RatingsCard";
 import { RunBanner } from "@/components/RunBanner";
 import { SentimentBar, SentimentLegend } from "@/components/SentimentBar";
-import { BackLink, buttonPrimary, card, ErrorNote, Loading, Page } from "@/components/ui";
+import { BackLink, buttonPrimary, buttonSecondary, card, ErrorNote, Loading, Page } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent } from "@/lib/format";
 import { isActive, useEntity, useRatings, useRefreshWhenRunEnds, useThemes } from "@/lib/queries";
-import type { EntityDetail, ThemeList, ThemeSummary } from "@/lib/types";
+import type { EntityDetail, RatingFilter, ThemeList, ThemeSummary } from "@/lib/types";
 
 type Sort = "total" | "recent";
 
@@ -51,7 +51,24 @@ function ThemeRow({ entityId, theme }: { entityId: string; theme: ThemeSummary }
   );
 }
 
-function ThemesSection({ entityId, list }: { entityId: string; list: ThemeList }) {
+/** "rated 5 or 4": the chosen buckets, highest first as the card lists them. */
+function describeRatingFilter(filter: RatingFilter): string {
+  const labels = filter.labels.join(" or ");
+  return filter.scale.type === "binary" ? labels.toLowerCase() : `rated ${labels}`;
+}
+
+function ThemesSection({
+  entityId,
+  list,
+  ratingFilter,
+  updating,
+}: {
+  entityId: string;
+  list: ThemeList;
+  ratingFilter: RatingFilter | null;
+  /** The list shown is the previous filter's while this one loads. */
+  updating: boolean;
+}) {
   const [sort, setSort] = useState<Sort>("total");
   const [showQuiet, setShowQuiet] = useState(false);
   const sorted = sortThemes(list.themes, sort);
@@ -69,6 +86,13 @@ function ThemesSection({ entityId, list }: { entityId: string; list: ThemeList }
               ? "Ranked by the number of reviews that mention each theme"
               : `Ranked by mentions in the ${list.recent_days} days to ${windowEnd}, then by total`}
           </p>
+          {ratingFilter && (
+            <p className="mt-1 text-sm font-semibold">
+              {updating
+                ? `Counting the reviews ${describeRatingFilter(ratingFilter)}…`
+                : `Only the ${formatNumber(list.total_reviews)} reviews ${describeRatingFilter(ratingFilter)}`}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <SentimentLegend />
@@ -124,7 +148,7 @@ function EmergingTopics({ entityId, topics }: { entityId: string; topics: ThemeS
       <div>
         <h2 className="text-lg font-semibold">Emerging topics</h2>
         <p className="text-sm text-muted">
-          Specific points no theme covers yet. A topic becomes a theme once 5% of reviews raise it.
+          Specific points no theme covers yet. A topic becomes a theme once enough reviews raise it.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -167,7 +191,8 @@ function NoResults({ entity }: { entity: EntityDetail }) {
 export default function EntityPage() {
   const { entityId } = useParams<{ entityId: string }>();
   const entity = useEntity(entityId);
-  const themes = useThemes(entityId);
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter | null>(null);
+  const themes = useThemes(entityId, ratingFilter);
   const ratings = useRatings(entityId);
   useRefreshWhenRunEnds(entityId, entity.data?.latest_run);
 
@@ -184,6 +209,8 @@ export default function EntityPage() {
 
   const detail = entity.data;
   const list = themes.data;
+  // While a new rating filter loads, the previous list stays up (dimmed) instead of a spinner.
+  const updating = themes.isPlaceholderData;
   const latest = list?.as_of ? ` · latest review ${formatDate(list.as_of)}` : "";
 
   return (
@@ -206,23 +233,43 @@ export default function EntityPage() {
                 {formatNumber(detail.review_count)} reviews{latest}
               </p>
             </div>
-            {detail.is_owner && <EntityActions entity={detail} />}
+            <div className="flex flex-wrap items-center gap-2">
+              {list?.as_of && list.themes.length > 0 && (
+                <Link href={`/entities/${entityId}/changes`} className={buttonSecondary}>
+                  Period comparison
+                </Link>
+              )}
+              {detail.is_owner && <EntityActions entity={detail} />}
+            </div>
           </div>
         </div>
 
         <RunBanner run={detail.latest_run} />
-        {ratings.data && <RatingsCard ratings={ratings.data} />}
+        {ratings.data && (
+          <RatingsCard ratings={ratings.data} filter={ratingFilter} onFilterChange={setRatingFilter} />
+        )}
         <ErrorNote error={themes.error} />
         {themes.isPending && <Loading label="Loading themes…" />}
-        {list && list.themes.length === 0 && <NoResults entity={detail} />}
-        {list && list.themes.length > 0 && <ThemesSection entityId={entityId} list={list} />}
-        {list?.candidates && <EmergingTopics entityId={entityId} topics={list.candidates} />}
-        {list && list.classified_reviews > 0 && (
-          <p className="text-sm text-muted">
-            {formatPercent(list.general.review_count, list.classified_reviews)} of reviews (
-            {formatNumber(list.general.review_count)}) raise no specific topic and are not ranked.
-          </p>
+        {updating && list?.themes.length === 0 && <Loading label="Loading themes…" />}
+        {list && !updating && list.themes.length === 0 && !ratingFilter && <NoResults entity={detail} />}
+        {list && !updating && list.themes.length === 0 && ratingFilter && (
+          <p className={`${card} p-6`}>No theme is raised by reviews {describeRatingFilter(ratingFilter)}.</p>
         )}
+        <div
+          aria-busy={updating}
+          className={`flex flex-col gap-6 transition-opacity ${updating ? "opacity-50" : ""}`}
+        >
+          {list && list.themes.length > 0 && (
+            <ThemesSection entityId={entityId} list={list} ratingFilter={ratingFilter} updating={updating} />
+          )}
+          {list?.candidates && <EmergingTopics entityId={entityId} topics={list.candidates} />}
+          {list && list.classified_reviews > 0 && (
+            <p className="text-sm text-muted">
+              {formatPercent(list.general.review_count, list.classified_reviews)} of reviews (
+              {formatNumber(list.general.review_count)}) raise no specific topic and are not ranked.
+            </p>
+          )}
+        </div>
       </div>
     </Page>
   );

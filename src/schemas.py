@@ -232,7 +232,57 @@ class RatingSummary(BaseModel):
 
 class TrendPoint(BaseModel):
     period_start: datetime
-    sentiment: SentimentCounts
+    sentiment: SentimentCounts = Field(description="The theme's reviews in the period, by sentiment")
+    period_reviews: int = Field(
+        description="The entity's classified reviews in the period: the denominator for the theme's share"
+    )
+
+
+class PeriodCount(BaseModel):
+    period_start: datetime
+    reviews: int = Field(description="The entity's classified reviews in the period")
+
+
+class ThemeChange(BaseModel):
+    id: int
+    kind: ThemeKind
+    name: str
+    description: str
+    previous: SentimentCounts
+    current: SentimentCounts
+    previous_share: float = Field(description="previous.total over the previous period's reviews")
+    current_share: float = Field(description="current.total over the current period's reviews")
+    share_change_p: float | None = Field(
+        description="Fisher's exact test p-value for the change in share; null when the previous period "
+        "has no reviews"
+    )
+    share_change_clear: bool = Field(
+        description="The change in share is significant once corrected for testing every theme "
+        "(Benjamini-Hochberg, 5% false discovery rate)"
+    )
+    negative_change_p: float | None = Field(
+        description="Fisher's exact test p-value for the change in the negative share of the theme's "
+        "reviews; null when either period has none of them"
+    )
+    negative_change_clear: bool = Field(
+        description="The change in the negative share is significant, corrected the same way; false "
+        "when either period has none of the theme's reviews"
+    )
+
+
+class ThemeChanges(BaseModel):
+    interval: str
+    period_start: datetime | None = Field(description="The period compared; null when no review is dated")
+    previous_start: datetime | None = Field(
+        description="The period it is compared with: the one asked for, or by default the one before it"
+    )
+    current_reviews: int
+    previous_reviews: int
+    periods: list[PeriodCount] = Field(description="Every period with reviews, oldest first, to choose from")
+    themes: list[ThemeChange] = Field(
+        description="Discovered themes and listed candidates raised in either period, biggest change in "
+        "share first"
+    )
 
 
 class ThemeTrend(BaseModel):

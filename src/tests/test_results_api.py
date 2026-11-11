@@ -1,6 +1,9 @@
-"""The theme list, a theme's reviews, and its trend, over the data seeded in conftest.py."""
+"""The theme list, what changed between periods, a theme's reviews, and its trend, over the data
+seeded in conftest.py."""
+import json
 from collections import Counter
 
+import pytest
 from sqlalchemy import event
 
 from database import engine
@@ -111,9 +114,14 @@ async def test_theme_trend_counts_reviews_per_period(call, seeded):
     yearly = (await call("GET", path, params={"interval": "year"})).json()
     assert yearly["interval"] == "year" and yearly["theme_id"] == seeded.service.id
     expected = Counter(seed_date(index).year for index in range(30))
+    entity_years = Counter(seed_date(index).year for index in range(40))
+    # Every year the entity has reviews is listed, including 2023, where none raise Service.
     assert {point["period_start"][:4]: point["sentiment"]["total"] for point in yearly["points"]} == {
-        str(year): count for year, count in expected.items()
+        str(year): expected[year] for year in entity_years
     }
+    assert [point["period_reviews"] for point in yearly["points"]] == [
+        entity_years[year] for year in sorted(entity_years)
+    ]
     starts = [point["period_start"] for point in yearly["points"]]
     assert starts == sorted(starts)
 
@@ -166,3 +174,119 @@ async def test_ratings_give_the_count_average_and_distribution(call, seeded, bob
     assert (await call("GET", f"/entities/{seeded.entity_id}/ratings", person=bob)).status_code == 404
     empty = (await call("GET", f"/entities/{public_entity.id}/ratings", person=bob)).json()
     assert empty == {"total_reviews": 0, "rated_reviews": 0, "scales": []}
+
+
+async def test_the_theme_list_can_count_only_some_ratings(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes"
+    scale = (await call("GET", f"/entities/{seeded.entity_id}/ratings")).json()["scales"][0]["scale"]
+    params = {"rating": "1", "rating_scale": json.dumps(scale), "include_candidates": "true", "recent_days": 400}
+    body = (await call("GET", path, params=params)).json()
+    # Ratings cycle 1-5, so rating 1 is reviews 0, 5, 10, ... 35.
+    assert body["total_reviews"] == 8 and body["classified_reviews"] == 8
+    assert body["general"] == {"review_count": 1, "share": 1 / 8}          # review 35
+    themes = {theme["name"]: theme for theme in body["themes"]}
+    assert themes["Service"]["sentiment"] == {"positive": 4, "negative": 2, "mixed": 0, "neutral": 0, "total": 6}
+    # The window is still the 400 days to review 39 (reviews 26-39), where no Service review is rated 1.
+    assert themes["Service"]["share"] == 6 / 8 and themes["Service"]["recent_count"] == 0
+    assert themes["Price"]["review_count"] == 2                            # reviews 0 and 5
+    # Parking is listed by its unfiltered count (15) but counts only reviews 20, 25 and 30 here.
+    assert [(theme["name"], theme["review_count"]) for theme in body["candidates"]] == [("Parking", 3)]
+
+    two = (await call("GET", path, params={**params, "rating": ["4", "5"]})).json()
+    assert two["total_reviews"] == 16
+    # Rating 5 is reviews 4, 9, 14 ...: Price has reviews 0-9, so 3, 4, 8 and 9 with 4 or 5.
+    assert {theme["name"]: theme["review_count"] for theme in two["themes"]}["Price"] == 4
+
+
+async def test_a_bad_rating_filter_is_refused(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes"
+    scale = json.dumps({"type": "numeric", "min": 1, "max": 5})
+    assert (await call("GET", path, params={"rating": "5"})).status_code == 422             # no scale
+    assert (await call("GET", path, params={"rating": "6", "rating_scale": scale})).status_code == 422
+    assert (await call("GET", path, params={"rating": "5", "rating_scale": "{oops"})).status_code == 422
+    # A scale no import used matches nothing, so no theme is listed.
+    other = json.dumps({"type": "numeric", "min": 1, "max": 10})
+    body = (await call("GET", path, params={"rating": "5", "rating_scale": other})).json()
+    assert body["total_reviews"] == 0 and body["themes"] == []
+
+
+async def test_theme_reviews_can_be_limited_to_trend_periods(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes/{seeded.service.id}"
+    points = (await call("GET", f"{path}/trend", params={"interval": "year"})).json()["points"]
+    chosen = [points[0], points[2]]
+    params = {"interval": "year", "period": [point["period_start"] for point in chosen], "limit": 100}
+    reviews = (await call("GET", f"{path}/reviews", params=params)).json()
+    assert len(reviews) == sum(point["sentiment"]["total"] for point in chosen)
+    assert {review["review_date"][:4] for review in reviews} == {point["period_start"][:4] for point in chosen}
+    negative = (await call("GET", f"{path}/reviews", params={**params, "sentiment": "negative"})).json()
+    assert len(negative) == sum(point["sentiment"]["negative"] for point in chosen)
+    assert (await call("GET", f"{path}/reviews", params={"period": params["period"]})).status_code == 422
+
+
+async def test_changes_compare_a_period_with_the_one_before(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes/changes"
+    # Yearly, the seeded reviews fall 12 in 2020, 12 in 2021, 13 in 2022 and 3 in 2023.
+    body = (await call("GET", path, params={"interval": "year", "period": "2022-01-01T00:00:00Z"})).json()
+    assert body["period_start"][:4] == "2022" and body["previous_start"][:4] == "2021"
+    assert (body["previous_reviews"], body["current_reviews"]) == (12, 13)
+    assert [(period["period_start"][:4], period["reviews"]) for period in body["periods"]] == [
+        ("2020", 12), ("2021", 12), ("2022", 13), ("2023", 3)
+    ]
+    changes = {change["name"]: change for change in body["themes"]}
+    # Price (2020 only) and Rare (too few reviews to be listed) are left out, and so is General.
+    assert set(changes) == {"Service", "Parking"}
+
+    service = changes["Service"]                # reviews 12-23 in 2021, 24-29 in 2022
+    assert service["previous"] == {"positive": 8, "negative": 4, "mixed": 0, "neutral": 0, "total": 12}
+    assert service["current"] == {"positive": 4, "negative": 2, "mixed": 0, "neutral": 0, "total": 6}
+    assert service["previous_share"] == 1.0 and service["current_share"] == pytest.approx(6 / 13)
+    assert service["share_change_clear"]
+    assert not service["negative_change_clear"]  # a third negative in both years
+
+    parking = changes["Parking"]                # with Valet merged in: 20-23 in 2021, 24-34 in 2022
+    assert parking["previous"]["total"] == 4 and parking["current"]["total"] == 11
+    assert parking["current"]["mixed"] == 1 and parking["current"]["negative"] == 2
+    assert parking["share_change_clear"]
+    # Biggest change in share first: Service moved 54 points, Parking 51.
+    assert [change["name"] for change in body["themes"]] == ["Service", "Parking"]
+
+
+async def test_changes_default_to_a_period_with_enough_reviews(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes/changes"
+    # No year has 20 reviews, so the latest year is used, against a 2022 with Parking but no Service.
+    body = (await call("GET", path, params={"interval": "year"})).json()
+    assert body["period_start"][:4] == "2023" and body["current_reviews"] == 3
+    changes = {change["name"]: change for change in body["themes"]}
+    assert changes["Service"]["current"]["total"] == 0 and changes["Service"]["previous"]["total"] == 6
+    # The previous period is the calendar one before, even with no reviews in it.
+    first = (await call("GET", path, params={"interval": "year", "period": "2020-01-01T00:00:00Z"})).json()
+    assert first["previous_start"][:4] == "2019" and first["previous_reviews"] == 0
+    assert all(change["previous_share"] == 0 for change in first["themes"])
+    missing = await call("GET", path, params={"interval": "year", "period": "2019-01-01T00:00:00Z"})
+    assert missing.status_code == 422
+
+
+async def test_changes_on_an_entity_without_dates(call):
+    entity = (await call("POST", "/entities", json={"name": "Undated"})).json()
+    body = (await call("GET", f"/entities/{entity['id']}/themes/changes")).json()
+    assert body["period_start"] is None and body["periods"] == [] and body["themes"] == []
+
+
+async def test_changes_can_compare_any_two_periods(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes/changes"
+    params = {"interval": "year", "period": "2022-01-01T00:00:00Z", "compare_to": "2020-01-01T00:00:00Z"}
+    body = (await call("GET", path, params=params)).json()
+    assert body["period_start"][:4] == "2022" and body["previous_start"][:4] == "2020"
+    assert (body["previous_reviews"], body["current_reviews"]) == (12, 13)
+    changes = {change["name"]: change for change in body["themes"]}
+    # Price (reviews 0-9) is back: it was raised in 2020, and by nobody in 2022.
+    assert changes["Price"]["previous"]["total"] == 10 and changes["Price"]["current"]["total"] == 0
+    assert changes["Service"]["previous"]["total"] == 12      # reviews 0-11
+    assert changes["Parking"]["previous"]["total"] == 0
+
+    # A later period works as the comparison too; the same period, or one with no reviews, doesn't.
+    later = (await call("GET", path, params={**params, "compare_to": "2023-01-01T00:00:00Z"})).json()
+    assert later["previous_start"][:4] == "2023" and later["previous_reviews"] == 3
+    same = await call("GET", path, params={**params, "compare_to": params["period"]})
+    empty = await call("GET", path, params={**params, "compare_to": "2019-01-01T00:00:00Z"})
+    assert same.status_code == 422 and empty.status_code == 422

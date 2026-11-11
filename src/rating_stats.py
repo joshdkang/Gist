@@ -5,20 +5,20 @@ summary per scale instead of an average that mixes 1-5 stars with 0-10 scores. R
 the analysis (see CLAUDE.md); this is only shown alongside the results.
 """
 import json
-import math
 from collections import defaultdict
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ingestion import BinaryScale, LabelScale, NumericScale, RatingScale
 from models import Import, Review
 from schemas import RatingBucket, RatingScaleSummary, RatingSummary
 
-# A numeric scale with whole-number ends and at most this many levels gets one bar per level
+# A numeric scale with whole-number ends and at most this many levels gets one bucket per level
 # (1-5 stars, 0-10 scores). A wider scale, or one with fractional ends, is split into
 # NUMERIC_BINS equal ranges, so 1-100 doesn't get a hundred bars.
 MAX_LEVELS = 11
@@ -27,31 +27,44 @@ NUMERIC_BINS = 5
 scale_adapter: TypeAdapter[NumericScale | BinaryScale | LabelScale] = TypeAdapter(RatingScale)
 
 
-def format_number(value: float) -> str:
-    return f"{value:g}"
+def format_number(value: Decimal) -> str:
+    return f"{float(value):g}"
 
 
-def numeric_buckets(scale: NumericScale, counts: dict[Decimal, int]) -> list[RatingBucket]:
-    """Lowest first. A fractional rating (4.5) counts under the whole level below it."""
-    low, high = scale.min, scale.max
-    if low.is_integer() and high.is_integer() and high - low + 1 <= MAX_LEVELS:
-        levels = list(range(int(low), int(high) + 1))
-        tallies = dict.fromkeys(levels, 0)
-        for rating, count in counts.items():
-            tallies[min(max(math.floor(rating), levels[0]), levels[-1])] += count
-        return [RatingBucket(label=str(level), count=tallies[level]) for level in levels]
+@dataclass(frozen=True)
+class BucketRange:
+    """One bar of the distribution: ratings with low <= rating < high (no upper bound when high is None)."""
+    label: str
+    low: Decimal
+    high: Decimal | None
 
-    width = (high - low) / NUMERIC_BINS
-    tallies = [0] * NUMERIC_BINS
-    for rating, count in counts.items():
-        index = int((float(rating) - low) / width) if width else 0
-        tallies[min(max(index, 0), NUMERIC_BINS - 1)] += count
+    def holds(self, rating: Decimal) -> bool:
+        return rating >= self.low and (self.high is None or rating < self.high)
+
+
+def bucket_ranges(scale: NumericScale | BinaryScale | LabelScale) -> list[BucketRange]:
+    """The buckets of a scale, lowest first. The top bucket has no upper bound, so the scale's
+    maximum falls in it. Counting and filtering both use these, so a filtered list always matches
+    the bar that was clicked."""
+    match scale:
+        case NumericScale():
+            low, high = Decimal(str(scale.min)), Decimal(str(scale.max))
+            if scale.min.is_integer() and scale.max.is_integer() and high - low + 1 <= MAX_LEVELS:
+                # One bucket per whole level; a fractional rating (4.5) counts under the level below.
+                edges = [low + step for step in range(int(high - low) + 1)]
+                labels = [str(int(edge)) for edge in edges]
+            else:
+                width = (high - low) / NUMERIC_BINS
+                edges = [low + width * step for step in range(NUMERIC_BINS)]
+                labels = [f"{format_number(edge)}–{format_number(edge + width)}" for edge in edges]
+        case BinaryScale():
+            edges, labels = [Decimal(0), Decimal(1)], ["Negative", "Positive"]
+        case LabelScale():
+            edges = [Decimal(index) for index in range(len(scale.labels))]
+            labels = list(scale.labels)
     return [
-        RatingBucket(
-            label=f"{format_number(low + width * index)}–{format_number(low + width * (index + 1))}",
-            count=tallies[index],
-        )
-        for index in range(NUMERIC_BINS)
+        BucketRange(label=label, low=edge, high=edges[index + 1] if index + 1 < len(edges) else None)
+        for index, (label, edge) in enumerate(zip(labels, edges))
     ]
 
 
@@ -63,24 +76,41 @@ def summarize_scale(
     `counts` maps each stored rating to the number of reviews with it. Stored values are the number
     itself for a numeric scale, 1 or 0 for binary, and the label's index for labels.
     """
-    match scale:
-        case NumericScale():
-            buckets = numeric_buckets(scale, counts)
-        case BinaryScale():
-            buckets = [
-                RatingBucket(label="Negative", count=counts.get(Decimal(0), 0)),
-                RatingBucket(label="Positive", count=counts.get(Decimal(1), 0)),
-            ]
-        case LabelScale():
-            buckets = [
-                RatingBucket(label=label, count=counts.get(Decimal(index), 0))
-                for index, label in enumerate(scale.labels)
-            ]
+    ranges = bucket_ranges(scale)
+    tallies = [0] * len(ranges)
+    for rating, count in counts.items():
+        # A rating below the lowest edge can't be stored, but would count in the lowest bucket.
+        index = next((index for index, bucket in enumerate(ranges) if bucket.holds(rating)), 0)
+        tallies[index] += count
     total = sum(counts.values())
     average = float(sum(rating * count for rating, count in counts.items()) / total) if total else 0.0
+    buckets = [RatingBucket(label=bucket.label, count=tally) for bucket, tally in zip(ranges, tallies)]
     return RatingScaleSummary(
         scale=scale.model_dump(), count=total, average=average, buckets=list(reversed(buckets))
     )
+
+
+def parse_scale(raw: Any) -> NumericScale | BinaryScale | LabelScale:
+    """A rating scale from its JSON form. Raises pydantic's ValidationError."""
+    return scale_adapter.validate_python(raw)
+
+
+def rating_condition(scale: NumericScale | BinaryScale | LabelScale, labels: list[str]):
+    """A SQL condition on Review: rated on this scale (by an import that declared it) and in one of
+    the named buckets. Raises ValueError for a label the scale has no bucket for."""
+    ranges = {bucket.label: bucket for bucket in bucket_ranges(scale)}
+    unknown = [label for label in labels if label not in ranges]
+    if unknown:
+        raise ValueError(f"No rating bucket named {', '.join(map(repr, unknown))} on this scale.")
+    in_bucket = [
+        and_(Review.rating >= ranges[label].low, Review.rating < ranges[label].high)
+        if ranges[label].high is not None
+        else Review.rating >= ranges[label].low
+        for label in labels
+    ]
+    # jsonb equality ignores key order and compares numbers by value, so 5 matches 5.0.
+    on_scale = select(Import.id).where(Import.rating_scale == scale.model_dump())
+    return and_(Review.import_id.in_(on_scale), or_(*in_bucket))
 
 
 async def rating_summary(db: AsyncSession, entity_id: int) -> RatingSummary:
@@ -99,7 +129,7 @@ async def rating_summary(db: AsyncSession, entity_id: int) -> RatingSummary:
         if raw_scale is None or rating is None:
             continue
         try:
-            scale = scale_adapter.validate_python(raw_scale)
+            scale = parse_scale(raw_scale)
         except ValidationError:
             continue                    # an import with an unreadable scale has no usable ratings
         key = json.dumps(scale.model_dump(), sort_keys=True)

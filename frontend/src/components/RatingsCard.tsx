@@ -1,6 +1,6 @@
 import { card } from "@/components/ui";
 import { formatNumber, formatPercent } from "@/lib/format";
-import type { RatingScale, RatingScaleSummary, RatingSummary } from "@/lib/types";
+import type { RatingFilter, RatingScale, RatingScaleSummary, RatingSummary } from "@/lib/types";
 
 const trim = (value: number) => Number(value.toFixed(1)).toString();
 
@@ -69,21 +69,40 @@ function Headline({ summary }: { summary: RatingScaleSummary }) {
   );
 }
 
-function Distribution({ summary }: { summary: RatingScaleSummary }) {
+const sameScale = (a: RatingScale, b: RatingScale) => JSON.stringify(a) === JSON.stringify(b);
+
+/** One row per bucket. Each row is a toggle: the chosen buckets filter the themes below. */
+function Distribution({
+  summary,
+  chosen,
+  onToggle,
+}: {
+  summary: RatingScaleSummary;
+  chosen: string[];
+  onToggle: (label: string) => void;
+}) {
   return (
-    <ul className="grid grid-cols-[minmax(2.5rem,max-content)_minmax(0,1fr)_3rem] items-center gap-x-3 gap-y-2">
+    <div className="grid grid-cols-[minmax(2.5rem,max-content)_minmax(0,1fr)_3rem] items-center gap-x-3 gap-y-1">
       {summary.buckets.map((bucket) => {
         const percent = formatPercent(bucket.count, summary.count);
+        const selected = chosen.includes(bucket.label);
+        const dimmed = chosen.length > 0 && !selected;
         return (
-          <li key={bucket.label} className="contents text-sm">
+          <button
+            key={bucket.label}
+            type="button"
+            aria-pressed={selected}
+            aria-label={`${bucket.label}: ${percent} (${formatNumber(bucket.count)} reviews)`}
+            disabled={bucket.count === 0}
+            onClick={() => onToggle(bucket.label)}
+            className={`col-span-3 grid grid-cols-subgrid items-center rounded-md px-1.5 py-1 text-left text-sm hover:bg-subtle disabled:cursor-default disabled:hover:bg-transparent ${
+              selected ? "bg-subtle ring-2 ring-primary" : ""
+            } ${dimmed ? "opacity-45" : ""}`}
+          >
             <span className="max-w-40 truncate" title={bucket.label}>
               {bucket.label}
             </span>
-            <span
-              className="h-3 overflow-hidden rounded-full bg-subtle"
-              role="img"
-              aria-label={`${bucket.label}: ${percent} (${formatNumber(bucket.count)} reviews)`}
-            >
+            <span className="h-3 overflow-hidden rounded-full bg-subtle" aria-hidden="true">
               <span
                 className="block h-full rounded-full bg-primary"
                 style={{ width: summary.count ? `${(bucket.count * 100) / summary.count}%` : 0 }}
@@ -92,26 +111,48 @@ function Distribution({ summary }: { summary: RatingScaleSummary }) {
             <span className="text-right text-muted" title={`${formatNumber(bucket.count)} reviews`}>
               {percent}
             </span>
-          </li>
+          </button>
         );
       })}
-    </ul>
+    </div>
   );
 }
 
 /** The ratings at a glance: the average, how many reviews gave one, and how they spread. */
-export function RatingsCard({ ratings }: { ratings: RatingSummary }) {
+export function RatingsCard({
+  ratings,
+  filter,
+  onFilterChange,
+}: {
+  ratings: RatingSummary;
+  filter: RatingFilter | null;
+  onFilterChange: (filter: RatingFilter | null) => void;
+}) {
   if (ratings.scales.length === 0) return null;
   const unrated = ratings.total_reviews - ratings.rated_reviews;
   const several = ratings.scales.length > 1;
+
+  // Buckets are chosen on one scale at a time: choosing on another scale starts over.
+  function toggle(scale: RatingScale, label: string) {
+    const current = filter && sameScale(filter.scale, scale) ? filter.labels : [];
+    const labels = current.includes(label) ? current.filter((item) => item !== label) : [...current, label];
+    onFilterChange(labels.length ? { scale, labels } : null);
+  }
   return (
     <section className={`${card} flex flex-col gap-5 px-5 py-4`}>
-      <div>
-        <h2 className="text-lg font-semibold">Ratings</h2>
-        {unrated > 0 && (
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Ratings</h2>
           <p className="text-sm text-muted">
-            {formatNumber(unrated)} of {formatNumber(ratings.total_reviews)} reviews have no rating.
+            {filter ? "Themes below count only the selected ratings." : "Select a rating to see its themes."}
+            {unrated > 0 &&
+              ` ${formatNumber(unrated)} of ${formatNumber(ratings.total_reviews)} reviews have no rating.`}
           </p>
+        </div>
+        {filter && (
+          <button type="button" onClick={() => onFilterChange(null)} className="py-1 text-sm text-link hover:underline">
+            Clear selection
+          </button>
         )}
       </div>
       {ratings.scales.map((summary) => (
@@ -126,7 +167,11 @@ export function RatingsCard({ ratings }: { ratings: RatingSummary }) {
               {formatNumber(summary.count)} {summary.count === 1 ? "rating" : "ratings"}
             </p>
           </div>
-          <Distribution summary={summary} />
+          <Distribution
+            summary={summary}
+            chosen={filter && sameScale(filter.scale, summary.scale) ? filter.labels : []}
+            onToggle={(label) => toggle(summary.scale, label)}
+          />
         </div>
       ))}
     </section>

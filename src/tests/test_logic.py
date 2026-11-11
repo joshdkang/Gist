@@ -18,7 +18,7 @@ from ingestion import (
 )
 from models import Sentiment
 from rating_stats import summarize_scale
-from theme_stats import combine_sentiments
+from theme_stats import combine_sentiments, fisher_exact_p, shift_period, significant_changes
 
 
 # --- ingestion -------------------------------------------------------------------------------
@@ -135,3 +135,32 @@ def test_binary_and_label_scales_summarize_their_own_way():
     assert binary.average == 0.75 and bucket_counts(binary) == [("Positive", 3), ("Negative", 1)]
     labels = summarize_scale(LabelScale(labels=["bad", "ok", "good"]), {Decimal(2): 2, Decimal(0): 2})
     assert labels.average == 1.0 and bucket_counts(labels) == [("good", 2), ("ok", 0), ("bad", 2)]
+
+
+def test_shift_period_steps_whole_calendar_periods():
+    start = datetime(2022, 1, 1, tzinfo=UTC)
+    assert shift_period(start, "month", -1) == datetime(2021, 12, 1, tzinfo=UTC)
+    assert shift_period(start, "quarter", -1) == datetime(2021, 10, 1, tzinfo=UTC)
+    assert shift_period(start, "year", -1) == datetime(2021, 1, 1, tzinfo=UTC)
+    assert shift_period(datetime(2022, 11, 1, tzinfo=UTC), "quarter", 1) == datetime(2023, 2, 1, tzinfo=UTC)
+    assert shift_period(datetime(2022, 1, 3, tzinfo=UTC), "week", -1) == datetime(2021, 12, 27, tzinfo=UTC)
+
+
+def test_fisher_exact_p_is_exact_at_small_counts():
+    assert fisher_exact_p(3, 5, 1, 5) == pytest.approx(0.5238, abs=1e-4)   # 60% to 20% of 5 each
+    assert fisher_exact_p(50, 100, 70, 100) == pytest.approx(0.0059, abs=1e-4)
+    assert fisher_exact_p(0, 590, 4, 538) == pytest.approx(0.0514, abs=1e-4)  # a z-test says 0.04
+    assert fisher_exact_p(5, 10, 5, 10) == pytest.approx(1.0)
+    assert fisher_exact_p(10, 10, 20, 20) == pytest.approx(1.0)              # all in both
+    assert fisher_exact_p(0, 0, 4, 10) is None                               # an empty side
+
+
+def test_significant_changes_raise_the_bar_with_the_number_of_tests():
+    # Alone, 0.03 is under 5%; among four tests its rank (2) allows only 2/4 * 5% = 2.5%.
+    assert significant_changes([0.03]) == [True]
+    assert significant_changes([0.001, 0.03, 0.2, 0.9]) == [True, False, False, False]
+    # The largest rank under its bar marks every smaller p-value too: 0.04 <= 4/4 * 5%.
+    assert significant_changes([0.04, 0.03, 0.035, 0.02]) == [True, True, True, True]
+    # Nothing to compare is never significant and isn't counted as a test.
+    assert significant_changes([None, 0.03, None]) == [False, True, False]
+    assert significant_changes([]) == []

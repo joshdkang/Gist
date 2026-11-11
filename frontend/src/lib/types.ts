@@ -91,10 +91,48 @@ export interface ThemeReview {
   sentiment: Sentiment | null;
 }
 
+export interface TrendPoint {
+  period_start: string;
+  /** The theme's reviews in the period, by sentiment. */
+  sentiment: SentimentCounts;
+  /** The entity's classified reviews in the period: the denominator for the theme's share. */
+  period_reviews: number;
+}
+
 export interface ThemeTrend {
   theme_id: number;
   interval: string;
-  points: { period_start: string; sentiment: SentimentCounts }[];
+  /** Every period in which the entity has reviews, oldest first, including ones without this theme. */
+  points: TrendPoint[];
+}
+
+export interface ThemeChange {
+  id: number;
+  kind: "discovered" | "candidate";
+  name: string;
+  description: string;
+  previous: SentimentCounts;
+  current: SentimentCounts;
+  previous_share: number;
+  current_share: number;
+  /** Fisher's exact test p-value for the change in share; null when the previous period has no reviews. */
+  share_change_p: number | null;
+  /** The change in share is significant, corrected for testing every theme (5% false discovery rate). */
+  share_change_clear: boolean;
+  /** The p-value for the change in the negative share of the theme's reviews; null when a period has none. */
+  negative_change_p: number | null;
+  /** The change in the negative share is significant, corrected the same way. */
+  negative_change_clear: boolean;
+}
+
+export interface ThemeChanges {
+  interval: TrendInterval;
+  period_start: string | null;
+  previous_start: string | null;
+  current_reviews: number;
+  previous_reviews: number;
+  periods: { period_start: string; reviews: number }[];
+  themes: ThemeChange[];
 }
 
 export interface ColumnMapping {
@@ -130,6 +168,12 @@ export interface RatingScaleSummary {
   average: number;
   /** Highest rating first. */
   buckets: { label: string; count: number }[];
+}
+
+/** Rating buckets chosen on one scale, to count only those reviews. */
+export interface RatingFilter {
+  scale: RatingScale;
+  labels: string[];
 }
 
 export interface RatingSummary {
