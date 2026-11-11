@@ -27,6 +27,10 @@ frontend's origin (the default allows `http://localhost:3000`).
   before, with the changes that aren't statistically significant set apart), `/entities/[id]/themes/[themeId]` (sentiment, trend by month, quarter or
   year as counts, a share of each period's reviews, or a sentiment mix, and the reviews), and
   `/entities/[id]/upload` (choose a CSV, map its columns, upload).
+- **URLs carry context**: the entity page keeps its rating filter in the URL (`rating_scale`, `rating`), and
+  links to a theme carry it, so the theme's counts, trend and reviews cover the same ratings. A theme's page
+  has its own ratings card (the ratings of the reviews that raise it), whose bars set the same filter. A period
+  comparison row opens the theme with `interval` and both periods (`period`) chosen in its trend.
 - **Upload** reads the CSV in the browser (Papa Parse) to count rows, guess the column mapping (the review
   text is the column with the longest values) and the rating scale, and preview the first rows. The API
   re-checks everything.

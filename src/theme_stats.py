@@ -121,13 +121,18 @@ async def theme_sentiment_counts_by(
 
 
 async def theme_trend(
-    db: AsyncSession, entity_id: int, theme_id: int, interval: str
+    db: AsyncSession,
+    entity_id: int,
+    theme_id: int,
+    interval: str,
+    match: ColumnElement[bool] | None = None,
 ) -> list[tuple[datetime, Counter[Sentiment | None]]]:
     """Reviews per period (a date_trunc unit such as month) by combined sentiment for one theme,
-    oldest first. Undated reviews are left out. Periods with no reviews are not returned."""
+    oldest first, only those matching `match` (a condition on Review) when given. Undated reviews
+    are left out. Periods with no reviews are not returned."""
     per_review, combined = per_review_theme_sentiment(entity_id, theme_id)
     period = func.date_trunc(interval, Review.review_date).label("period")
-    rows = await db.execute(
+    query = (
         select(period, combined, func.count())
         .select_from(per_review)
         .join(Review, Review.id == per_review.c.review_id)
@@ -135,17 +140,21 @@ async def theme_trend(
         .group_by(period, combined)
         .order_by(period)
     )
+    rows = await db.execute(query.where(match) if match is not None else query)
     trend: dict[datetime, list[tuple[str | None, int]]] = {}
     for start, sentiment, count in rows.all():
         trend.setdefault(start, []).append((sentiment, count))
     return [(start, _to_counter(items)) for start, items in trend.items()]
 
 
-async def period_review_counts(db: AsyncSession, entity_id: int, interval: str) -> list[tuple[datetime, int]]:
+async def period_review_counts(
+    db: AsyncSession, entity_id: int, interval: str, match: ColumnElement[bool] | None = None
+) -> list[tuple[datetime, int]]:
     """Classified reviews per period (a date_trunc unit), oldest first: the denominator for a
-    theme's share of a period. Undated reviews are left out, and so are periods with none."""
+    theme's share of a period. Only reviews matching `match` (a condition on Review) when given.
+    Undated reviews are left out, and so are periods with none."""
     period = func.date_trunc(interval, Review.review_date).label("period")
-    rows = await db.execute(
+    query = (
         select(period, func.count(func.distinct(ReviewTheme.review_id)))
         .select_from(ReviewTheme)
         .join(Theme, Theme.id == ReviewTheme.theme_id)
@@ -154,6 +163,7 @@ async def period_review_counts(db: AsyncSession, entity_id: int, interval: str) 
         .group_by(period)
         .order_by(period)
     )
+    rows = await db.execute(query.where(match) if match is not None else query)
     return [(start, count) for start, count in rows.all()]
 
 

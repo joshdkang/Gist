@@ -123,7 +123,7 @@ function Group({
 /**
  * Which themes go with lower or higher ratings: each theme's average rating against the reviews that
  * don't raise it, ranked by its effect on the overall average. Significant differences are split into
- * those that lower and those that raise the average; the rest are collapsed.
+ * those that raise and those that lower the average; the rest are collapsed.
  */
 export function RatingDrivers({
   entityId,
@@ -159,8 +159,8 @@ export function RatingDrivers({
       {lowering.length + raising.length === 0 && (
         <p className="border-t border-line px-5 py-4 text-sm">No theme&apos;s ratings differ significantly from the rest.</p>
       )}
-      <Group title="Lower the average" impacts={lowering} {...shared} />
       <Group title="Raise the average" impacts={raising} {...shared} />
+      <Group title="Lower the average" impacts={lowering} {...shared} />
       {rest.length > 0 && (
         <div className="border-t border-line">
           <button

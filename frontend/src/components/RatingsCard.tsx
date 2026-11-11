@@ -123,10 +123,15 @@ export function RatingsCard({
   ratings,
   filter,
   onFilterChange,
+  title = "Ratings",
+  hints = { idle: "Select a rating to see its themes.", active: "Themes below count only the selected ratings." },
 }: {
   ratings: RatingSummary;
   filter: RatingFilter | null;
   onFilterChange: (filter: RatingFilter | null) => void;
+  title?: string;
+  /** What selecting a bar does, before and after one is selected. */
+  hints?: { idle: string; active: string };
 }) {
   if (ratings.scales.length === 0) return null;
   const unrated = ratings.total_reviews - ratings.rated_reviews;
@@ -142,9 +147,9 @@ export function RatingsCard({
     <section className={`${card} flex flex-col gap-5 px-5 py-4`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Ratings</h2>
+          <h2 className="text-lg font-semibold">{title}</h2>
           <p className="text-sm text-muted">
-            {filter ? "Themes below count only the selected ratings." : "Select a rating to see its themes."}
+            {filter ? hints.active : hints.idle}
             {unrated > 0 &&
               ` ${formatNumber(unrated)} of ${formatNumber(ratings.total_reviews)} reviews have no rating.`}
           </p>

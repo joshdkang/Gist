@@ -329,3 +329,44 @@ async def test_theme_ratings_without_ratings(call):
     entity = (await call("POST", "/entities", json={"name": "Unrated"})).json()
     body = (await call("GET", f"/entities/{entity['id']}/themes/ratings")).json()
     assert body == {"scale": None, "rated_reviews": 0, "average": None, "themes": []}
+
+
+async def test_a_themes_reviews_and_trend_take_the_rating_filter(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes/{seeded.service.id}"
+    scale = json.dumps({"type": "numeric", "min": 1, "max": 5})
+    # Seeded ratings are (index % 5) + 1, so Service's reviews 0-29 rated 1 are 0, 5, ..., 25.
+    rated_1 = {"rating": "1", "rating_scale": scale}
+    reviews = (await call("GET", f"{path}/reviews", params={**rated_1, "limit": 100})).json()
+    assert len(reviews) == 6 and {review["rating"] for review in reviews} == {1.0}
+
+    trend = (await call("GET", f"{path}/trend", params={**rated_1, "interval": "year"})).json()["points"]
+    assert sum(point["sentiment"]["total"] for point in trend) == 6
+    # The entity's rated-1 reviews (0, 5, ..., 35) per year: the denominator follows the filter too.
+    expected = Counter(seed_date(index).year for index in range(0, 40, 5))
+    assert {point["period_start"][:4]: point["period_reviews"] for point in trend} == {
+        str(year): count for year, count in expected.items()
+    }
+    # The filter combines with periods, and a bad one is refused.
+    first = trend[0]["period_start"]
+    in_first = (
+        await call("GET", f"{path}/reviews", params={**rated_1, "interval": "year", "period": first})
+    ).json()
+    assert len(in_first) == trend[0]["sentiment"]["total"]
+    assert (await call("GET", f"{path}/reviews", params={"rating": "1"})).status_code == 422
+    assert (await call("GET", f"{path}/trend", params={"rating": "9", "rating_scale": scale})).status_code == 422
+
+
+async def test_a_themes_rating_summary_counts_only_its_reviews(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes"
+    # Parking with Valet merged in: reviews 20-34, rated (index % 5) + 1, so three of each rating.
+    body = (await call("GET", f"{path}/{seeded.parking.id}/ratings")).json()
+    assert body["total_reviews"] == 15 and body["rated_reviews"] == 15
+    (summary,) = body["scales"]
+    assert summary["average"] == pytest.approx(3.0)
+    assert [(bucket["label"], bucket["count"]) for bucket in summary["buckets"]] == [
+        ("5", 3), ("4", 3), ("3", 3), ("2", 3), ("1", 3)
+    ]
+    # The merged candidate's id gives the same summary, and another entity's theme is a 404.
+    assert (await call("GET", f"{path}/{seeded.valet.id}/ratings")).json() == body
+    other = (await call("POST", "/entities", json={"name": "Other"})).json()
+    assert (await call("GET", f"/entities/{other['id']}/themes/{seeded.parking.id}/ratings")).status_code == 404

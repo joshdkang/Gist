@@ -19,6 +19,7 @@ from schemas import (
     GeneralSummary,
     SentimentCounts,
     PeriodCount,
+    RatingSummary,
     ThemeChange,
     ThemeChanges,
     ThemeList,
@@ -51,6 +52,10 @@ MAX_PERIODS = 400
 # With no period chosen, the changes compare the latest period with at least this many reviews, so
 # a period that has only just begun isn't the default.
 MIN_PERIOD_REVIEWS = 20
+
+
+RATING_DESCRIPTION = "Only reviews in these rating buckets (labels from the ratings summary)"
+RATING_SCALE_DESCRIPTION = "The scale the rating buckets are on, as JSON"
 
 
 class TrendInterval(enum.StrEnum):
@@ -101,10 +106,8 @@ async def list_themes(
         False, description="Also return the listed candidates in `candidates`, so one call serves an overview"
     ),
     recent_days: int = Query(RECENT_DAYS, ge=1, le=3650),
-    rating: list[str] = Query(
-        [], description="Count only reviews in these rating buckets (labels from the ratings summary)"
-    ),
-    rating_scale: str | None = Query(None, description="The scale the rating buckets are on, as JSON"),
+    rating: list[str] = Query([], description=RATING_DESCRIPTION),
+    rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
@@ -382,18 +385,21 @@ async def list_theme_reviews(
         [], description="Only reviews dated in these periods (period_start values from the trend)"
     ),
     interval: TrendInterval | None = Query(None, description="The trend interval the periods are from"),
+    rating: list[str] = Query([], description=RATING_DESCRIPTION),
+    rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
-    """The reviews that raise a theme, newest first, optionally only one sentiment or only some
-    trend periods. These are the example quotes and the drill-down. A merged candidate shows the
-    theme it merged into."""
+    """The reviews that raise a theme, newest first, optionally only one sentiment, some trend
+    periods, or some ratings (the theme list's rating filter). These are the example quotes and the
+    drill-down. A merged candidate shows the theme it merged into."""
     if period and interval is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "interval is required with period.")
     if len(period) > MAX_PERIODS:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"At most {MAX_PERIODS} periods.")
+    match = rating_filter(rating_scale, rating)
     theme = await get_theme(db, entity, theme_id)
     per_review, combined = per_review_theme_sentiment(entity.id, theme.id)
     query = (
@@ -405,6 +411,8 @@ async def list_theme_reviews(
     )
     if sentiment is not None:
         query = query.where(combined == sentiment.value)
+    if match is not None:
+        query = query.where(match)
     if period:
         # The same date_trunc the trend groups by, so a period holds exactly the reviews its bar counts.
         query = query.where(func.date_trunc(interval.value, Review.review_date).in_(period))
@@ -422,19 +430,37 @@ async def list_theme_reviews(
     ]
 
 
+@router.get("/{theme_id}/ratings", response_model=RatingSummary)
+async def read_theme_rating_summary(
+    theme_id: int,
+    entity: Entity = Depends(get_readable_entity),
+    db: AsyncSession = Depends(get_db),
+):
+    """The ratings of the reviews that raise a theme (count, average and distribution per scale),
+    as the entity's ratings summary gives them for all its reviews. Its buckets are the labels the
+    `rating` filter takes. A merged candidate shows the theme it merged into."""
+    theme = await get_theme(db, entity, theme_id)
+    per_review, _ = per_review_theme_sentiment(entity.id, theme.id)
+    return await rating_summary(db, entity.id, Review.id.in_(select(per_review.c.review_id)))
+
+
 @router.get("/{theme_id}/trend", response_model=ThemeTrend)
 async def read_theme_trend(
     theme_id: int,
     interval: TrendInterval = TrendInterval.MONTH,
+    rating: list[str] = Query([], description=RATING_DESCRIPTION),
+    rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
     """The theme's reviews per period by sentiment, oldest first, with the entity's reviews in each
     period so a client can show the theme's share. Every period in which the entity has classified
-    reviews is listed, including those where none raise the theme; undated reviews are left out."""
+    reviews is listed, including those where none raise the theme; undated reviews are left out.
+    With a rating filter, both counts cover only reviews with those ratings."""
+    match = rating_filter(rating_scale, rating)
     theme = await get_theme(db, entity, theme_id)
-    periods = await period_review_counts(db, entity.id, interval.value)
-    trend = dict(await theme_trend(db, entity.id, theme.id, interval.value))
+    periods = await period_review_counts(db, entity.id, interval.value, match)
+    trend = dict(await theme_trend(db, entity.id, theme.id, interval.value, match))
     return ThemeTrend(
         theme_id=theme.id,
         interval=interval.value,

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
 import { EntityActions } from "@/components/EntityActions";
 import { RatingDrivers } from "@/components/RatingDrivers";
@@ -13,6 +13,7 @@ import { BackLink, buttonPrimary, buttonSecondary, card, ErrorNote, Loading, Pag
 import { ApiError } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent } from "@/lib/format";
 import { isActive, useEntity, useRatings, useRefreshWhenRunEnds, useThemeRatings, useThemes } from "@/lib/queries";
+import { describeRatingFilter, ratingQuery, readRatingFilter } from "@/lib/ratingFilter";
 import type { EntityDetail, RatingFilter, ThemeList, ThemeSummary } from "@/lib/types";
 
 type Sort = "total" | "recent";
@@ -23,11 +24,12 @@ function sortThemes(themes: ThemeSummary[], sort: Sort): ThemeSummary[] {
   return [...themes].sort((a, b) => b.review_count - a.review_count || b.recent_count - a.recent_count);
 }
 
-function ThemeRow({ entityId, theme }: { entityId: string; theme: ThemeSummary }) {
+/** `query` keeps the page's rating filter on the theme's page ("" for none). */
+function ThemeRow({ entityId, theme, query }: { entityId: string; theme: ThemeSummary; query: string }) {
   const { sentiment } = theme;
   return (
     <Link
-      href={`/entities/${entityId}/themes/${theme.id}`}
+      href={`/entities/${entityId}/themes/${theme.id}${query}`}
       className="grid items-center gap-3 border-b border-subtle px-5 py-4 last:border-b-0 hover:bg-subtle md:grid-cols-[minmax(0,1fr)_300px] md:gap-6"
     >
       <span className="flex min-w-0 flex-col gap-0.5">
@@ -50,12 +52,6 @@ function ThemeRow({ entityId, theme }: { entityId: string; theme: ThemeSummary }
       </span>
     </Link>
   );
-}
-
-/** "rated 5 or 4": the chosen buckets, highest first as the card lists them. */
-function describeRatingFilter(filter: RatingFilter): string {
-  const labels = filter.labels.join(" or ");
-  return filter.scale.type === "binary" ? labels.toLowerCase() : `rated ${labels}`;
 }
 
 function ThemesSection({
@@ -119,7 +115,7 @@ function ThemesSection({
       </div>
       <div className="flex flex-col">
         {active.map((theme) => (
-          <ThemeRow key={theme.id} entityId={entityId} theme={theme} />
+          <ThemeRow key={theme.id} entityId={entityId} theme={theme} query={ratingQuery(ratingFilter)} />
         ))}
       </div>
       {quiet.length > 0 && (
@@ -134,14 +130,16 @@ function ThemesSection({
             last {list.recent_days} days)
           </button>
           {showQuiet &&
-            quiet.map((theme) => <ThemeRow key={theme.id} entityId={entityId} theme={theme} />)}
+            quiet.map((theme) => (
+              <ThemeRow key={theme.id} entityId={entityId} theme={theme} query={ratingQuery(ratingFilter)} />
+            ))}
         </div>
       )}
     </section>
   );
 }
 
-function EmergingTopics({ entityId, topics }: { entityId: string; topics: ThemeSummary[] }) {
+function EmergingTopics({ entityId, topics, query }: { entityId: string; topics: ThemeSummary[]; query: string }) {
   if (topics.length === 0) return null;
   const byCount = [...topics].sort((a, b) => b.review_count - a.review_count);
   return (
@@ -156,7 +154,7 @@ function EmergingTopics({ entityId, topics }: { entityId: string; topics: ThemeS
         {byCount.map((topic) => (
           <Link
             key={topic.id}
-            href={`/entities/${entityId}/themes/${topic.id}`}
+            href={`/entities/${entityId}/themes/${topic.id}${query}`}
             className="rounded-full border border-line bg-bg px-3 py-1.5 text-sm hover:border-line-strong"
           >
             {topic.name} <span className="text-muted">{formatNumber(topic.review_count)}</span>
@@ -199,7 +197,12 @@ const VIEWS: { key: View; label: string }[] = [
 export default function EntityPage() {
   const { entityId } = useParams<{ entityId: string }>();
   const entity = useEntity(entityId);
-  const [ratingFilter, setRatingFilter] = useState<RatingFilter | null>(null);
+  // The rating filter lives in the URL, so opening a theme, its back link, the browser's back
+  // button and a reload all keep it.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
   const [view, setView] = useState<View>("themes");
   const themes = useThemes(entityId, ratingFilter);
   const ratings = useRatings(entityId);
@@ -228,7 +231,7 @@ export default function EntityPage() {
   const showRatings = canRate && view === "ratings";
 
   function filterRatings(filter: RatingFilter | null) {
-    setRatingFilter(filter);
+    router.replace(`${pathname}${ratingQuery(filter)}`, { scroll: false });
     // The rating bars filter the theme list, so choosing one shows it.
     if (filter) setView("themes");
   }
@@ -296,7 +299,9 @@ export default function EntityPage() {
               {list && list.themes.length > 0 && (
                 <ThemesSection entityId={entityId} list={list} ratingFilter={ratingFilter} updating={updating} />
               )}
-              {list?.candidates && <EmergingTopics entityId={entityId} topics={list.candidates} />}
+              {list?.candidates && (
+                <EmergingTopics entityId={entityId} topics={list.candidates} query={ratingQuery(ratingFilter)} />
+              )}
               {list && list.classified_reviews > 0 && (
                 <p className="text-sm text-muted">
                   {formatPercent(list.general.review_count, list.classified_reviews)} of reviews (

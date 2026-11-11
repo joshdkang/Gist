@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useEffect, useRef } from "react";
 
 import { api } from "@/lib/api";
+import { appendRatingFilter } from "@/lib/ratingFilter";
 import type {
   EntityDetail,
   RatingFilter,
@@ -35,11 +36,7 @@ export function useEntity(entityId: string) {
  * filter, every count covers only the reviews in the chosen rating buckets.
  */
 export function useThemes(entityId: string, ratingFilter: RatingFilter | null = null) {
-  const params = new URLSearchParams({ include_candidates: "true" });
-  if (ratingFilter) {
-    params.set("rating_scale", JSON.stringify(ratingFilter.scale));
-    for (const label of ratingFilter.labels) params.append("rating", label);
-  }
+  const params = appendRatingFilter(new URLSearchParams({ include_candidates: "true" }), ratingFilter);
   return useQuery({
     queryKey: ["themes", entityId, ratingFilter],
     // The recent window (behind "Most recent", the recent counts, and quiet themes) is the API's default.

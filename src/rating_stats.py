@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ingestion import BinaryScale, LabelScale, NumericScale, RatingScale
@@ -176,14 +176,18 @@ async def theme_rating_moments(
     return RatingMoments(count, float(total), float(squares)), by_theme
 
 
-async def rating_summary(db: AsyncSession, entity_id: int) -> RatingSummary:
-    """Every rating scale used by the entity's imports, most ratings first, in one query."""
-    rows = await db.execute(
+async def rating_summary(
+    db: AsyncSession, entity_id: int, match: ColumnElement[bool] | None = None
+) -> RatingSummary:
+    """Every rating scale used by the entity's imports, most ratings first, in one query. Only the
+    reviews matching `match` (a condition on Review, such as raising a theme) when given."""
+    query = (
         select(Import.rating_scale, Review.rating, func.count())
         .join(Import, Review.import_id == Import.id)
         .where(Review.entity_id == entity_id)
         .group_by(Import.rating_scale, Review.rating)
     )
+    rows = await db.execute(query.where(match) if match is not None else query)
     total_reviews = 0
     by_scale: dict[str, dict[Decimal, int]] = defaultdict(dict)
     scales: dict[str, Any] = {}

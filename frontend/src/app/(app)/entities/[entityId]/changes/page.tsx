@@ -79,12 +79,13 @@ function ChangeBar({ delta, largest, tone }: { delta: number; largest: number; t
 }
 
 function ChangeRow({
-  entityId,
+  href,
   row,
   sort,
   largest,
 }: {
-  entityId: string;
+  /** The theme's page, opened on the two periods compared. */
+  href: string;
   row: Row;
   sort: Sort;
   largest: number;
@@ -104,7 +105,7 @@ function ChangeRow({
     <li className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-line px-5 py-4 sm:grid-cols-[minmax(0,1fr)_200px_200px]">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/entities/${entityId}/themes/${change.id}`} className="font-semibold hover:underline">
+          <Link href={href} className="font-semibold hover:underline">
             {change.name}
           </Link>
           {change.kind === "candidate" && (
@@ -157,6 +158,11 @@ function ChangesList({ entityId, data, sort }: { entityId: string; data: ThemeCh
   const unclear = rows.filter((row) => !row.clear);
   const largest = Math.max(0, ...rows.map((row) => Math.abs(row.delta ?? 0)));
   const what = sort === "share" ? "share of mentions" : "negative share";
+  // The theme's page opens on this interval with both periods chosen in its trend, so its reviews
+  // are the ones behind the comparison.
+  const periodParams = new URLSearchParams({ interval: data.interval });
+  for (const start of [data.previous_start, data.period_start]) if (start) periodParams.append("period", start);
+  const themeHref = (themeId: number) => `/entities/${entityId}/themes/${themeId}?${periodParams}`;
 
   return (
     <section className={`${card} overflow-hidden`}>
@@ -172,7 +178,7 @@ function ChangesList({ entityId, data, sort }: { entityId: string; data: ThemeCh
       ) : (
         <ul>
           {clear.map((row) => (
-            <ChangeRow key={row.change.id} entityId={entityId} row={row} sort={sort} largest={largest} />
+            <ChangeRow key={row.change.id} href={themeHref(row.change.id)} row={row} sort={sort} largest={largest} />
           ))}
         </ul>
       )}
@@ -190,7 +196,7 @@ function ChangesList({ entityId, data, sort }: { entityId: string; data: ThemeCh
           {showUnclear && (
             <ul>
               {unclear.map((row) => (
-                <ChangeRow key={row.change.id} entityId={entityId} row={row} sort={sort} largest={largest} />
+                <ChangeRow key={row.change.id} href={themeHref(row.change.id)} row={row} sort={sort} largest={largest} />
               ))}
             </ul>
           )}

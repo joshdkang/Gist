@@ -1,16 +1,27 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
+import { RatingsCard } from "@/components/RatingsCard";
 import { SentimentBar, SentimentBreakdown } from "@/components/SentimentBar";
 import { periodName, TrendChart, type TrendMode } from "@/components/TrendChart";
 import { BackLink, buttonSecondary, card, ErrorNote, INTERVALS, Loading, Page, Toggle } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent, SENTIMENTS, sentimentStyle } from "@/lib/format";
 import { useEntity, useThemes } from "@/lib/queries";
-import type { Sentiment, SentimentCounts, ThemeReview, ThemeSummary, ThemeTrend, TrendInterval } from "@/lib/types";
+import { appendRatingFilter, describeRatingFilter, ratingQuery, readRatingFilter } from "@/lib/ratingFilter";
+import type {
+  RatingFilter,
+  RatingSummary,
+  Sentiment,
+  SentimentCounts,
+  ThemeReview,
+  ThemeSummary,
+  ThemeTrend,
+  TrendInterval,
+} from "@/lib/types";
 
 const PAGE_SIZE = 20;
 const MODES: { key: TrendMode; label: string }[] = [
@@ -63,21 +74,23 @@ function Reviews({
   theme,
   periods,
   onClearPeriods,
+  ratingFilter,
 }: {
   entityId: string;
   theme: ThemeSummary;
   periods: PeriodFilter | null;
   onClearPeriods: () => void;
+  ratingFilter: RatingFilter | null;
 }) {
   const [filter, setFilter] = useState<Sentiment | "all">("all");
-  const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+  const params = appendRatingFilter(new URLSearchParams({ limit: String(PAGE_SIZE) }), ratingFilter);
   if (filter !== "all") params.set("sentiment", filter);
   if (periods) {
     params.set("interval", periods.interval);
     for (const start of periods.starts) params.append("period", start);
   }
   const reviews = useInfiniteQuery({
-    queryKey: ["theme-reviews", entityId, theme.id, filter, periods?.interval, periods?.starts],
+    queryKey: ["theme-reviews", entityId, theme.id, filter, periods?.interval, periods?.starts, ratingFilter],
     queryFn: ({ pageParam }) =>
       api<ThemeReview[]>(`/entities/${entityId}/themes/${theme.id}/reviews?${params}&offset=${pageParam}`),
     initialPageParam: 0,
@@ -187,10 +200,16 @@ function Trend({
   );
 }
 
-function useTrend(entityId: string, themeId: number | undefined, interval: TrendInterval) {
+function useTrend(
+  entityId: string,
+  themeId: number | undefined,
+  interval: TrendInterval,
+  ratingFilter: RatingFilter | null,
+) {
+  const params = appendRatingFilter(new URLSearchParams({ interval }), ratingFilter);
   return useQuery({
-    queryKey: ["trend", entityId, themeId, interval],
-    queryFn: () => api<ThemeTrend>(`/entities/${entityId}/themes/${themeId}/trend?interval=${interval}`),
+    queryKey: ["trend", entityId, themeId, interval, ratingFilter],
+    queryFn: () => api<ThemeTrend>(`/entities/${entityId}/themes/${themeId}/trend?${params}`),
     placeholderData: (previous) => previous,
     enabled: themeId !== undefined,
   });
@@ -208,8 +227,14 @@ function sumPeriods(trend: ThemeTrend, starts: string[]): SentimentCounts {
 
 export default function ThemePage() {
   const { entityId, themeId } = useParams<{ entityId: string; themeId: string }>();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // A link can carry the entity page's rating filter, and the period comparison's interval and
+  // periods (`interval`, repeated `period`), so the page opens on what was being looked at.
+  const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
   const entity = useEntity(entityId);
-  const themes = useThemes(entityId);
+  const themes = useThemes(entityId, ratingFilter);
   // A merged candidate's id resolves to the theme it merged into; the trend says which one that is.
   const resolved = useQuery({
     queryKey: ["trend", entityId, Number(themeId), "year"],
@@ -218,15 +243,37 @@ export default function ThemePage() {
 
   const all = [...(themes.data?.themes ?? []), ...(themes.data?.candidates ?? [])];
   const theme = all.find((item) => item.id === (resolved.data?.theme_id ?? Number(themeId)));
-  const [interval, setTrendInterval] = useState<TrendInterval>("year");
-  const [selectedPeriods, setSelectedPeriods] = useState<string[]>([]);
-  const trend = useTrend(entityId, theme?.id, interval);
+  const [interval, setTrendInterval] = useState<TrendInterval>(() => {
+    const asked = searchParams.get("interval");
+    return INTERVALS.find((option) => option.key === asked)?.key ?? "year";
+  });
+  const [selectedPeriods, setSelectedPeriods] = useState<string[]>(() => searchParams.getAll("period"));
+  const trend = useTrend(entityId, theme?.id, interval, ratingFilter);
   // The trend shown may be the previous interval's while the new one loads; only filter on a match.
   const trendMatches = trend.data?.interval === interval && !trend.isPlaceholderData;
+  // A period with no reviews (a comparison with an empty period) has no bar, so it isn't a choice.
+  const chosen = trend.data
+    ? selectedPeriods.filter((start) => trend.data.points.some((point) => point.period_start === start))
+    : [];
   const periods: PeriodFilter | null =
-    selectedPeriods.length > 0 && trend.data && trendMatches
-      ? { interval, starts: selectedPeriods, counts: sumPeriods(trend.data, selectedPeriods) }
+    chosen.length > 0 && trend.data && trendMatches
+      ? { interval, starts: chosen, counts: sumPeriods(trend.data, chosen) }
       : null;
+
+  // The theme's own ratings: their bars choose the filter, which lives in the URL like the entity page's.
+  const themeRatings = useQuery({
+    queryKey: ["theme-rating-summary", entityId, theme?.id],
+    queryFn: () => api<RatingSummary>(`/entities/${entityId}/themes/${theme?.id}/ratings`),
+    enabled: theme !== undefined,
+  });
+
+  function changeRatingFilter(filter: RatingFilter | null) {
+    router.replace(`${pathname}${ratingQuery(filter)}`, { scroll: false });
+  }
+
+  function clearRatingFilter() {
+    changeRatingFilter(null);
+  }
 
   function changeInterval(next: TrendInterval) {
     setTrendInterval(next);
@@ -239,6 +286,7 @@ export default function ThemePage() {
     );
   }
   const total = themes.data?.classified_reviews ?? 0;
+  const backHref = `/entities/${entityId}${ratingQuery(ratingFilter)}`;
   const error = entity.error ?? resolved.error ?? themes.error;
 
   if (error instanceof ApiError && error.status === 404) {
@@ -251,10 +299,23 @@ export default function ThemePage() {
   }
   if (error) return <Page><ErrorNote error={error} /></Page>;
   if (!entity.data || !themes.data || !resolved.data) return <Page><Loading /></Page>;
+  if (!theme && ratingFilter) {
+    return (
+      <Page>
+        <BackLink href={backHref}>{entity.data.name}</BackLink>
+        <p className="mt-4">
+          No reviews {describeRatingFilter(ratingFilter)} raise this theme.{" "}
+          <button type="button" onClick={clearRatingFilter} className="text-link hover:underline">
+            Show all ratings
+          </button>
+        </p>
+      </Page>
+    );
+  }
   if (!theme) {
     return (
       <Page>
-        <BackLink href={`/entities/${entityId}`}>{entity.data.name}</BackLink>
+        <BackLink href={backHref}>{entity.data.name}</BackLink>
         <p className="mt-4 text-muted">
           This topic has too few reviews to be listed yet. It appears once 10 reviews raise it.
         </p>
@@ -266,7 +327,7 @@ export default function ThemePage() {
     <Page>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1.5">
-          <BackLink href={`/entities/${entityId}`}>{entity.data.name}</BackLink>
+          <BackLink href={backHref}>{entity.data.name}</BackLink>
           {theme.kind === "candidate" && (
             <span className="self-start rounded-full bg-subtle px-2.5 py-0.5 text-xs font-semibold text-muted">
               Emerging topic
@@ -279,13 +340,26 @@ export default function ThemePage() {
               <strong>{formatNumber(theme.review_count)}</strong> reviews
             </span>
             <span>
-              <strong>{formatPercent(theme.review_count, total)}</strong> of classified reviews
+              <strong>{formatPercent(theme.review_count, total)}</strong> of{" "}
+              {ratingFilter ? `reviews ${describeRatingFilter(ratingFilter)}` : "classified reviews"}
             </span>
             <span>
               <strong>{formatNumber(theme.recent_count)}</strong> in the last {themes.data.recent_days} days
             </span>
           </div>
         </div>
+        {themeRatings.data && (
+          <RatingsCard
+            ratings={themeRatings.data}
+            filter={ratingFilter}
+            onFilterChange={changeRatingFilter}
+            title="Ratings of these reviews"
+            hints={{
+              idle: "Select a rating to see only those reviews.",
+              active: "The counts, the trend and the reviews below cover only the selected ratings.",
+            }}
+          />
+        )}
         <section className={`${card} flex flex-col gap-3 px-5 py-4`}>
           <h2 className="font-semibold">Sentiment</h2>
           <SentimentBar counts={theme.sentiment} height="h-3.5" />
@@ -298,7 +372,13 @@ export default function ThemePage() {
           selected={selectedPeriods}
           onToggle={togglePeriod}
         />
-        <Reviews entityId={entityId} theme={theme} periods={periods} onClearPeriods={() => setSelectedPeriods([])} />
+        <Reviews
+          entityId={entityId}
+          theme={theme}
+          periods={periods}
+          onClearPeriods={() => setSelectedPeriods([])}
+          ratingFilter={ratingFilter}
+        />
       </div>
     </Page>
   );
