@@ -15,8 +15,9 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ingestion import BinaryScale, LabelScale, NumericScale, RatingScale
-from models import Import, Review
+from models import Import, Review, ReviewTheme, Theme
 from schemas import RatingBucket, RatingScaleSummary, RatingSummary
+from theme_stats import per_review_theme_sentiment
 
 # A numeric scale with whole-number ends and at most this many levels gets one bucket per level
 # (1-5 stars, 0-10 scores). A wider scale, or one with fractional ends, is split into
@@ -108,9 +109,71 @@ def rating_condition(scale: NumericScale | BinaryScale | LabelScale, labels: lis
         else Review.rating >= ranges[label].low
         for label in labels
     ]
+    return and_(on_scale(scale), or_(*in_bucket))
+
+
+def on_scale(scale: NumericScale | BinaryScale | LabelScale):
+    """A SQL condition on Review: rated on this scale, that is, imported by an import that declared it."""
     # jsonb equality ignores key order and compares numbers by value, so 5 matches 5.0.
-    on_scale = select(Import.id).where(Import.rating_scale == scale.model_dump())
-    return and_(Review.import_id.in_(on_scale), or_(*in_bucket))
+    return Review.import_id.in_(select(Import.id).where(Import.rating_scale == scale.model_dump()))
+
+
+@dataclass(frozen=True)
+class RatingMoments:
+    """Enough to give the mean and sample variance of a set of ratings, and to subtract one set
+    from a larger one that contains it."""
+    count: int
+    total: float
+    squares: float
+
+    def __sub__(self, other: "RatingMoments") -> "RatingMoments":
+        return RatingMoments(self.count - other.count, self.total - other.total, self.squares - other.squares)
+
+    @property
+    def mean(self) -> float | None:
+        return self.total / self.count if self.count else None
+
+    @property
+    def variance(self) -> float:
+        """The sample variance (n - 1), 0 for fewer than 2 ratings or rounding below 0."""
+        if self.count < 2:
+            return 0.0
+        return max(0.0, (self.squares - self.total * self.total / self.count) / (self.count - 1))
+
+
+async def theme_rating_moments(
+    db: AsyncSession, entity_id: int, scale: NumericScale | BinaryScale | LabelScale
+) -> tuple[RatingMoments, dict[int, RatingMoments]]:
+    """The ratings on `scale` of the entity's classified reviews: all of them, and those that raise
+    each theme (merged candidates under the theme they merged into, each review once). Two queries:
+    the themes, and the total over distinct reviews (a review raising several themes counts once).
+    """
+    per_review, _ = per_review_theme_sentiment(entity_id)
+    rating = Review.rating
+    rows = await db.execute(
+        select(per_review.c.theme_id, func.count(), func.sum(rating), func.sum(rating * rating))
+        .select_from(per_review)
+        .join(Review, Review.id == per_review.c.review_id)
+        .where(on_scale(scale), rating.is_not(None))
+        .group_by(per_review.c.theme_id)
+    )
+    by_theme = {
+        theme_id: RatingMoments(count, float(total), float(squares))
+        for theme_id, count, total, squares in rows
+    }
+    classified = (
+        select(ReviewTheme.review_id)
+        .join(Theme, Theme.id == ReviewTheme.theme_id)
+        .where(Theme.entity_id == entity_id)
+    )
+    count, total, squares = (
+        await db.execute(
+            select(
+                func.count(), func.coalesce(func.sum(rating), 0), func.coalesce(func.sum(rating * rating), 0)
+            ).where(Review.id.in_(classified), on_scale(scale), rating.is_not(None))
+        )
+    ).one()
+    return RatingMoments(count, float(total), float(squares)), by_theme
 
 
 async def rating_summary(db: AsyncSession, entity_id: int) -> RatingSummary:

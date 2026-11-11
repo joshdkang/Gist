@@ -18,7 +18,8 @@ from ingestion import (
 )
 from models import Sentiment
 from rating_stats import summarize_scale
-from theme_stats import combine_sentiments, fisher_exact_p, shift_period, significant_changes
+from significance import fisher_exact_p, significant_changes, welch_t_p
+from theme_stats import combine_sentiments, shift_period
 
 
 # --- ingestion -------------------------------------------------------------------------------
@@ -164,3 +165,19 @@ def test_significant_changes_raise_the_bar_with_the_number_of_tests():
     # Nothing to compare is never significant and isn't counted as a test.
     assert significant_changes([None, 0.03, None]) == [False, True, False]
     assert significant_changes([]) == []
+
+
+def test_welch_t_p_matches_the_t_table():
+    # A two-sided p of 0.05 at t = 2.228 with 10 degrees of freedom, and at t = 1.96 with many.
+    from significance import regularized_beta
+
+    def two_sided(t: float, degrees: float) -> float:
+        return regularized_beta(degrees / 2, 0.5, degrees / (degrees + t * t))
+
+    assert two_sided(2.228, 10) == pytest.approx(0.05, abs=1e-4)
+    assert two_sided(2.0, 10) == pytest.approx(0.0734, abs=1e-4)
+    assert two_sided(1.959964, 1e6) == pytest.approx(0.05, abs=1e-4)
+    # Equal variances and counts: t = 2 / sqrt(2/10 + 2/10) = 3.16 on 18 degrees of freedom.
+    assert welch_t_p(10, 5.0, 2.0, 10, 3.0, 2.0) == pytest.approx(0.0054, abs=1e-4)
+    assert welch_t_p(1, 1.0, 0.0, 5, 2.0, 1.0) is None       # a side of one
+    assert welch_t_p(5, 3.0, 0.0, 5, 3.0, 0.0) is None       # no spread on either side

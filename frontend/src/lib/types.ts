@@ -170,6 +170,31 @@ export interface RatingScaleSummary {
   buckets: { label: string; count: number }[];
 }
 
+export interface ThemeRatingImpact {
+  id: number;
+  kind: "discovered" | "candidate";
+  name: string;
+  /** Rated reviews (on the scale) that raise the theme. */
+  rated_reviews: number;
+  average_with: number;
+  /** The other rated reviews' average; null when every rated review raises the theme. */
+  average_without: number | null;
+  /** How far the theme's reviews move the overall average from what it would be if they were rated like the rest. */
+  effect: number;
+  p_value: number | null;
+  /** Significant once corrected for testing every theme (5% false discovery rate). */
+  significant: boolean;
+}
+
+export interface ThemeRatings {
+  /** The scale compared on; null when no review has a rating. */
+  scale: RatingScale | null;
+  rated_reviews: number;
+  average: number | null;
+  /** Most negative effect first. */
+  themes: ThemeRatingImpact[];
+}
+
 /** Rating buckets chosen on one scale, to count only those reviews. */
 export interface RatingFilter {
   scale: RatingScale;

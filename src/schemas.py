@@ -238,6 +238,40 @@ class TrendPoint(BaseModel):
     )
 
 
+class ThemeRatingImpact(BaseModel):
+    id: int
+    kind: ThemeKind
+    name: str
+    rated_reviews: int = Field(description="Rated reviews (on the scale) that raise the theme")
+    average_with: float = Field(description="Their average rating")
+    average_without: float | None = Field(
+        description="The average rating of the other rated reviews; null when every rated review raises it"
+    )
+    effect: float = Field(
+        description="How far the theme's reviews move the overall average from what it would be if they "
+        "were rated like the rest: (rated_reviews / all rated reviews) x (average_with - average_without)"
+    )
+    p_value: float | None = Field(
+        description="Welch's t-test p-value for average_with against average_without; null when either "
+        "side has fewer than 2 reviews or neither varies"
+    )
+    significant: bool = Field(
+        description="The difference is significant once corrected for testing every theme "
+        "(Benjamini-Hochberg, 5% false discovery rate)"
+    )
+
+
+class ThemeRatings(BaseModel):
+    scale: dict[str, Any] | None = Field(
+        description="The rating scale compared on; null when no review has a rating"
+    )
+    rated_reviews: int = Field(description="Classified reviews with a rating on the scale")
+    average: float | None = Field(description="Their average rating")
+    themes: list[ThemeRatingImpact] = Field(
+        description="Discovered themes and listed candidates with rated reviews, most negative effect first"
+    )
+
+
 class PeriodCount(BaseModel):
     period_start: datetime
     reviews: int = Field(description="The entity's classified reviews in the period")

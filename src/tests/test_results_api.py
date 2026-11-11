@@ -1,12 +1,13 @@
-"""The theme list, what changed between periods, a theme's reviews, and its trend, over the data
-seeded in conftest.py."""
+"""The theme list, what changed between periods, ratings by theme, a theme's reviews, and its trend,
+over the data seeded in conftest.py."""
 import json
 from collections import Counter
 
 import pytest
-from sqlalchemy import event
+from sqlalchemy import event, update
 
 from database import engine
+from models import Review
 from tests.conftest import SEED_REVIEWS, seed_date
 
 
@@ -290,3 +291,41 @@ async def test_changes_can_compare_any_two_periods(call, seeded):
     same = await call("GET", path, params={**params, "compare_to": params["period"]})
     empty = await call("GET", path, params={**params, "compare_to": "2019-01-01T00:00:00Z"})
     assert same.status_code == 422 and empty.status_code == 422
+
+
+async def test_theme_ratings_compare_reviews_with_and_without_each_theme(call, db, seeded):
+    # Seeded ratings run 1-5 in turn, so every theme averages 3; rate Price's reviews (0-9) 1 instead.
+    await db.execute(update(Review).where(Review.id.in_(seeded.review_ids[:10])).values(rating=1))
+    await db.commit()
+    body = (await call("GET", f"/entities/{seeded.entity_id}/themes/ratings")).json()
+    assert body["scale"] == {"type": "numeric", "min": 1.0, "max": 5.0}
+    # 40 rated reviews: ten 1s, then reviews 10-39 cycle 1-5 six times (sum 90), so 100 / 40.
+    assert body["rated_reviews"] == 40 and body["average"] == pytest.approx(100 / 40)
+    impacts = {impact["name"]: impact for impact in body["themes"]}
+    assert set(impacts) == {"Service", "Price", "Parking"}   # Rare has too few reviews; General is left out
+
+    price = impacts["Price"]
+    assert price["rated_reviews"] == 10
+    assert price["average_with"] == 1.0 and price["average_without"] == pytest.approx(3.0)
+    assert price["effect"] == pytest.approx(10 / 40 * -2.0)
+    assert price["significant"] and price["p_value"] < 1e-6
+    service = impacts["Service"]                     # reviews 0-29: ten 1s, then 10-29 (sum 60)
+    assert service["average_with"] == pytest.approx(70 / 30) and service["average_without"] == pytest.approx(3.0)
+    # Most negative effect first.
+    effects = [impact["effect"] for impact in body["themes"]]
+    assert effects == sorted(effects) and body["themes"][0]["name"] == "Price"
+
+    # The scale can be named; one no import used has no ratings, and a bad one is refused.
+    named = {"rating_scale": json.dumps({"type": "numeric", "min": 1, "max": 5})}
+    assert (await call("GET", f"/entities/{seeded.entity_id}/themes/ratings", params=named)).json() == body
+    other = {"rating_scale": json.dumps({"type": "binary"})}
+    empty = (await call("GET", f"/entities/{seeded.entity_id}/themes/ratings", params=other)).json()
+    assert empty["rated_reviews"] == 0 and empty["themes"] == []
+    bad = await call("GET", f"/entities/{seeded.entity_id}/themes/ratings", params={"rating_scale": "{"})
+    assert bad.status_code == 422
+
+
+async def test_theme_ratings_without_ratings(call):
+    entity = (await call("POST", "/entities", json={"name": "Unrated"})).json()
+    body = (await call("GET", f"/entities/{entity['id']}/themes/ratings")).json()
+    assert body == {"scale": None, "rated_reviews": 0, "average": None, "themes": []}

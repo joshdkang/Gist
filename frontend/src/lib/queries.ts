@@ -7,10 +7,12 @@ import { api } from "@/lib/api";
 import type {
   EntityDetail,
   RatingFilter,
+  RatingScale,
   RatingSummary,
   RunDetail,
   ThemeChanges,
   ThemeList,
+  ThemeRatings,
   TrendInterval,
 } from "@/lib/types";
 
@@ -67,6 +69,18 @@ export function useThemeChanges(
   });
 }
 
+/** Each theme's average rating against the reviews that don't raise it, on one scale. Waits for the scale. */
+export function useThemeRatings(entityId: string, scale: RatingScale | undefined) {
+  return useQuery({
+    queryKey: ["theme-ratings", entityId, scale],
+    queryFn: () =>
+      api<ThemeRatings>(
+        `/entities/${entityId}/themes/ratings?${new URLSearchParams({ rating_scale: JSON.stringify(scale) })}`,
+      ),
+    enabled: scale !== undefined,
+  });
+}
+
 /** The entity's ratings: count, average and distribution per rating scale. Changes only on upload. */
 export function useRatings(entityId: string) {
   return useQuery({
@@ -82,7 +96,7 @@ export function useRefreshWhenRunEnds(entityId: string, run: RunDetail | null | 
   useEffect(() => {
     const active = isActive(run);
     if (wasActive.current && !active) {
-      for (const key of ["themes", "theme-reviews", "trend", "changes"]) {
+      for (const key of ["themes", "theme-reviews", "trend", "changes", "theme-ratings"]) {
         queryClient.invalidateQueries({ queryKey: [key, entityId] });
       }
       queryClient.invalidateQueries({ queryKey: ["entities"] });

@@ -4,7 +4,6 @@ A theme's numbers include every candidate merged into it (themes.merged_into_id)
 review. When a review carries several tags that map to the same theme, its sentiment for that theme
 is combined: see combine_sentiments.
 """
-import math
 from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime, timedelta
@@ -169,56 +168,6 @@ def shift_period(start: datetime, interval: str, steps: int) -> datetime:
         return start + timedelta(weeks=steps)
     months = start.year * 12 + start.month - 1 + steps * MONTHS_PER_PERIOD[interval]
     return start.replace(year=months // 12, month=months % 12 + 1)
-
-
-def fisher_exact_p(hits_a: int, total_a: int, hits_b: int, total_b: int) -> float | None:
-    """The two-sided p-value of Fisher's exact test that two proportions are the same: how likely a
-    split of the hits at least this lopsided is if both sides share one rate. None when a side is
-    empty, since there is nothing to compare.
-
-    Exact rather than a z-test, because themes are often raised by a handful of reviews in a period,
-    where the normal approximation calls 0 of 590 against 4 of 538 a real change. It is valid at any
-    count; at large counts it agrees with the z-test."""
-    if total_a == 0 or total_b == 0:
-        return None
-    hits = hits_a + hits_b
-    others = total_a + total_b - hits
-    lowest, highest = max(0, total_a - others), min(hits, total_a)
-    # The log probability of each possible count k for side a, with the margins fixed
-    # (hypergeometric), built up from the lowest by the ratio between neighbouring terms.
-    log_probabilities = [
-        log_choose(hits, lowest) + log_choose(others, total_a - lowest) - log_choose(hits + others, total_a)
-    ]
-    for k in range(lowest, highest):
-        ratio = (hits - k) * (total_a - k) / ((k + 1) * (others - total_a + k + 1))
-        log_probabilities.append(log_probabilities[-1] + math.log(ratio))
-    observed = log_probabilities[hits_a - lowest]
-    # Every count at most as likely as the observed one counts towards the p-value (the tolerance
-    # keeps counts that tie with it from being lost to rounding).
-    return min(1.0, sum(math.exp(value) for value in log_probabilities if value <= observed + 1e-7))
-
-
-def significant_changes(p_values: list[float | None], false_discovery_rate: float = 0.05) -> list[bool]:
-    """Which of several tests are significant, controlling the false discovery rate with the
-    Benjamini-Hochberg procedure: of the changes marked, at most this share are expected to be flukes.
-
-    Testing 30 themes at 5% each would mark one or two by luck alone even if nothing changed, so the
-    bar rises with the number of tests: the p-values are ranked, and the largest rank k whose p-value
-    is at most k / m * rate marks it and every smaller one. A None (nothing to compare) is never
-    significant and doesn't count as a test."""
-    tested = sorted((p_value, index) for index, p_value in enumerate(p_values) if p_value is not None)
-    cutoff = 0
-    for rank, (p_value, _) in enumerate(tested, start=1):
-        if p_value <= rank / len(tested) * false_discovery_rate:
-            cutoff = rank
-    significant = [False] * len(p_values)
-    for _, index in tested[:cutoff]:
-        significant[index] = True
-    return significant
-
-
-def log_choose(n: int, k: int) -> float:
-    return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
 
 
 def classified_review_count_query(entity_id: int, match: ColumnElement[bool] | None = None):

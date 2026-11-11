@@ -22,7 +22,7 @@ frontend's origin (the default allows `http://localhost:3000`).
   bearer token and surfaces the API's error messages as written. TanStack Query caches it; an entity's page
   polls every 3 seconds while an analysis is queued or running and refreshes the results when it ends.
 - **Pages**: `/` (your entities and the public samples), `/entities/new`, `/entities/[id]` (ratings,
-  themes, emerging topics, run status, and the owner's upload, edit and delete), `/entities/[id]/changes`
+  themes and emerging topics, or ratings by theme in their place, run status, and the owner's upload, edit and delete), `/entities/[id]/changes`
   (period comparison: each theme's share of one period's reviews against another, by default the one
   before, with the changes that aren't statistically significant set apart), `/entities/[id]/themes/[themeId]` (sentiment, trend by month, quarter or
   year as counts, a share of each period's reviews, or a sentiment mix, and the reviews), and

@@ -5,13 +5,14 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { EntityActions } from "@/components/EntityActions";
+import { RatingDrivers } from "@/components/RatingDrivers";
 import { RatingsCard } from "@/components/RatingsCard";
 import { RunBanner } from "@/components/RunBanner";
 import { SentimentBar, SentimentLegend } from "@/components/SentimentBar";
-import { BackLink, buttonPrimary, buttonSecondary, card, ErrorNote, Loading, Page } from "@/components/ui";
+import { BackLink, buttonPrimary, buttonSecondary, card, ErrorNote, Loading, Page, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent } from "@/lib/format";
-import { isActive, useEntity, useRatings, useRefreshWhenRunEnds, useThemes } from "@/lib/queries";
+import { isActive, useEntity, useRatings, useRefreshWhenRunEnds, useThemeRatings, useThemes } from "@/lib/queries";
 import type { EntityDetail, RatingFilter, ThemeList, ThemeSummary } from "@/lib/types";
 
 type Sort = "total" | "recent";
@@ -188,12 +189,22 @@ function NoResults({ entity }: { entity: EntityDetail }) {
   );
 }
 
+/** What the results area shows: the theme list, or each theme's ratings against the rest. */
+type View = "themes" | "ratings";
+const VIEWS: { key: View; label: string }[] = [
+  { key: "themes", label: "Themes" },
+  { key: "ratings", label: "Ratings by theme" },
+];
+
 export default function EntityPage() {
   const { entityId } = useParams<{ entityId: string }>();
   const entity = useEntity(entityId);
   const [ratingFilter, setRatingFilter] = useState<RatingFilter | null>(null);
+  const [view, setView] = useState<View>("themes");
   const themes = useThemes(entityId, ratingFilter);
   const ratings = useRatings(entityId);
+  // Ratings by theme are compared on the scale with the most ratings (the card lists it first).
+  const themeRatings = useThemeRatings(entityId, ratings.data?.scales[0]?.scale);
   useRefreshWhenRunEnds(entityId, entity.data?.latest_run);
 
   if (entity.error instanceof ApiError && entity.error.status === 404) {
@@ -212,6 +223,15 @@ export default function EntityPage() {
   // While a new rating filter loads, the previous list stays up (dimmed) instead of a spinner.
   const updating = themes.isPlaceholderData;
   const latest = list?.as_of ? ` · latest review ${formatDate(list.as_of)}` : "";
+  // The ratings view needs analyzed themes and rated reviews; without them there is no switch.
+  const canRate = Boolean(list && list.themes.length > 0 && themeRatings.data?.themes.length);
+  const showRatings = canRate && view === "ratings";
+
+  function filterRatings(filter: RatingFilter | null) {
+    setRatingFilter(filter);
+    // The rating bars filter the theme list, so choosing one shows it.
+    if (filter) setView("themes");
+  }
 
   return (
     <Page>
@@ -246,30 +266,46 @@ export default function EntityPage() {
 
         <RunBanner run={detail.latest_run} />
         {ratings.data && (
-          <RatingsCard ratings={ratings.data} filter={ratingFilter} onFilterChange={setRatingFilter} />
+          <RatingsCard ratings={ratings.data} filter={ratingFilter} onFilterChange={filterRatings} />
+        )}
+        {canRate && (
+          <div className="self-start">
+            <Toggle label="View" options={VIEWS} value={view} onChange={setView} />
+          </div>
         )}
         <ErrorNote error={themes.error} />
         {themes.isPending && <Loading label="Loading themes…" />}
-        {updating && list?.themes.length === 0 && <Loading label="Loading themes…" />}
-        {list && !updating && list.themes.length === 0 && !ratingFilter && <NoResults entity={detail} />}
-        {list && !updating && list.themes.length === 0 && ratingFilter && (
-          <p className={`${card} p-6`}>No theme is raised by reviews {describeRatingFilter(ratingFilter)}.</p>
+        {showRatings && themeRatings.data && (
+          <RatingDrivers
+            entityId={entityId}
+            data={themeRatings.data}
+            several={(ratings.data?.scales.length ?? 0) > 1}
+          />
         )}
-        <div
-          aria-busy={updating}
-          className={`flex flex-col gap-6 transition-opacity ${updating ? "opacity-50" : ""}`}
-        >
-          {list && list.themes.length > 0 && (
-            <ThemesSection entityId={entityId} list={list} ratingFilter={ratingFilter} updating={updating} />
-          )}
-          {list?.candidates && <EmergingTopics entityId={entityId} topics={list.candidates} />}
-          {list && list.classified_reviews > 0 && (
-            <p className="text-sm text-muted">
-              {formatPercent(list.general.review_count, list.classified_reviews)} of reviews (
-              {formatNumber(list.general.review_count)}) raise no specific topic and are not ranked.
-            </p>
-          )}
-        </div>
+        {!showRatings && (
+          <>
+            {updating && list?.themes.length === 0 && <Loading label="Loading themes…" />}
+            {list && !updating && list.themes.length === 0 && !ratingFilter && <NoResults entity={detail} />}
+            {list && !updating && list.themes.length === 0 && ratingFilter && (
+              <p className={`${card} p-6`}>No theme is raised by reviews {describeRatingFilter(ratingFilter)}.</p>
+            )}
+            <div
+              aria-busy={updating}
+              className={`flex flex-col gap-6 transition-opacity ${updating ? "opacity-50" : ""}`}
+            >
+              {list && list.themes.length > 0 && (
+                <ThemesSection entityId={entityId} list={list} ratingFilter={ratingFilter} updating={updating} />
+              )}
+              {list?.candidates && <EmergingTopics entityId={entityId} topics={list.candidates} />}
+              {list && list.classified_reviews > 0 && (
+                <p className="text-sm text-muted">
+                  {formatPercent(list.general.review_count, list.classified_reviews)} of reviews (
+                  {formatNumber(list.general.review_count)}) raise no specific topic and are not ranked.
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Page>
   );

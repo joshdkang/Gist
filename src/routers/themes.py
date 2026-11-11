@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from access import get_readable_entity
 from database import get_db
 from models import Entity, Review, Sentiment, Theme, ThemeKind
-from rating_stats import parse_scale, rating_condition
+from rating_stats import parse_scale, rating_condition, rating_summary, theme_rating_moments
 from schemas import (
     GeneralSummary,
     SentimentCounts,
@@ -22,18 +22,19 @@ from schemas import (
     ThemeChange,
     ThemeChanges,
     ThemeList,
+    ThemeRatingImpact,
+    ThemeRatings,
     ThemeReviewOut,
     ThemeSummary,
     ThemeTrend,
     TrendPoint,
 )
+from significance import fisher_exact_p, significant_changes, welch_t_p
 from theme_stats import (
     classified_review_count_query,
-    fisher_exact_p,
     per_review_theme_sentiment,
     period_review_counts,
     shift_period,
-    significant_changes,
     theme_sentiment_counts_by,
     theme_trend,
 )
@@ -296,6 +297,80 @@ async def list_theme_changes(
         previous_reviews=previous_reviews,
         periods=[PeriodCount(period_start=start, reviews=count) for start, count in periods],
         themes=changes,
+    )
+
+
+@router.get("/ratings", response_model=ThemeRatings)
+async def list_theme_ratings(
+    rating_scale: str | None = Query(
+        None, description="The scale to compare on, as JSON; by default the one with the most ratings"
+    ),
+    entity: Entity = Depends(get_readable_entity),
+    db: AsyncSession = Depends(get_db),
+):
+    """Which themes go with low or high ratings: for each theme, the average rating of the reviews
+    that raise it against the reviews that don't.
+
+    The effect weighs that difference by how common the theme is, so it says how far the theme's
+    reviews pull the overall average: a theme a third of reviews raise, rated 0.5 lower, moves it
+    more than one in 2% of reviews rated 2 lower. This is an association, not a cause: a theme can
+    go with low ratings because unhappy customers write about it. Each difference is tested with
+    Welch's t-test and marked significant with the Benjamini-Hochberg correction, as the period
+    comparison does. Ratings never feed the analysis; this is only read from it.
+
+    Candidates are listed once CANDIDATE_MIN_REVIEWS rated reviews raise them; `general` is left out.
+    Four queries at most: the default scale, the ratings per theme, the total, and the themes.
+    """
+    if rating_scale is None:
+        summary = await rating_summary(db, entity.id)
+        if not summary.scales:
+            return ThemeRatings(scale=None, rated_reviews=0, average=None, themes=[])
+        scale = parse_scale(summary.scales[0].scale)
+    else:
+        try:
+            scale = parse_scale(json.loads(rating_scale))
+        except (json.JSONDecodeError, ValidationError) as error:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Bad rating scale: {error}") from None
+
+    total, by_theme = await theme_rating_moments(db, entity.id, scale)
+    themes = await db.scalars(
+        select(Theme).where(
+            Theme.entity_id == entity.id, Theme.merged_into_id.is_(None), Theme.kind != ThemeKind.GENERAL
+        )
+    )
+    compared = []
+    for theme in themes:
+        with_theme = by_theme.get(theme.id)
+        if with_theme is None:
+            continue
+        if theme.kind == ThemeKind.CANDIDATE and with_theme.count < CANDIDATE_MIN_REVIEWS:
+            continue
+        compared.append((theme, with_theme, total - with_theme))
+    p_values = [
+        welch_t_p(
+            with_theme.count, with_theme.mean, with_theme.variance,
+            rest.count, rest.mean or 0.0, rest.variance,
+        )
+        for _, with_theme, rest in compared
+    ]
+    significant = significant_changes(p_values)
+    impacts = [
+        ThemeRatingImpact(
+            id=theme.id,
+            kind=theme.kind,
+            name=theme.name,
+            rated_reviews=with_theme.count,
+            average_with=with_theme.mean,
+            average_without=rest.mean,
+            effect=with_theme.count / total.count * (with_theme.mean - rest.mean) if rest.count else 0.0,
+            p_value=p_values[index],
+            significant=significant[index],
+        )
+        for index, (theme, with_theme, rest) in enumerate(compared)
+    ]
+    impacts.sort(key=lambda impact: (impact.effect, impact.name))
+    return ThemeRatings(
+        scale=scale.model_dump(), rated_reviews=total.count, average=total.mean, themes=impacts
     )
 
 
