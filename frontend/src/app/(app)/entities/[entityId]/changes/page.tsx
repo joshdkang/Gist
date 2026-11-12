@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
+import { ChangesTable } from "@/components/ChangesTable";
 import { ExportButton, exportButtonClass } from "@/components/ExportButton";
 import { PeriodPicker, periodQuery, SUMMARY_CHANGES_PREFIX, usePeriodChoice } from "@/components/PeriodPicker";
 import { periodName } from "@/components/TrendChart";
 import { BackLink, card, ErrorNote, Loading, Page, PageTitle, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { formatChange, formatNumber, formatShare as percent, negativeShare } from "@/lib/format";
+import { useLayout } from "@/lib/layout";
 import { useEntity, useThemeChanges } from "@/lib/queries";
 import type { ThemeChange, ThemeChanges } from "@/lib/types";
 
@@ -201,6 +203,8 @@ export default function ChangesPage() {
   const { interval, period, compareTo } = choice;
   const [sort, setSort] = useState<Sort>("share");
   const changes = useThemeChanges(entityId, interval, period, compareTo);
+  // Desktop shows both changes in one sortable table; mobile keeps the list with its sort switch.
+  const desktop = useLayout() === "desktop";
 
   if (entity.error instanceof ApiError && entity.error.status === 404) {
     return (
@@ -237,10 +241,12 @@ export default function ChangesPage() {
 
         <div className={`${card} flex flex-wrap items-end gap-4 px-5 py-4`}>
           <PeriodPicker choice={choice} data={data} />
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Biggest change in</span>
-            <Toggle label="Sort by" options={SORTS} value={sort} onChange={setSort} />
-          </div>
+          {!desktop && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Biggest change in</span>
+              <Toggle label="Sort by" options={SORTS} value={sort} onChange={setSort} />
+            </div>
+          )}
           {/* Two equal columns, so the two buttons are the same width. */}
           {data?.period_start && (
             <div className="ml-auto grid grid-cols-2 gap-2 self-end">
@@ -264,10 +270,12 @@ export default function ChangesPage() {
         {data && !data.period_start && <p className={`${card} p-6`}>None of this entity&apos;s reviews has a date.</p>}
         {data && data.period_start && (
           <div aria-busy={updating} className={`flex flex-col gap-4 transition-opacity ${updating ? "opacity-50" : ""}`}>
-            <p>
-              <strong>{name(data.period_start)}</strong> ({formatNumber(data.current_reviews)} reviews) compared with{" "}
-              <strong>{name(data.previous_start)}</strong> ({formatNumber(data.previous_reviews)} reviews).
-            </p>
+            {!desktop && (
+              <p>
+                <strong>{name(data.period_start)}</strong> ({formatNumber(data.current_reviews)} reviews) compared with{" "}
+                <strong>{name(data.previous_start)}</strong> ({formatNumber(data.previous_reviews)} reviews).
+              </p>
+            )}
             {few && (
               <p className="rounded-lg border border-warn-line bg-warn-bg px-4 py-3 text-sm">
                 {data.previous_reviews === 0
@@ -277,6 +285,8 @@ export default function ChangesPage() {
             )}
             {data.themes.length === 0 ? (
               <p className={`${card} p-6`}>No theme was raised in either period.</p>
+            ) : desktop ? (
+              <ChangesTable entityId={entityId} data={data} />
             ) : (
               <ChangesList entityId={entityId} data={data} sort={sort} />
             )}

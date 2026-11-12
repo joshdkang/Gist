@@ -56,6 +56,7 @@ export function SortHeading<Key extends string>({
   column,
   label,
   className = "",
+  rowSpan,
   sortKey,
   direction,
   onSort,
@@ -63,6 +64,8 @@ export function SortHeading<Key extends string>({
   column: Key;
   label: string;
   className?: string;
+  /** For a heading beside a row of grouped headings. */
+  rowSpan?: number;
 } & Sorting<Key>) {
   const active = column === sortKey;
   // Only the sorted heading has an arrow, after its label; the others take no room for one, so every
@@ -75,6 +78,7 @@ export function SortHeading<Key extends string>({
   return (
     <th
       scope="col"
+      rowSpan={rowSpan}
       aria-sort={active ? (direction === "desc" ? "descending" : "ascending") : "none"}
       className={`border-y border-line px-3 py-1.5 text-[13px] font-semibold whitespace-nowrap ${className}`}
     >
