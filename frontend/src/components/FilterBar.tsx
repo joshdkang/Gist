@@ -1,8 +1,9 @@
 "use client";
 
 import { ExportButton } from "@/components/ExportButton";
+import { SearchBox } from "@/components/SearchBox";
 import { formatNumber } from "@/lib/format";
-import { describePeriodsFilter, type PeriodsFilter } from "@/lib/periodFilter";
+import { describePeriodsFilter, describeSearch, type PeriodsFilter } from "@/lib/periodFilter";
 import { describeRatingFilter } from "@/lib/ratingFilter";
 import type { RatingFilter } from "@/lib/types";
 
@@ -27,7 +28,7 @@ export function FilterChip({ label, onRemove }: { label: string; onRemove: () =>
 
 /**
  * The desktop layout's filter bar, above the results: how many reviews the results cover, the active
- * filters as chips that remove them, the view switch and the exports. While a filter is on it stays at
+ * filters as chips that remove them, a search of the review text, the view switch and the exports. While a filter is on it stays at
  * the top of the window, so the filter stays in view over a long list; otherwise it scrolls away.
  */
 export function FilterBar({
@@ -39,6 +40,8 @@ export function FilterBar({
   onClearRating,
   onClearPeriods,
   onClearAll,
+  search,
+  onSearch,
   query,
   view,
 }: {
@@ -50,14 +53,17 @@ export function FilterBar({
   periodsFilter: PeriodsFilter | null;
   onClearRating: () => void;
   onClearPeriods: () => void;
-  /** Both at once: one URL change, since each of the others keeps the other filter as it was. */
+  /** Every filter at once: one URL change, since each of the others keeps the rest as they were. */
   onClearAll: () => void;
-  /** Both filters as a query string, for the exports. */
+  /** The search in force, and how to change it (null clears it). */
+  search: string | null;
+  onSearch: (search: string | null) => void;
+  /** Every filter as a query string, for the exports. */
   query: string;
   /** The view switch (Themes or Ratings by theme), when there is one. */
   view?: React.ReactNode;
 }) {
-  const filtered = Boolean(ratingFilter || periodsFilter);
+  const filtered = Boolean(ratingFilter || periodsFilter || search);
   return (
     <div
       className={`-mx-4 px-4 py-2.5 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 ${
@@ -75,6 +81,7 @@ export function FilterBar({
               </span>
               {periodsFilter && <FilterChip label={capitalize(describePeriodsFilter(periodsFilter))} onRemove={onClearPeriods} />}
               {ratingFilter && <FilterChip label={capitalize(describeRatingFilter(ratingFilter))} onRemove={onClearRating} />}
+              {search && <FilterChip label={capitalize(describeSearch(search))} onRemove={() => onSearch(null)} />}
               <button
                 type="button"
                 onClick={onClearAll}
@@ -86,11 +93,12 @@ export function FilterBar({
           ) : (
             <>
               <span className="font-semibold">All {formatNumber(totalReviews)} reviews</span>
-              <span className="text-sm text-muted">Select a rating or a period above to filter.</span>
+              <span className="text-sm text-muted">Select a rating or a period above, or search, to filter.</span>
             </>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <SearchBox value={search} onSearch={onSearch} className="w-64" />
           {view}
           <ExportButton path={`/entities/${entityId}/exports/themes.csv${query}`} label="Export themes" />
           <ExportButton path={`/entities/${entityId}/exports/reviews.csv${query}`} label="Export reviews" />

@@ -28,15 +28,44 @@ export function readPeriodsFilter(params: { get(name: string): string | null; ge
   return starts.length > 0 && interval ? ({ interval, starts } satisfies PeriodsFilter) : null;
 }
 
-/** "?interval=…&period=…&rating_scale=…&rating=…" for both filters, or "" with neither. */
-export function filterQuery(ratingFilter: RatingFilter | null, periodsFilter: PeriodsFilter | null): string {
-  const params = appendRatingFilter(appendPeriodsFilter(new URLSearchParams(), periodsFilter), ratingFilter);
+/** A search in a URL: `q`, the parameter the API takes. */
+export function appendSearch(params: URLSearchParams, search: string | null): URLSearchParams {
+  if (search) params.set("q", search);
+  return params;
+}
+
+/** The search in a page's URL, or null when there is none. */
+export function readSearch(params: { get(name: string): string | null }): string | null {
+  return params.get("q")?.trim() || null;
+}
+
+/** 'mentioning "valet"': a search, as the filter descriptions name it. */
+export const describeSearch = (search: string) => `mentioning “${search}”`;
+
+/** "?interval=…&period=…&rating_scale=…&rating=…&q=…" for the filters given, or "" with none. */
+export function filterQuery(
+  ratingFilter: RatingFilter | null,
+  periodsFilter: PeriodsFilter | null,
+  search: string | null = null,
+): string {
+  const params = appendSearch(
+    appendRatingFilter(appendPeriodsFilter(new URLSearchParams(), periodsFilter), ratingFilter),
+    search,
+  );
   return params.size > 0 ? `?${params}` : "";
 }
 
-/** "from 2019 Q1 rated 1": the filters in force, or "" with neither. */
-export function describeFilters(ratingFilter: RatingFilter | null, periodsFilter: PeriodsFilter | null): string {
-  return [periodsFilter && describePeriodsFilter(periodsFilter), ratingFilter && describeRatingFilter(ratingFilter)]
+/** 'from 2019 Q1 rated 1 mentioning "valet"': the filters in force, or "" with none. */
+export function describeFilters(
+  ratingFilter: RatingFilter | null,
+  periodsFilter: PeriodsFilter | null,
+  search: string | null = null,
+): string {
+  return [
+    periodsFilter && describePeriodsFilter(periodsFilter),
+    ratingFilter && describeRatingFilter(ratingFilter),
+    search && describeSearch(search),
+  ]
     .filter(Boolean)
     .join(" ");
 }

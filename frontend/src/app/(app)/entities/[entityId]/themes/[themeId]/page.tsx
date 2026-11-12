@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { ExportButton } from "@/components/ExportButton";
 import { capitalize, FilterChip } from "@/components/FilterBar";
 import { RatingsCard } from "@/components/RatingsCard";
+import { Highlighted, SearchBox, searchTerms } from "@/components/SearchBox";
 import { SentimentBar, SentimentBreakdown } from "@/components/SentimentBar";
 import { periodName, TrendChart, type TrendMode } from "@/components/TrendChart";
 import { BackLink, buttonSecondary, card, ErrorNote, INTERVALS, Loading, Page, Toggle } from "@/components/ui";
@@ -14,8 +15,8 @@ import { ApiError, api } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent, SENTIMENTS, sentimentStyle } from "@/lib/format";
 import { useLayout } from "@/lib/layout";
 import { useEntity, useThemes } from "@/lib/queries";
-import { describePeriodsFilter, filterQuery } from "@/lib/periodFilter";
-import { appendRatingFilter, describeRatingFilter, ratingQuery, readRatingFilter } from "@/lib/ratingFilter";
+import { appendSearch, describeFilters, describePeriodsFilter, describeSearch, filterQuery, readSearch } from "@/lib/periodFilter";
+import { appendRatingFilter, describeRatingFilter, readRatingFilter } from "@/lib/ratingFilter";
 import type {
   RatingFilter,
   RatingSummary,
@@ -39,7 +40,7 @@ const MODE_HINTS: Record<TrendMode, string> = {
   mix: "How the theme's reviews in each period felt, each bar adding up to 100%.",
 };
 
-function ReviewCard({ review, row = false }: { review: ThemeReview; row?: boolean }) {
+function ReviewCard({ review, row = false, terms = [] }: { review: ThemeReview; row?: boolean; terms?: string[] }) {
   const [expanded, setExpanded] = useState(false);
   const style = review.sentiment ? sentimentStyle(review.sentiment) : null;
   const long = review.text.length > 600;
@@ -57,8 +58,14 @@ function ReviewCard({ review, row = false }: { review: ThemeReview; row?: boolea
         {review.rating !== null && <span>Rating {Number(review.rating)}</span>}
         {review.review_date && <span className="text-muted">{formatDate(review.review_date)}</span>}
       </div>
-      {review.title && <p className="font-semibold">{review.title}</p>}
-      <p className={`whitespace-pre-line ${expanded ? "" : "line-clamp-6"}`}>{review.text}</p>
+      {review.title && (
+        <p className="font-semibold">
+          <Highlighted text={review.title} terms={terms} />
+        </p>
+      )}
+      <p className={`whitespace-pre-line ${expanded ? "" : "line-clamp-6"}`}>
+        <Highlighted text={review.text} terms={terms} />
+      </p>
       {long && (
         <button type="button" onClick={() => setExpanded(!expanded)} className="self-start text-sm text-link hover:underline">
           {expanded ? "Show less" : "Show more"}
@@ -82,6 +89,9 @@ function Reviews({
   onClearPeriods,
   ratingFilter,
   onClearRating,
+  search,
+  onSearch,
+  onClearUrlFilters,
   desktop,
 }: {
   entityId: string;
@@ -90,17 +100,22 @@ function Reviews({
   onClearPeriods: () => void;
   ratingFilter: RatingFilter | null;
   onClearRating: () => void;
+  search: string | null;
+  onSearch: (search: string | null) => void;
+  /** The rating filter and the search together, in one change to the URL. */
+  onClearUrlFilters: () => void;
   desktop: boolean;
 }) {
   const [filter, setFilter] = useState<Sentiment | "all">("all");
-  const params = appendRatingFilter(new URLSearchParams({ limit: String(PAGE_SIZE) }), ratingFilter);
+  const params = appendSearch(appendRatingFilter(new URLSearchParams({ limit: String(PAGE_SIZE) }), ratingFilter), search);
+  const terms = searchTerms(search);
   if (filter !== "all") params.set("sentiment", filter);
   if (periods) {
     params.set("interval", periods.interval);
     for (const start of periods.starts) params.append("period", start);
   }
   const reviews = useInfiniteQuery({
-    queryKey: ["theme-reviews", entityId, theme.id, filter, periods?.interval, periods?.starts, ratingFilter],
+    queryKey: ["theme-reviews", entityId, theme.id, filter, periods?.interval, periods?.starts, ratingFilter, search],
     queryFn: ({ pageParam }) =>
       api<ThemeReview[]>(`/entities/${entityId}/themes/${theme.id}/reviews?${params}&offset=${pageParam}`),
     initialPageParam: 0,
@@ -163,11 +178,11 @@ function Reviews({
   );
 
   if (desktop) {
-    const anyFilter = Boolean(periods || ratingFilter || filter !== "all");
+    const anyFilter = Boolean(periods || ratingFilter || search || filter !== "all");
     const what = filter === "all" ? "reviews" : `${filter} reviews`;
     return (
       <section className={`${card} min-w-0`}>
-        {/* While any filter is on (periods, ratings or a sentiment), the heading and its chips stay at the top
+        {/* While any filter is on (periods, ratings, a search or a sentiment), the heading and its chips stay at the top
             of the window as the reviews scroll, so the filter stays in view (as the entity page's filter bar does). */}
         <div
           className={`flex flex-col gap-3 border-b border-line px-5 py-4 ${
@@ -181,11 +196,14 @@ function Reviews({
                 {formatNumber(total)} {total === 1 ? what.replace(/s$/, "") : what}, newest first
               </p>
             </div>
-            {exportButton}
+            <div className="flex flex-wrap items-center gap-2">
+              <SearchBox value={search} onSearch={onSearch} placeholder="Search these reviews" className="w-64" />
+              {exportButton}
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {chips}
-            {(periods || ratingFilter) && <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />}
+            {(periods || ratingFilter || search) && <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />}
             {periods && (
               <FilterChip
                 label={capitalize(describePeriodsFilter({ interval: periods.interval, starts: periods.starts }))}
@@ -193,13 +211,14 @@ function Reviews({
               />
             )}
             {ratingFilter && <FilterChip label={capitalize(describeRatingFilter(ratingFilter))} onRemove={onClearRating} />}
+            {search && <FilterChip label={capitalize(describeSearch(search))} onRemove={() => onSearch(null)} />}
             {anyFilter && (
               <button
                 type="button"
                 onClick={() => {
                   setFilter("all");
                   onClearPeriods();
-                  onClearRating();
+                  onClearUrlFilters();
                 }}
                 className="px-1 py-1 text-sm text-link hover:underline"
               >
@@ -210,9 +229,9 @@ function Reviews({
         </div>
         <ErrorNote error={reviews.error} />
         {reviews.isPending && <div className="px-5"><Loading label="Loading reviews…" /></div>}
-        {reviews.isSuccess && shown.length === 0 && <p className="px-5 py-4 text-muted">No reviews with this sentiment.</p>}
+        {reviews.isSuccess && shown.length === 0 && <p className="px-5 py-4 text-muted">No reviews match these filters.</p>}
         {shown.map((review) => (
-          <ReviewCard key={review.id} review={review} row />
+          <ReviewCard key={review.id} review={review} row terms={terms} />
         ))}
         {footer}
       </section>
@@ -228,6 +247,7 @@ function Reviews({
         </div>
         {chips}
       </div>
+      <SearchBox value={search} onSearch={onSearch} placeholder="Search these reviews" className="w-full sm:max-w-sm" />
       {periods && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-subtle px-3 py-2 text-sm">
           <span>
@@ -240,9 +260,9 @@ function Reviews({
       )}
       <ErrorNote error={reviews.error} />
       {reviews.isPending && <Loading label="Loading reviews…" />}
-      {reviews.isSuccess && shown.length === 0 && <p className="text-muted">No reviews with this sentiment.</p>}
+      {reviews.isSuccess && shown.length === 0 && <p className="text-muted">No reviews match these filters.</p>}
       {shown.map((review) => (
-        <ReviewCard key={review.id} review={review} />
+        <ReviewCard key={review.id} review={review} terms={terms} />
       ))}
       {footer}
     </section>
@@ -293,10 +313,11 @@ function useTrend(
   themeId: number | undefined,
   interval: TrendInterval,
   ratingFilter: RatingFilter | null,
+  search: string | null,
 ) {
-  const params = appendRatingFilter(new URLSearchParams({ interval }), ratingFilter);
+  const params = appendSearch(appendRatingFilter(new URLSearchParams({ interval }), ratingFilter), search);
   return useQuery({
-    queryKey: ["trend", entityId, themeId, interval, ratingFilter],
+    queryKey: ["trend", entityId, themeId, interval, ratingFilter, search],
     queryFn: () => api<ThemeTrend>(`/entities/${entityId}/themes/${themeId}/trend?${params}`),
     placeholderData: (previous) => previous,
     enabled: themeId !== undefined,
@@ -321,8 +342,10 @@ export default function ThemePage() {
   // A link can carry the entity page's rating filter, and the period comparison's interval and
   // periods (`interval`, repeated `period`), so the page opens on what was being looked at.
   const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
+  // And the entity page's search (`q`), which searches this theme's reviews for the same words.
+  const search = useMemo(() => readSearch(searchParams), [searchParams]);
   const entity = useEntity(entityId);
-  const themes = useThemes(entityId, ratingFilter);
+  const themes = useThemes(entityId, ratingFilter, null, search);
   const desktop = useLayout() === "desktop";
   // A merged candidate's id resolves to the theme it merged into; the trend says which one that is.
   const resolved = useQuery({
@@ -337,7 +360,7 @@ export default function ThemePage() {
     return INTERVALS.find((option) => option.key === asked)?.key ?? "year";
   });
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>(() => searchParams.getAll("period"));
-  const trend = useTrend(entityId, theme?.id, interval, ratingFilter);
+  const trend = useTrend(entityId, theme?.id, interval, ratingFilter, search);
   // The trend shown may be the previous interval's while the new one loads; only filter on a match.
   const trendMatches = trend.data?.interval === interval && !trend.isPlaceholderData;
   // A period with no reviews (a comparison with an empty period) has no bar, so it isn't a choice.
@@ -356,8 +379,17 @@ export default function ThemePage() {
     enabled: theme !== undefined,
   });
 
+  // The rating filter and the search live in the URL; changing one keeps the other.
   function changeRatingFilter(filter: RatingFilter | null) {
-    router.replace(`${pathname}${ratingQuery(filter)}`, { scroll: false });
+    router.replace(`${pathname}${filterQuery(filter, null, search)}`, { scroll: false });
+  }
+
+  function changeSearch(next: string | null) {
+    router.replace(`${pathname}${filterQuery(ratingFilter, null, next)}`, { scroll: false });
+  }
+
+  function clearUrlFilters() {
+    router.replace(pathname, { scroll: false });
   }
 
   function clearRatingFilter() {
@@ -387,10 +419,12 @@ export default function ThemePage() {
       }}
     />
   );
-  // Back to the entity page with this page's filters: its ratings and the periods chosen on the trend.
+  // Back to the entity page with this page's filters: its ratings, the periods chosen on the trend
+  // and the search.
   const backHref = `/entities/${entityId}${filterQuery(
     ratingFilter,
     selectedPeriods.length > 0 ? { interval, starts: selectedPeriods } : null,
+    search,
   )}`;
   const error = entity.error ?? resolved.error ?? themes.error;
 
@@ -404,14 +438,14 @@ export default function ThemePage() {
   }
   if (error) return <Page><ErrorNote error={error} /></Page>;
   if (!entity.data || !themes.data || !resolved.data) return <Page><Loading /></Page>;
-  if (!theme && ratingFilter) {
+  if (!theme && (ratingFilter || search)) {
     return (
       <Page>
         <BackLink href={backHref}>{entity.data.name}</BackLink>
         <p className="mt-4">
-          No reviews {describeRatingFilter(ratingFilter)} raise this theme.{" "}
-          <button type="button" onClick={clearRatingFilter} className="text-link hover:underline">
-            Show all ratings
+          No reviews {describeFilters(ratingFilter, null, search)} raise this theme.{" "}
+          <button type="button" onClick={clearUrlFilters} className="text-link hover:underline">
+            Show all reviews
           </button>
         </p>
       </Page>
@@ -436,6 +470,9 @@ export default function ThemePage() {
       onClearPeriods={() => setSelectedPeriods([])}
       ratingFilter={ratingFilter}
       onClearRating={clearRatingFilter}
+      search={search}
+      onSearch={changeSearch}
+      onClearUrlFilters={clearUrlFilters}
       desktop={desktop}
     />
   );
@@ -458,7 +495,7 @@ export default function ThemePage() {
             </span>
             <span>
               <strong>{formatPercent(theme.review_count, total)}</strong> of{" "}
-              {ratingFilter ? `reviews ${describeRatingFilter(ratingFilter)}` : "classified reviews"}
+              {ratingFilter || search ? `reviews ${describeFilters(ratingFilter, null, search)}` : "classified reviews"}
             </span>
             <span>
               <strong>{formatNumber(theme.recent_count)}</strong> in the last {themes.data.recent_days} days

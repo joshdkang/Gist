@@ -127,3 +127,14 @@ async def test_the_themes_export_takes_the_period_filter(call, seeded):
     assert "-themes-2020-to-2021-" in response.headers["content-disposition"]
     # Reviews 0-23: Service raises all of them, Price 0-9, Parking 20-23.
     assert (rows["Service"]["reviews"], rows["Price"]["reviews"], rows["Parking"]["reviews"]) == ("24", "10", "4")
+
+
+async def test_the_exports_take_the_search(call, db, seeded):
+    await db.execute(update(Review).where(Review.id == seeded.review_ids[0]).values(text="The valet parked our car"))
+    await db.commit()
+    themes = await call("GET", f"/entities/{seeded.entity_id}/exports/themes.csv", params={"q": "valet"})
+    rows = {row["theme"]: row for row in read_csv(themes)}
+    assert "-mentions-valet-" in themes.headers["content-disposition"]
+    assert rows["Service"]["reviews"] == "1" and rows["Price"]["reviews"] == "1"
+    reviews = read_csv(await call("GET", f"/entities/{seeded.entity_id}/exports/reviews.csv", params={"q": "valet"}))
+    assert {row["theme"] for row in reviews} == {"Service", "Price"} and len(reviews) == 2

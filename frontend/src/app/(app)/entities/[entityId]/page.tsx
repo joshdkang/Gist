@@ -11,13 +11,14 @@ import { RatingDrivers } from "@/components/RatingDrivers";
 import { RatingsCard } from "@/components/RatingsCard";
 import { ReviewsOverTime } from "@/components/ReviewsOverTime";
 import { RunBanner } from "@/components/RunBanner";
+import { SearchBox } from "@/components/SearchBox";
 import { SentimentBar, SentimentLegend } from "@/components/SentimentBar";
 import { ThemeTable } from "@/components/ThemeTable";
 import { BackLink, buttonPrimary, buttonSecondary, card, ErrorNote, Loading, Page, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent } from "@/lib/format";
 import { useLayout } from "@/lib/layout";
-import { describeFilters, filterQuery, type PeriodsFilter, readPeriodsFilter } from "@/lib/periodFilter";
+import { describeFilters, filterQuery, type PeriodsFilter, readPeriodsFilter, readSearch } from "@/lib/periodFilter";
 import {
   isActive,
   useEntity,
@@ -73,17 +74,19 @@ function ThemesSection({
   list,
   ratingFilter,
   periodsFilter,
+  search,
   updating,
 }: {
   entityId: string;
   list: ThemeList;
   ratingFilter: RatingFilter | null;
   periodsFilter: PeriodsFilter | null;
+  search: string | null;
   /** The list shown is the previous filter's while this one loads. */
   updating: boolean;
 }) {
-  const query = filterQuery(ratingFilter, periodsFilter);
-  const filtered = describeFilters(ratingFilter, periodsFilter);
+  const query = filterQuery(ratingFilter, periodsFilter, search);
+  const filtered = describeFilters(ratingFilter, periodsFilter, search);
   const [sort, setSort] = useState<Sort>("total");
   const [showQuiet, setShowQuiet] = useState(false);
   const sorted = sortThemes(list.themes, sort);
@@ -243,10 +246,12 @@ export default function EntityPage() {
   const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
   // The period filter lives in the URL too (`interval` and repeated `period`, as the theme page reads them).
   const periodsFilter = useMemo(() => readPeriodsFilter(searchParams), [searchParams]);
+  // So does the search (`q`): a theme's page searches its reviews for the same words.
+  const search = useMemo(() => readSearch(searchParams), [searchParams]);
   const [periodInterval, setPeriodInterval] = useState<TrendInterval>(periodsFilter?.interval ?? "quarter");
   const reviewPeriods = useReviewPeriods(entityId, periodInterval);
   const [view, setView] = useState<View>("themes");
-  const themes = useThemes(entityId, ratingFilter, periodsFilter);
+  const themes = useThemes(entityId, ratingFilter, periodsFilter, search);
   const ratings = useRatings(entityId);
   const desktop = useLayout() === "desktop";
   // Ratings by theme are compared on the scale with the most ratings (the card lists it first).
@@ -273,8 +278,8 @@ export default function EntityPage() {
   // The ratings view needs analyzed themes and rated reviews; without them there is no switch.
   const canRate = Boolean(list && list.themes.length > 0 && themeRatings.data?.themes.length);
   const showRatings = canRate && view === "ratings";
-  const filtered = describeFilters(ratingFilter, periodsFilter);
-  const query = filterQuery(ratingFilter, periodsFilter);
+  const filtered = describeFilters(ratingFilter, periodsFilter, search);
+  const query = filterQuery(ratingFilter, periodsFilter, search);
   const hasRatings = (ratings.data?.scales.length ?? 0) > 0;
   // Reviews over time: only for reviews with dates, once the entity has themes to filter.
   const overTime =
@@ -282,14 +287,19 @@ export default function EntityPage() {
   const viewToggle = canRate ? <Toggle label="View" options={VIEWS} value={view} onChange={setView} /> : null;
 
   function filterRatings(filter: RatingFilter | null) {
-    router.replace(`${pathname}${filterQuery(filter, periodsFilter)}`, { scroll: false });
+    router.replace(`${pathname}${filterQuery(filter, periodsFilter, search)}`, { scroll: false });
     // The rating bars filter the theme list, so choosing one shows it.
     if (filter) setView("themes");
   }
 
   function filterPeriods(filter: PeriodsFilter | null) {
-    router.replace(`${pathname}${filterQuery(ratingFilter, filter)}`, { scroll: false });
+    router.replace(`${pathname}${filterQuery(ratingFilter, filter, search)}`, { scroll: false });
     if (filter) setView("themes");
+  }
+
+  function searchReviews(next: string | null) {
+    router.replace(`${pathname}${filterQuery(ratingFilter, periodsFilter, next)}`, { scroll: false });
+    if (next) setView("themes");
   }
 
   function clearFilters() {
@@ -329,7 +339,7 @@ export default function EntityPage() {
                     Period comparison
                   </Link>
                   <Link
-                    href={`/entities/${entityId}/summary${filterQuery(ratingFilter, periodsFilter)}`}
+                    href={`/entities/${entityId}/summary${query}`}
                     className={buttonSecondary}
                   >
                     Printable summary
@@ -367,9 +377,14 @@ export default function EntityPage() {
             onClearRating={() => filterRatings(null)}
             onClearPeriods={() => filterPeriods(null)}
             onClearAll={clearFilters}
+            search={search}
+            onSearch={searchReviews}
             query={query}
             view={viewToggle}
           />
+        )}
+        {!desktop && detail.theme_count > 0 && (
+          <SearchBox value={search} onSearch={searchReviews} className="w-full sm:max-w-sm" />
         )}
         {!desktop && viewToggle && <div className="self-start">{viewToggle}</div>}
         <ErrorNote error={themes.error} />
@@ -404,6 +419,7 @@ export default function EntityPage() {
                   list={list}
                   ratingFilter={ratingFilter}
                   periodsFilter={periodsFilter}
+                  search={search}
                   updating={updating}
                 />
               )}
@@ -411,7 +427,7 @@ export default function EntityPage() {
                 <EmergingTopics
                   entityId={entityId}
                   topics={list.candidates}
-                  query={filterQuery(ratingFilter, periodsFilter)}
+                  query={query}
                 />
               )}
               {list && list.classified_reviews > 0 && (

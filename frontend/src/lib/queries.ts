@@ -4,7 +4,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useEffect, useRef } from "react";
 
 import { api } from "@/lib/api";
-import { appendPeriodsFilter, type PeriodsFilter } from "@/lib/periodFilter";
+import { appendPeriodsFilter, appendSearch, type PeriodsFilter } from "@/lib/periodFilter";
 import { appendRatingFilter } from "@/lib/ratingFilter";
 import type {
   EntityDetail,
@@ -35,19 +35,23 @@ export function useEntity(entityId: string) {
 
 /**
  * The entity's themes and its listed candidates (emerging topics), in one call. With a rating or
- * period filter, every count covers only the reviews in the chosen rating buckets and periods.
+ * period filter or a search, every count covers only the reviews they select.
  */
 export function useThemes(
   entityId: string,
   ratingFilter: RatingFilter | null = null,
   periodsFilter: PeriodsFilter | null = null,
+  search: string | null = null,
 ) {
-  const params = appendRatingFilter(
-    appendPeriodsFilter(new URLSearchParams({ include_candidates: "true" }), periodsFilter),
-    ratingFilter,
+  const params = appendSearch(
+    appendRatingFilter(
+      appendPeriodsFilter(new URLSearchParams({ include_candidates: "true" }), periodsFilter),
+      ratingFilter,
+    ),
+    search,
   );
   return useQuery({
-    queryKey: ["themes", entityId, ratingFilter, periodsFilter],
+    queryKey: ["themes", entityId, ratingFilter, periodsFilter, search],
     // The recent window (behind "Most recent", the recent counts, and quiet themes) is the API's default.
     queryFn: () => api<ThemeList>(`/entities/${entityId}/themes?${params}`),
     // Keep showing the last list while a new filter loads, instead of a loading flash.

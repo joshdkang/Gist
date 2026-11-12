@@ -11,7 +11,7 @@ import { BackLink, buttonPrimary, card, ErrorNote, Loading } from "@/components/
 import { ApiError } from "@/lib/api";
 import { formatChange, formatDate, formatNumber, formatPercent, formatShare, negativeShare } from "@/lib/format";
 import { useEntity, useRatings, useThemeChanges, useThemeRatings, useThemes } from "@/lib/queries";
-import { describeFilters, filterQuery, readPeriodsFilter } from "@/lib/periodFilter";
+import { describeFilters, filterQuery, readPeriodsFilter, readSearch } from "@/lib/periodFilter";
 import { readRatingFilter } from "@/lib/ratingFilter";
 import type { RatingScale, ThemeChange, ThemeChanges, ThemeList, ThemeRatingImpact, ThemeRatings } from "@/lib/types";
 
@@ -300,7 +300,8 @@ export default function SummaryPage() {
   // The entity page's filters (`rating_scale` and `rating`, `interval` and `period`) narrow the themes.
   const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
   const periodsFilter = useMemo(() => readPeriodsFilter(searchParams), [searchParams]);
-  const filtered = describeFilters(ratingFilter, periodsFilter);
+  const search = useMemo(() => readSearch(searchParams), [searchParams]);
+  const filtered = describeFilters(ratingFilter, periodsFilter, search);
   // The compared periods start as the link chose them (the period comparison passes its own, prefixed
   // so they don't clash with the period filter); a filter on one period compares that period with the
   // one before; changing them here only changes this page.
@@ -312,7 +313,7 @@ export default function SummaryPage() {
   );
 
   const entity = useEntity(entityId);
-  const themes = useThemes(entityId, ratingFilter, periodsFilter);
+  const themes = useThemes(entityId, ratingFilter, periodsFilter, search);
   const ratings = useRatings(entityId);
   const ratingScale = ratings.data?.scales[0];
   const themeRatings = useThemeRatings(entityId, ratingScale?.scale);
@@ -345,7 +346,7 @@ export default function SummaryPage() {
   return (
     <main className="mx-auto w-full max-w-[880px] px-4 pt-6 pb-16 sm:px-6 print:max-w-none print:p-0">
       <div className="flex flex-col gap-4 print:hidden">
-        <BackLink href={`/entities/${entityId}${filterQuery(ratingFilter, periodsFilter)}`}>{detail?.name ?? "Entity"}</BackLink>
+        <BackLink href={`/entities/${entityId}${filterQuery(ratingFilter, periodsFilter, search)}`}>{detail?.name ?? "Entity"}</BackLink>
         <div className={`${card} flex flex-wrap items-end gap-4 px-5 py-4`}>
           <PeriodPicker choice={choice} data={changes.data} />
           <button

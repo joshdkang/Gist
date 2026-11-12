@@ -402,3 +402,41 @@ async def test_theme_list_takes_a_period_filter(call, seeded):
     assert counts == {"Service": 3, "Price": 2}
 
     assert (await call("GET", path, params={"period": "2020-01-01T00:00:00Z"})).status_code == 422
+
+
+async def mention_the_valet(db, seeded):
+    """Rewrite reviews 0-2 (Service and Price) so a search has something to find."""
+    texts = ["The valet parked our car quickly", "Valets were slow to bring it back", "We waited for the valet"]
+    for index, text in enumerate(texts):
+        await db.execute(update(Review).where(Review.id == seeded.review_ids[index]).values(text=text))
+    await db.commit()
+
+
+async def test_a_search_filters_the_theme_list(call, db, seeded):
+    await mention_the_valet(db, seeded)
+    path = f"/entities/{seeded.entity_id}/themes"
+    # "valet" finds "Valets" too (English stemming), so all three rewritten reviews match.
+    body = (await call("GET", path, params={"q": "valet", "include_candidates": "true"})).json()
+    assert body["total_reviews"] == 3
+    assert {theme["name"]: theme["review_count"] for theme in body["themes"]} == {"Service": 3, "Price": 3}
+    # A quoted phrase matches in order; a leading minus excludes.
+    phrase = (await call("GET", path, params={"q": '"parked our car"'})).json()
+    assert phrase["total_reviews"] == 1
+    excluded = (await call("GET", path, params={"q": "valet -slow"})).json()
+    assert excluded["total_reviews"] == 2
+    # It combines with the other filters: of the three, only review 0 is rated 1.
+    rated_1 = {"q": "valet", "rating": "1", "rating_scale": json.dumps({"type": "numeric", "min": 1, "max": 5})}
+    assert (await call("GET", path, params=rated_1)).json()["total_reviews"] == 1
+    # Blank searches nothing; a search longer than a search box is refused.
+    assert (await call("GET", path, params={"q": "  "})).json()["total_reviews"] == SEED_REVIEWS
+    assert (await call("GET", path, params={"q": "x" * 201})).status_code == 422
+
+
+async def test_a_search_filters_a_themes_reviews_and_trend(call, db, seeded):
+    await mention_the_valet(db, seeded)
+    path = f"/entities/{seeded.entity_id}/themes/{seeded.service.id}"
+    reviews = (await call("GET", f"{path}/reviews", params={"q": "waiting", "limit": 100})).json()
+    assert [review["text"] for review in reviews] == ["We waited for the valet"]   # "waiting" finds "waited"
+    trend = (await call("GET", f"{path}/trend", params={"interval": "year", "q": "valet"})).json()
+    assert sum(point["sentiment"]["total"] for point in trend["points"]) == 3
+    assert sum(point["period_reviews"] for point in trend["points"]) == 3

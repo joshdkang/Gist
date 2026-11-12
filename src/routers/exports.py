@@ -30,6 +30,7 @@ from routers.themes import (
     RATING_DESCRIPTION,
     RATING_SCALE_DESCRIPTION,
     RECENT_DAYS,
+    SEARCH_DESCRIPTION,
     TrendInterval,
     both,
     get_theme,
@@ -39,6 +40,7 @@ from routers.themes import (
     period_filter,
     rating_filter,
 )
+from search import search_filter
 from theme_stats import per_review_theme_sentiment
 
 router = APIRouter(prefix="/entities/{entity_id}/exports", tags=["exports"])
@@ -113,6 +115,11 @@ def rating_suffix(ratings: list[str]) -> str:
     return f"rated {' '.join(ratings)}" if ratings else ""
 
 
+def search_suffix(query: str | None) -> str:
+    """'mentions valet' for a search, so the file says what it was filtered by."""
+    return f"mentions {query.strip()[:40]}" if query and query.strip() else ""
+
+
 def period_suffix(periods: list[datetime], interval: TrendInterval | None) -> str:
     """"2019 Q1", or "2019 Q1 to 2019 Q4" for several periods (the first and last), or ""."""
     if not periods or interval is None:
@@ -127,12 +134,13 @@ async def export_themes(
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     period: list[datetime] = Query([], description=PERIOD_DESCRIPTION),
     interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
+    q: str | None = Query(None, description=SEARCH_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
     """The theme list as a table: one row per theme and listed emerging topic, then `general`.
 
-    With the rating and period filters, the counts cover only those reviews, as on the page. When the entity
+    With the rating and period filters and the search, the counts cover only those reviews, as on the page. When the entity
     has ratings, each theme also gets its ratings-by-theme columns, which are never filtered (they
     compare a theme's ratings with everyone else's).
     """
@@ -144,6 +152,7 @@ async def export_themes(
         rating_scale=rating_scale,
         period=period,
         interval=interval,
+        q=q,
         entity=entity,
         db=db,
     )
@@ -185,7 +194,7 @@ async def export_themes(
         "General (no specific topic)", "general", "", listing.general.review_count, percent(listing.general.share)
     ]
     rows.append(general + [""] * (len(header) - len(general)))
-    name = filename(entity, "themes", period_suffix(period, interval), rating_suffix(rating))
+    name = filename(entity, "themes", period_suffix(period, interval), rating_suffix(rating), search_suffix(q))
     return csv_response(BYTE_ORDER_MARK + csv_lines(rows), name)
 
 
@@ -245,6 +254,7 @@ async def export_reviews(
     interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
     rating: list[str] = Query([], description=RATING_DESCRIPTION),
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
+    q: str | None = Query(None, description=SEARCH_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
@@ -252,7 +262,7 @@ async def export_reviews(
     they merged into), with the review's sentiment for that theme, newest first. With `theme_id`,
     only that theme's reviews, filtered as a theme's page filters them; without it, every
     classified review with all its themes, `general` included."""
-    match = both(rating_filter(rating_scale, rating), period_filter(period, interval))
+    match = both(rating_filter(rating_scale, rating), period_filter(period, interval), search_filter(q))
     theme = await get_theme(db, entity, theme_id) if theme_id is not None else None
 
     per_review, combined = per_review_theme_sentiment(entity.id, theme.id if theme else None)
@@ -297,5 +307,6 @@ async def export_reviews(
         sentiment.value if sentiment else "",
         period_suffix(period, interval),
         rating_suffix(rating),
+        search_suffix(q),
     ]
     return csv_response(body(), filename(entity, *parts))
