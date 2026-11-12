@@ -20,6 +20,7 @@ from schemas import (
     SentimentCounts,
     PeriodCount,
     RatingSummary,
+    ReviewPeriods,
     ThemeChange,
     ThemeChanges,
     ThemeList,
@@ -56,6 +57,8 @@ MIN_PERIOD_REVIEWS = 20
 
 RATING_DESCRIPTION = "Only reviews in these rating buckets (labels from the ratings summary)"
 RATING_SCALE_DESCRIPTION = "The scale the rating buckets are on, as JSON"
+PERIOD_DESCRIPTION = "Only reviews dated in these periods (period_start values from a trend or `periods`)"
+INTERVAL_DESCRIPTION = "The interval the periods are from"
 
 
 class TrendInterval(enum.StrEnum):
@@ -89,6 +92,25 @@ def rating_filter(rating_scale: str | None, ratings: list[str]) -> ColumnElement
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Bad rating filter: {error}") from None
 
 
+def period_filter(period: list[datetime], interval: "TrendInterval | None") -> ColumnElement[bool] | None:
+    """The condition for reviews dated in `period` (period starts on `interval`), or None when no
+    period was asked for. It uses the same date_trunc the trends group by, so a period holds exactly
+    the reviews its bar counts. 422 without an interval or for too many periods."""
+    if not period:
+        return None
+    if interval is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "interval is required with period.")
+    if len(period) > MAX_PERIODS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"At most {MAX_PERIODS} periods.")
+    return func.date_trunc(interval.value, Review.review_date).in_(period)
+
+
+def both(*conditions: ColumnElement[bool] | None) -> ColumnElement[bool] | None:
+    """The conditions given, all together, or None when none was given."""
+    given = [condition for condition in conditions if condition is not None]
+    return and_(*given) if given else None
+
+
 async def get_theme(db: AsyncSession, entity: Entity, theme_id: int) -> Theme:
     """The theme a merged candidate points at, or the theme itself. 404 for another entity's theme."""
     theme = await db.get(Theme, theme_id)
@@ -108,14 +130,18 @@ async def list_themes(
     recent_days: int = Query(RECENT_DAYS, ge=1, le=3650),
     rating: list[str] = Query([], description=RATING_DESCRIPTION),
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
+    period: list[datetime] = Query([], description=PERIOD_DESCRIPTION),
+    interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
     """Themes ranked by mentions in the recent window, then by total mentions.
 
-    With a rating filter every count (totals, themes, sentiment, recent, general) covers only the
-    reviews with those ratings, and a theme none of them raise is left out. The recent window
-    still ends at the entity's latest review, and a candidate is listed by its unfiltered count.
+    With a rating filter, a period filter or both, every count (totals, themes, sentiment, recent,
+    general) covers only the reviews they select, and a theme none of them raise is left out. A
+    candidate is listed by its unfiltered count. The recent window ends at the entity's latest
+    review, or with a period filter at the latest review in those periods, so an old period still
+    has a recent window.
 
     `general` is reported separately, not ranked. The recent window ends at the entity's latest
     review date, so an old dataset still has a recent window. Candidates are listed once
@@ -126,15 +152,17 @@ async def list_themes(
     """
     if kind == ThemeKind.GENERAL:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "general is reported separately.")
-    match = rating_filter(rating_scale, rating)
+    in_periods = period_filter(period, interval)
+    match = both(rating_filter(rating_scale, rating), in_periods)
     reviews = select(Review).where(Review.entity_id == entity.id)
     matching_reviews = (reviews.where(match) if match is not None else reviews).subquery()
+    latest = select(func.max(Review.review_date)).where(Review.entity_id == entity.id)
     total_reviews, classified, as_of = (
         await db.execute(
             select(
                 select(func.count()).select_from(matching_reviews).scalar_subquery(),
                 classified_review_count_query(entity.id, match),
-                select(func.max(Review.review_date)).where(Review.entity_id == entity.id).scalar_subquery(),
+                (latest.where(in_periods) if in_periods is not None else latest).scalar_subquery(),
             )
         )
     ).one()
@@ -185,6 +213,22 @@ async def list_themes(
         general=general,
         themes=listed[kind],
         candidates=listed[ThemeKind.CANDIDATE] if include_candidates else None,
+    )
+
+
+@router.get("/periods", response_model=ReviewPeriods)
+async def list_review_periods(
+    interval: TrendInterval = TrendInterval.QUARTER,
+    entity: Entity = Depends(get_readable_entity),
+    db: AsyncSession = Depends(get_db),
+):
+    """The entity's classified reviews per period, oldest first: the reviews-over-time chart whose
+    bars choose the theme list's period filter. Periods with no reviews, and undated reviews, are
+    left out. One query."""
+    periods = await period_review_counts(db, entity.id, interval.value)
+    return ReviewPeriods(
+        interval=interval.value,
+        periods=[PeriodCount(period_start=start, reviews=count) for start, count in periods],
     )
 
 
@@ -381,10 +425,8 @@ async def list_theme_ratings(
 async def list_theme_reviews(
     theme_id: int,
     sentiment: Sentiment | None = None,
-    period: list[datetime] = Query(
-        [], description="Only reviews dated in these periods (period_start values from the trend)"
-    ),
-    interval: TrendInterval | None = Query(None, description="The trend interval the periods are from"),
+    period: list[datetime] = Query([], description=PERIOD_DESCRIPTION),
+    interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
     rating: list[str] = Query([], description=RATING_DESCRIPTION),
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     limit: int = Query(20, ge=1, le=100),
@@ -395,11 +437,7 @@ async def list_theme_reviews(
     """The reviews that raise a theme, newest first, optionally only one sentiment, some trend
     periods, or some ratings (the theme list's rating filter). These are the example quotes and the
     drill-down. A merged candidate shows the theme it merged into."""
-    if period and interval is None:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "interval is required with period.")
-    if len(period) > MAX_PERIODS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"At most {MAX_PERIODS} periods.")
-    match = rating_filter(rating_scale, rating)
+    match = both(rating_filter(rating_scale, rating), period_filter(period, interval))
     theme = await get_theme(db, entity, theme_id)
     per_review, combined = per_review_theme_sentiment(entity.id, theme.id)
     query = (
@@ -413,9 +451,6 @@ async def list_theme_reviews(
         query = query.where(combined == sentiment.value)
     if match is not None:
         query = query.where(match)
-    if period:
-        # The same date_trunc the trend groups by, so a period holds exactly the reviews its bar counts.
-        query = query.where(func.date_trunc(interval.value, Review.review_date).in_(period))
     rows = (await db.execute(query)).all()
     return [
         ThemeReviewOut(

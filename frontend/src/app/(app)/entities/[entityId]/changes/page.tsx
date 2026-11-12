@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
-import { ExportButton } from "@/components/ExportButton";
+import { ExportButton, exportButtonClass } from "@/components/ExportButton";
+import { PeriodPicker, periodQuery, SUMMARY_CHANGES_PREFIX, usePeriodChoice } from "@/components/PeriodPicker";
 import { periodName } from "@/components/TrendChart";
-import { BackLink, card, ErrorNote, INTERVALS, inputBase, Loading, Page, PageTitle, Toggle } from "@/components/ui";
+import { BackLink, card, ErrorNote, Loading, Page, PageTitle, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
-import { formatNumber } from "@/lib/format";
+import { formatChange, formatNumber, formatShare as percent, negativeShare } from "@/lib/format";
 import { useEntity, useThemeChanges } from "@/lib/queries";
-import type { ThemeChange, ThemeChanges, TrendInterval } from "@/lib/types";
+import type { ThemeChange, ThemeChanges } from "@/lib/types";
 
 // Below this many reviews in a period, the page warns that only large changes can be told from chance.
 const FEW_REVIEWS = 20;
@@ -25,22 +26,6 @@ const SORTS: { key: Sort; label: string }[] = [
   { key: "share", label: "Mentions" },
   { key: "negative", label: "Negative" },
 ];
-
-const percent = (value: number) => {
-  const rounded = Math.round(value * 100);
-  return value > 0 && rounded === 0 ? "<1%" : `${rounded}%`;
-};
-
-/** The difference between two shares in percentage points, signed: "+6 pts", "−3 pts", "0 pts". */
-function formatChange(change: number): string {
-  const rounded = Math.round(change * 100);
-  if (rounded === 0) return change === 0 ? "0 pts" : `${change > 0 ? "+" : "−"}<1 pt`;
-  return `${rounded > 0 ? "+" : "−"}${Math.abs(rounded)} ${Math.abs(rounded) === 1 ? "pt" : "pts"}`;
-}
-
-/** The share of a theme's reviews that are negative, or null when it has none in the period. */
-const negativeShare = (counts: { negative: number; total: number }) =>
-  counts.total ? counts.negative / counts.total : null;
 
 interface Row {
   change: ThemeChange;
@@ -212,10 +197,8 @@ function ChangesList({ entityId, data, sort }: { entityId: string; data: ThemeCh
 export default function ChangesPage() {
   const { entityId } = useParams<{ entityId: string }>();
   const entity = useEntity(entityId);
-  const [interval, setChangeInterval] = useState<TrendInterval>("quarter");
-  const [period, setPeriod] = useState<string | null>(null);
-  // null compares with the period before the chosen one.
-  const [compareTo, setCompareTo] = useState<string | null>(null);
+  const choice = usePeriodChoice();
+  const { interval, period, compareTo } = choice;
   const [sort, setSort] = useState<Sort>("share");
   const changes = useThemeChanges(entityId, interval, period, compareTo);
 
@@ -228,38 +211,15 @@ export default function ChangesPage() {
     );
   }
 
-  function changeInterval(next: TrendInterval) {
-    setChangeInterval(next);
-    // A quarter's start is not a month's; let the API pick both again.
-    setPeriod(null);
-    setCompareTo(null);
-  }
-
-  function exportPath(chosen: string) {
-    const params = new URLSearchParams({ interval, period: period ?? chosen });
-    if (compareTo) params.set("compare_to", compareTo);
-    return `/entities/${entityId}/exports/changes.csv?${params}`;
-  }
-
-  function changePeriod(next: string) {
-    setPeriod(next);
-    if (next === compareTo) setCompareTo(null); // a period can't be compared with itself
-  }
+  // The periods as chosen; an unchosen comparison is left to the API's default, since the default
+  // period before may have no reviews, which compare_to refuses.
+  const chosenQuery = (chosen: string, prefix = "") =>
+    periodQuery({ interval, period: period ?? chosen, compareTo }, prefix);
 
   const data = changes.data;
   const updating = changes.isPlaceholderData;
   const name = (start: string | null) => (start ? periodName(start, data?.interval ?? interval) : "");
   const few = data && data.period_start && Math.min(data.current_reviews, data.previous_reviews) < FEW_REVIEWS;
-  // The periods to compare with: every other period with reviews, newest first, plus the default
-  // (the period before) when it has none, so the selector can show what is being compared.
-  const compareOptions = data
-    ? [
-        ...data.periods.filter((option) => option.period_start !== data.period_start),
-        ...(data.previous_start && !data.periods.some((option) => option.period_start === data.previous_start)
-          ? [{ period_start: data.previous_start, reviews: 0 }]
-          : []),
-      ].sort((a, b) => b.period_start.localeCompare(a.period_start))
-    : [];
 
   return (
     <Page>
@@ -276,50 +236,25 @@ export default function ChangesPage() {
         </div>
 
         <div className={`${card} flex flex-wrap items-end gap-4 px-5 py-4`}>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Interval</span>
-            <Toggle label="Interval" options={INTERVALS} value={interval} onChange={changeInterval} />
-          </div>
-          {data && data.periods.length > 0 && (
-            <>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Period</span>
-                <select
-                  className={`${inputBase} pr-8`}
-                  value={data.period_start ?? ""}
-                  onChange={(event) => changePeriod(event.target.value)}
-                >
-                  {[...data.periods].reverse().map((option) => (
-                    <option key={option.period_start} value={option.period_start}>
-                      {periodName(option.period_start, data.interval)} · {formatNumber(option.reviews)} reviews
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Compared with</span>
-                <select
-                  className={`${inputBase} pr-8`}
-                  value={data.previous_start ?? ""}
-                  onChange={(event) => setCompareTo(event.target.value)}
-                >
-                  {compareOptions.map((option) => (
-                    <option key={option.period_start} value={option.period_start} disabled={option.reviews === 0}>
-                      {periodName(option.period_start, data.interval)} ·{" "}
-                      {option.reviews ? `${formatNumber(option.reviews)} reviews` : "no reviews"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          )}
+          <PeriodPicker choice={choice} data={data} />
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">Biggest change in</span>
             <Toggle label="Sort by" options={SORTS} value={sort} onChange={setSort} />
           </div>
+          {/* Two equal columns, so the two buttons are the same width. */}
           {data?.period_start && (
-            <div className="ml-auto self-end">
-              <ExportButton path={exportPath(data.period_start)} />
+            <div className="ml-auto grid grid-cols-2 gap-2 self-end">
+              <Link
+                href={`/entities/${entityId}/summary?${chosenQuery(data.period_start, SUMMARY_CHANGES_PREFIX)}`}
+                className={exportButtonClass}
+              >
+                <span aria-hidden="true">⎙</span>
+                Printable summary
+              </Link>
+              <ExportButton
+                path={`/entities/${entityId}/exports/changes.csv?${chosenQuery(data.period_start)}`}
+                className="w-full"
+              />
             </div>
           )}
         </div>

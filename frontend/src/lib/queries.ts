@@ -4,12 +4,14 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useEffect, useRef } from "react";
 
 import { api } from "@/lib/api";
+import { appendPeriodsFilter, type PeriodsFilter } from "@/lib/periodFilter";
 import { appendRatingFilter } from "@/lib/ratingFilter";
 import type {
   EntityDetail,
   RatingFilter,
   RatingScale,
   RatingSummary,
+  ReviewPeriods,
   RunDetail,
   ThemeChanges,
   ThemeList,
@@ -32,16 +34,32 @@ export function useEntity(entityId: string) {
 }
 
 /**
- * The entity's themes and its listed candidates (emerging topics), in one call. With a rating
- * filter, every count covers only the reviews in the chosen rating buckets.
+ * The entity's themes and its listed candidates (emerging topics), in one call. With a rating or
+ * period filter, every count covers only the reviews in the chosen rating buckets and periods.
  */
-export function useThemes(entityId: string, ratingFilter: RatingFilter | null = null) {
-  const params = appendRatingFilter(new URLSearchParams({ include_candidates: "true" }), ratingFilter);
+export function useThemes(
+  entityId: string,
+  ratingFilter: RatingFilter | null = null,
+  periodsFilter: PeriodsFilter | null = null,
+) {
+  const params = appendRatingFilter(
+    appendPeriodsFilter(new URLSearchParams({ include_candidates: "true" }), periodsFilter),
+    ratingFilter,
+  );
   return useQuery({
-    queryKey: ["themes", entityId, ratingFilter],
+    queryKey: ["themes", entityId, ratingFilter, periodsFilter],
     // The recent window (behind "Most recent", the recent counts, and quiet themes) is the API's default.
     queryFn: () => api<ThemeList>(`/entities/${entityId}/themes?${params}`),
     // Keep showing the last list while a new filter loads, instead of a loading flash.
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** The entity's classified reviews per period on one interval: the reviews-over-time chart. */
+export function useReviewPeriods(entityId: string, interval: TrendInterval) {
+  return useQuery({
+    queryKey: ["review-periods", entityId, interval],
+    queryFn: () => api<ReviewPeriods>(`/entities/${entityId}/themes/periods?interval=${interval}`),
     placeholderData: keepPreviousData,
   });
 }
@@ -93,7 +111,7 @@ export function useRefreshWhenRunEnds(entityId: string, run: RunDetail | null | 
   useEffect(() => {
     const active = isActive(run);
     if (wasActive.current && !active) {
-      for (const key of ["themes", "theme-reviews", "trend", "changes", "theme-ratings"]) {
+      for (const key of ["themes", "theme-reviews", "trend", "changes", "theme-ratings", "review-periods"]) {
         queryClient.invalidateQueries({ queryKey: [key, entityId] });
       }
       queryClient.invalidateQueries({ queryKey: ["entities"] });

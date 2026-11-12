@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Logo } from "@/components/Logo";
-import { card } from "@/components/ui";
+import { card, pageWidth } from "@/components/ui";
+import { chooseLayout, useLayout } from "@/lib/layout";
 import { applyPalette, currentPalette, loadAccountPalette, type Palette, savePalette } from "@/lib/palette";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +29,7 @@ function AccountMenu({ email }: { email: string | null }) {
   const [open, setOpen] = useState(false);
   const [palette, setPalette] = useState<Palette>("standard");
   const [saveFailed, setSaveFailed] = useState(false);
+  const layout = useLayout();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,7 +91,7 @@ function AccountMenu({ email }: { email: string | null }) {
         </svg>
       </button>
       {open && (
-        <div className={`${card} absolute top-11 right-0 z-20 flex w-[280px] flex-col p-1.5 shadow-lg`}>
+        <div className={`${card} absolute top-11 right-0 z-20 flex w-[320px] flex-col p-1.5 shadow-lg`}>
           {email && <p className="truncate px-3 pt-2 pb-1 text-sm text-muted sm:hidden">{email}</p>}
           <p className="px-3 pt-2 pb-1 text-xs font-semibold tracking-wide text-muted uppercase">Settings</p>
           <button
@@ -116,6 +118,30 @@ function AccountMenu({ email }: { email: string | null }) {
               />
             </span>
           </button>
+          <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+            <span className="flex flex-col">
+              <span>Layout</span>
+              <span className="text-xs text-muted">For this device. Desktop is wider, with a theme table.</span>
+            </span>
+            <div role="group" aria-label="Layout" className="flex shrink-0 overflow-hidden rounded-lg border border-line-strong text-sm">
+              {(
+                [
+                  ["desktop", "Desktop"],
+                  ["mobile", "Mobile"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={layout === key}
+                  onClick={() => chooseLayout(key)}
+                  className={`px-2.5 py-1.5 ${layout === key ? "bg-primary text-on-primary" : "bg-surface text-fg"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {saveFailed && (
             <p className="px-3 pb-1 text-xs text-muted">Couldn&apos;t save to your account; it applies in this browser.</p>
           )}
@@ -131,6 +157,7 @@ function AccountMenu({ email }: { email: string | null }) {
 
 export function AppHeader() {
   const [email, setEmail] = useState<string | null>(null);
+  const layout = useLayout();
 
   useEffect(() => {
     createClient()
@@ -139,8 +166,8 @@ export function AppHeader() {
   }, []);
 
   return (
-    <header className="border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+    <header className="border-b border-line bg-surface print:hidden">
+      <div className={`mx-auto flex ${pageWidth(layout)} flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6 ${layout === "desktop" ? "lg:px-10" : ""}`}>
         <nav className="flex items-center gap-6">
           <Link href="/" aria-label="Gist home" className="py-1.5">
             <Logo />

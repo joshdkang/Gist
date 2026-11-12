@@ -1,5 +1,8 @@
+"use client";
+
 import { card } from "@/components/ui";
 import { formatNumber, formatPercent } from "@/lib/format";
+import { useLayout } from "@/lib/layout";
 import type { RatingFilter, RatingScale, RatingScaleSummary, RatingSummary } from "@/lib/types";
 
 const trim = (value: number) => Number(value.toFixed(1)).toString();
@@ -26,37 +29,21 @@ function medianLabel(summary: RatingScaleSummary): string {
   return lowestFirst[lowestFirst.length - 1].label;
 }
 
-/** Five stars filled to the average, for a 5-point scale, where stars are what readers expect. */
-function Stars({ average, max }: { average: number; max: number }) {
-  const percent = Math.max(0, Math.min(100, (average / max) * 100));
-  return (
-    <span className="relative w-fit text-xl leading-none" aria-hidden="true">
-      <span className="text-line-strong">★★★★★</span>
-      <span className="absolute inset-0 overflow-hidden whitespace-nowrap text-fg" style={{ width: `${percent}%` }}>
-        ★★★★★
-      </span>
-    </span>
-  );
-}
-
-function Headline({ summary }: { summary: RatingScaleSummary }) {
+function Headline({ summary, compact }: { summary: RatingScaleSummary; compact: boolean }) {
   const { scale, average } = summary;
+  const size = compact ? "text-[36px]" : "text-[40px]";
   if (scale.type === "numeric") {
-    const fivePoint = scale.max === 5 && (scale.min === 0 || scale.min === 1);
     return (
-      <div className="flex flex-col gap-1.5">
-        <p>
-          <span className="font-display text-[40px] leading-none font-semibold">{average.toFixed(1)}</span>{" "}
-          <span className="text-muted">out of {trim(scale.max)}</span>
-        </p>
-        {fivePoint && <Stars average={average} max={5} />}
-      </div>
+      <p>
+        <span className={`font-display ${size} leading-none font-semibold`}>{average.toFixed(1)}</span>{" "}
+        <span className="text-muted">out of {trim(scale.max)}</span>
+      </p>
     );
   }
   if (scale.type === "binary") {
     return (
       <p>
-        <span className="font-display text-[40px] leading-none font-semibold">{formatPercent(average, 1)}</span>{" "}
+        <span className={`font-display ${size} leading-none font-semibold`}>{formatPercent(average, 1)}</span>{" "}
         <span className="text-muted">positive</span>
       </p>
     );
@@ -76,13 +63,19 @@ function Distribution({
   summary,
   chosen,
   onToggle,
+  compact,
 }: {
   summary: RatingScaleSummary;
   chosen: string[];
   onToggle: (label: string) => void;
+  compact: boolean;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(2.5rem,max-content)_minmax(0,1fr)_3rem] items-center gap-x-3 gap-y-1">
+    <div
+      className={`grid items-center gap-x-3 ${
+        compact ? "grid-cols-[minmax(1rem,max-content)_minmax(0,1fr)_2.5rem] gap-y-0.5" : "grid-cols-[minmax(2.5rem,max-content)_minmax(0,1fr)_3rem] gap-y-1"
+      }`}
+    >
       {summary.buckets.map((bucket) => {
         const percent = formatPercent(bucket.count, summary.count);
         const selected = chosen.includes(bucket.label);
@@ -95,14 +88,16 @@ function Distribution({
             aria-label={`${bucket.label}: ${percent} (${formatNumber(bucket.count)} reviews)`}
             disabled={bucket.count === 0}
             onClick={() => onToggle(bucket.label)}
-            className={`col-span-3 grid grid-cols-subgrid items-center rounded-md px-1.5 py-1 text-left text-sm hover:bg-subtle disabled:cursor-default disabled:hover:bg-transparent ${
+            className={`col-span-3 grid grid-cols-subgrid items-center rounded-md px-1.5 text-left hover:bg-subtle ${
+              compact ? "py-0.5 text-sm" : "py-1 text-sm"
+            } disabled:cursor-default disabled:hover:bg-transparent ${
               selected ? "bg-subtle ring-2 ring-primary" : ""
             } ${dimmed ? "opacity-45" : ""}`}
           >
             <span className="max-w-40 truncate" title={bucket.label}>
               {bucket.label}
             </span>
-            <span className="h-3 overflow-hidden rounded-full bg-subtle" aria-hidden="true">
+            <span className={`${compact ? "h-2" : "h-3"} overflow-hidden rounded-full bg-subtle`} aria-hidden="true">
               <span
                 className="block h-full rounded-full bg-primary"
                 style={{ width: summary.count ? `${(bucket.count * 100) / summary.count}%` : 0 }}
@@ -133,6 +128,8 @@ export function RatingsCard({
   /** What selecting a bar does, before and after one is selected. */
   hints?: { idle: string; active: string };
 }) {
+  // The desktop layout's compact card (the mockup): the average beside long, thin bars.
+  const compact = useLayout() === "desktop";
   if (ratings.scales.length === 0) return null;
   const unrated = ratings.total_reviews - ratings.rated_reviews;
   const several = ratings.scales.length > 1;
@@ -144,7 +141,7 @@ export function RatingsCard({
     onFilterChange(labels.length ? { scale, labels } : null);
   }
   return (
-    <section className={`${card} flex flex-col gap-5 px-5 py-4`}>
+    <section className={`${card} flex flex-col ${compact ? "gap-3.5 px-5 py-4" : "gap-5 px-5 py-4"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -163,20 +160,27 @@ export function RatingsCard({
       {ratings.scales.map((summary) => (
         <div
           key={JSON.stringify(summary.scale)}
-          className="grid gap-5 md:grid-cols-[220px_minmax(0,480px)] md:gap-10"
+          className={
+            compact
+              ? "flex flex-wrap items-center gap-x-7 gap-y-4"
+              : "grid gap-5 md:grid-cols-[220px_minmax(0,480px)] md:gap-10"
+          }
         >
-          <div className="flex flex-col gap-2">
+          <div className={compact ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}>
             {several && <p className="text-sm font-semibold">{describeScale(summary.scale)}</p>}
-            <Headline summary={summary} />
+            <Headline summary={summary} compact={compact} />
             <p className="text-sm text-muted">
               {formatNumber(summary.count)} {summary.count === 1 ? "rating" : "ratings"}
             </p>
           </div>
+          <div className={compact ? "min-w-0 flex-[1_1_240px]" : "contents"}>
           <Distribution
+            compact={compact}
             summary={summary}
             chosen={filter && sameScale(filter.scale, summary.scale) ? filter.labels : []}
             onToggle={(label) => toggle(summary.scale, label)}
           />
+          </div>
         </div>
       ))}
     </section>

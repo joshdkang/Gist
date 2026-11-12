@@ -118,3 +118,12 @@ async def test_exports_are_readable_like_the_entity(call, seeded, bob):
     other = (await call("POST", "/entities", json={"name": "Other"})).json()
     path = f"/entities/{other['id']}/exports/reviews.csv"
     assert (await call("GET", path, params={"theme_id": seeded.service.id})).status_code == 404
+
+
+async def test_the_themes_export_takes_the_period_filter(call, seeded):
+    params = {"interval": "year", "period": ["2020-01-01T00:00:00Z", "2021-01-01T00:00:00Z"]}
+    response = await call("GET", f"/entities/{seeded.entity_id}/exports/themes.csv", params=params)
+    rows = {row["theme"]: row for row in read_csv(response)}
+    assert "-themes-2020-to-2021-" in response.headers["content-disposition"]
+    # Reviews 0-23: Service raises all of them, Price 0-9, Parking 20-23.
+    assert (rows["Service"]["reviews"], rows["Price"]["reviews"], rows["Parking"]["reviews"]) == ("24", "10", "4")

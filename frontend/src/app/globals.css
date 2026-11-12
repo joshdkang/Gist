@@ -81,6 +81,64 @@
   }
 }
 
+/* Printing (the printable summary): always on white, even in dark mode, with the light shades of
+   whichever sentiment palette the user has chosen. Browsers drop background colours when printing
+   unless told otherwise, and the sentiment bars are backgrounds. */
+@media print {
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --subtle: #f1f5f9;
+    --fg: #0f172a;
+    --muted: #475569;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --primary: #0f172a;
+    --on-primary: #ffffff;
+    --link: #1d4ed8;
+    --pos: #16a34a;
+    --pos-fg: #15803d;
+    --mixed: #f59e0b;
+    --mixed-fg: #b45309;
+    --neutral: #d1d5db;
+    --neutral-fg: #4b5563;
+    --neg: #dc2626;
+    --neg-fg: #b91c1c;
+    --warn-bg: #fff7ed;
+    --warn-line: #fed7aa;
+  }
+
+  :root[data-palette="colorblind"] {
+    --pos: #2563eb;
+    --pos-fg: #1d4ed8;
+    --mixed: #009e73;
+    --mixed-fg: #00785a;
+    --neutral: #cbd5e1;
+    --neutral-fg: #475569;
+    --neg: #ea580c;
+    --neg-fg: #c2410c;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* No top or bottom margin, so the browser has nowhere to print its headers and footers (the date,
+     the page title, the address). The report pads itself instead: cloned, the padding repeats on
+     every printed page rather than only at the start and the end. */
+  @page {
+    margin: 0 14mm;
+  }
+
+  .print-report {
+    padding-top: 14mm;
+    padding-bottom: 14mm;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);

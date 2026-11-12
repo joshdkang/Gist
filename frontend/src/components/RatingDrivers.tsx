@@ -9,14 +9,14 @@ import { formatNumber } from "@/lib/format";
 import type { RatingScale, ThemeRatingImpact, ThemeRatings } from "@/lib/types";
 
 /** An average rating as the scale shows it: "4.1" on numbers, "78% positive" on binary, "2.4" (a position) on labels. */
-function formatAverage(value: number, scale: RatingScale): string {
+export function formatAverage(value: number, scale: RatingScale): string {
   if (scale.type === "binary") return `${Math.round(value * 100)}% positive`;
   if (scale.type === "labels") return (value + 1).toFixed(1); // label index 0 is position 1
   return value.toFixed(2);
 }
 
 /** An effect on the overall average, signed: "−0.13" on numbers, "−4 pts" on binary, "−0.10" on labels. */
-function formatEffect(value: number, scale: RatingScale): string {
+export function formatEffect(value: number, scale: RatingScale): string {
   const sign = value > 0 ? "+" : value < 0 ? "−" : "";
   if (scale.type === "binary") {
     const points = Math.round(Math.abs(value) * 100);

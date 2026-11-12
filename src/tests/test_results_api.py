@@ -370,3 +370,35 @@ async def test_a_themes_rating_summary_counts_only_its_reviews(call, seeded):
     assert (await call("GET", f"{path}/{seeded.valet.id}/ratings")).json() == body
     other = (await call("POST", "/entities", json={"name": "Other"})).json()
     assert (await call("GET", f"/entities/{other['id']}/themes/{seeded.parking.id}/ratings")).status_code == 404
+
+
+async def test_review_periods_count_the_classified_reviews(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes/periods"
+    body = (await call("GET", path, params={"interval": "year"})).json()
+    assert body["interval"] == "year"
+    assert [(period["period_start"][:4], period["reviews"]) for period in body["periods"]] == [
+        ("2020", 12), ("2021", 12), ("2022", 13), ("2023", 3)
+    ]
+
+
+async def test_theme_list_takes_a_period_filter(call, seeded):
+    path = f"/entities/{seeded.entity_id}/themes"
+    in_2020 = {"interval": "year", "period": "2020-01-01T00:00:00Z", "include_candidates": "true"}
+    body = (await call("GET", path, params=in_2020)).json()
+    # Reviews 0-11 are from 2020: Service raises all twelve and Price 0-9; Parking (20-31) is left out.
+    assert (body["total_reviews"], body["classified_reviews"]) == (12, 12)
+    counts = {theme["name"]: theme["review_count"] for theme in body["themes"] + body["candidates"]}
+    assert counts == {"Service": 12, "Price": 10}
+    # The recent window ends at the latest review in the period, so it isn't empty.
+    assert body["as_of"][:10] == "2020-12-10"
+    assert all(theme["recent_count"] > 0 for theme in body["themes"])
+
+    two_years = {**in_2020, "period": ["2020-01-01T00:00:00Z", "2021-01-01T00:00:00Z"]}
+    assert (await call("GET", path, params=two_years)).json()["total_reviews"] == 24
+
+    # With the rating filter too: rated 1 in 2020 are reviews 0, 5 and 10.
+    rated_1 = {**in_2020, "rating": "1", "rating_scale": json.dumps({"type": "numeric", "min": 1, "max": 5})}
+    counts = {theme["name"]: theme["review_count"] for theme in (await call("GET", path, params=rated_1)).json()["themes"]}
+    assert counts == {"Service": 3, "Price": 2}
+
+    assert (await call("GET", path, params={"period": "2020-01-01T00:00:00Z"})).status_code == 422

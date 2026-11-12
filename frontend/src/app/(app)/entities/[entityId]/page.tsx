@@ -6,16 +6,29 @@ import { useMemo, useState } from "react";
 
 import { EntityActions } from "@/components/EntityActions";
 import { ExportButton } from "@/components/ExportButton";
+import { FilterBar } from "@/components/FilterBar";
 import { RatingDrivers } from "@/components/RatingDrivers";
 import { RatingsCard } from "@/components/RatingsCard";
+import { ReviewsOverTime } from "@/components/ReviewsOverTime";
 import { RunBanner } from "@/components/RunBanner";
 import { SentimentBar, SentimentLegend } from "@/components/SentimentBar";
+import { ThemeTable } from "@/components/ThemeTable";
 import { BackLink, buttonPrimary, buttonSecondary, card, ErrorNote, Loading, Page, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent } from "@/lib/format";
-import { isActive, useEntity, useRatings, useRefreshWhenRunEnds, useThemeRatings, useThemes } from "@/lib/queries";
-import { describeRatingFilter, ratingQuery, readRatingFilter } from "@/lib/ratingFilter";
-import type { EntityDetail, RatingFilter, ThemeList, ThemeSummary } from "@/lib/types";
+import { useLayout } from "@/lib/layout";
+import { describeFilters, filterQuery, type PeriodsFilter, readPeriodsFilter } from "@/lib/periodFilter";
+import {
+  isActive,
+  useEntity,
+  useRatings,
+  useRefreshWhenRunEnds,
+  useReviewPeriods,
+  useThemeRatings,
+  useThemes,
+} from "@/lib/queries";
+import { readRatingFilter } from "@/lib/ratingFilter";
+import type { EntityDetail, RatingFilter, ThemeList, ThemeSummary, TrendInterval } from "@/lib/types";
 
 type Sort = "total" | "recent";
 
@@ -25,7 +38,7 @@ function sortThemes(themes: ThemeSummary[], sort: Sort): ThemeSummary[] {
   return [...themes].sort((a, b) => b.review_count - a.review_count || b.recent_count - a.recent_count);
 }
 
-/** `query` keeps the page's rating filter on the theme's page ("" for none). */
+/** `query` keeps the page's filters on the theme's page ("" for none). */
 function ThemeRow({ entityId, theme, query }: { entityId: string; theme: ThemeSummary; query: string }) {
   const { sentiment } = theme;
   return (
@@ -59,14 +72,18 @@ function ThemesSection({
   entityId,
   list,
   ratingFilter,
+  periodsFilter,
   updating,
 }: {
   entityId: string;
   list: ThemeList;
   ratingFilter: RatingFilter | null;
+  periodsFilter: PeriodsFilter | null;
   /** The list shown is the previous filter's while this one loads. */
   updating: boolean;
 }) {
+  const query = filterQuery(ratingFilter, periodsFilter);
+  const filtered = describeFilters(ratingFilter, periodsFilter);
   const [sort, setSort] = useState<Sort>("total");
   const [showQuiet, setShowQuiet] = useState(false);
   const sorted = sortThemes(list.themes, sort);
@@ -84,22 +101,16 @@ function ThemesSection({
               ? "Ranked by the number of reviews that mention each theme"
               : `Ranked by mentions in the ${list.recent_days} days to ${windowEnd}, then by total`}
           </p>
-          {ratingFilter && (
+          {filtered && (
             <p className="mt-1 text-sm font-semibold">
               {updating
-                ? `Counting the reviews ${describeRatingFilter(ratingFilter)}…`
-                : `Only the ${formatNumber(list.total_reviews)} reviews ${describeRatingFilter(ratingFilter)}`}
+                ? `Counting the reviews ${filtered}…`
+                : `Only the ${formatNumber(list.total_reviews)} reviews ${filtered}`}
             </p>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
-            <ExportButton
-              path={`/entities/${entityId}/exports/themes.csv${ratingQuery(ratingFilter)}`}
-              label="Export themes"
-            />
-            <ExportButton
-              path={`/entities/${entityId}/exports/reviews.csv${ratingQuery(ratingFilter)}`}
-              label="Export reviews"
-            />
+            <ExportButton path={`/entities/${entityId}/exports/themes.csv${query}`} label="Export themes" />
+            <ExportButton path={`/entities/${entityId}/exports/reviews.csv${query}`} label="Export reviews" />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4">
@@ -126,7 +137,7 @@ function ThemesSection({
       </div>
       <div className="flex flex-col">
         {active.map((theme) => (
-          <ThemeRow key={theme.id} entityId={entityId} theme={theme} query={ratingQuery(ratingFilter)} />
+          <ThemeRow key={theme.id} entityId={entityId} theme={theme} query={query} />
         ))}
       </div>
       {quiet.length > 0 && (
@@ -141,11 +152,27 @@ function ThemesSection({
             last {list.recent_days} days)
           </button>
           {showQuiet &&
-            quiet.map((theme) => (
-              <ThemeRow key={theme.id} entityId={entityId} theme={theme} query={ratingQuery(ratingFilter)} />
-            ))}
+            quiet.map((theme) => <ThemeRow key={theme.id} entityId={entityId} theme={theme} query={query} />)}
         </div>
       )}
+    </section>
+  );
+}
+
+/** The desktop layout's theme list: a sortable table (the filters and exports are in the filter bar). */
+function DesktopThemes({ entityId, list, query }: { entityId: string; list: ThemeList; query: string }) {
+  return (
+    <section className={`${card} overflow-hidden`}>
+      <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-4 pb-3">
+        <div>
+          <h2 className="text-lg font-semibold">Themes</h2>
+          <p className="text-sm text-muted">
+            {list.themes.length} {list.themes.length === 1 ? "theme" : "themes"}. Select a column to sort.
+          </p>
+        </div>
+        <SentimentLegend />
+      </div>
+      <ThemeTable entityId={entityId} themes={list.themes} query={query} recentDays={list.recent_days} />
     </section>
   );
 }
@@ -214,9 +241,14 @@ export default function EntityPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
+  // The period filter lives in the URL too (`interval` and repeated `period`, as the theme page reads them).
+  const periodsFilter = useMemo(() => readPeriodsFilter(searchParams), [searchParams]);
+  const [periodInterval, setPeriodInterval] = useState<TrendInterval>(periodsFilter?.interval ?? "quarter");
+  const reviewPeriods = useReviewPeriods(entityId, periodInterval);
   const [view, setView] = useState<View>("themes");
-  const themes = useThemes(entityId, ratingFilter);
+  const themes = useThemes(entityId, ratingFilter, periodsFilter);
   const ratings = useRatings(entityId);
+  const desktop = useLayout() === "desktop";
   // Ratings by theme are compared on the scale with the most ratings (the card lists it first).
   const themeRatings = useThemeRatings(entityId, ratings.data?.scales[0]?.scale);
   useRefreshWhenRunEnds(entityId, entity.data?.latest_run);
@@ -236,15 +268,38 @@ export default function EntityPage() {
   const list = themes.data;
   // While a new rating filter loads, the previous list stays up (dimmed) instead of a spinner.
   const updating = themes.isPlaceholderData;
-  const latest = list?.as_of ? ` · latest review ${formatDate(list.as_of)}` : "";
+  // With a period filter, the API's as_of is the latest review in those periods, not the entity's.
+  const latest = list?.as_of && !periodsFilter ? ` · latest review ${formatDate(list.as_of)}` : "";
   // The ratings view needs analyzed themes and rated reviews; without them there is no switch.
   const canRate = Boolean(list && list.themes.length > 0 && themeRatings.data?.themes.length);
   const showRatings = canRate && view === "ratings";
+  const filtered = describeFilters(ratingFilter, periodsFilter);
+  const query = filterQuery(ratingFilter, periodsFilter);
+  const hasRatings = (ratings.data?.scales.length ?? 0) > 0;
+  // Reviews over time: only for reviews with dates, once the entity has themes to filter.
+  const overTime =
+    reviewPeriods.data && reviewPeriods.data.periods.length > 0 && detail.theme_count > 0 ? reviewPeriods.data : null;
+  const viewToggle = canRate ? <Toggle label="View" options={VIEWS} value={view} onChange={setView} /> : null;
 
   function filterRatings(filter: RatingFilter | null) {
-    router.replace(`${pathname}${ratingQuery(filter)}`, { scroll: false });
+    router.replace(`${pathname}${filterQuery(filter, periodsFilter)}`, { scroll: false });
     // The rating bars filter the theme list, so choosing one shows it.
     if (filter) setView("themes");
+  }
+
+  function filterPeriods(filter: PeriodsFilter | null) {
+    router.replace(`${pathname}${filterQuery(ratingFilter, filter)}`, { scroll: false });
+    if (filter) setView("themes");
+  }
+
+  function clearFilters() {
+    router.replace(pathname, { scroll: false });
+  }
+
+  function changePeriodInterval(next: TrendInterval) {
+    setPeriodInterval(next);
+    // A quarter's start is not a month's, so the chosen periods don't carry over.
+    if (periodsFilter) filterPeriods(null);
   }
 
   return (
@@ -269,9 +324,17 @@ export default function EntityPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {list?.as_of && list.themes.length > 0 && (
-                <Link href={`/entities/${entityId}/changes`} className={buttonSecondary}>
-                  Period comparison
-                </Link>
+                <>
+                  <Link href={`/entities/${entityId}/changes`} className={buttonSecondary}>
+                    Period comparison
+                  </Link>
+                  <Link
+                    href={`/entities/${entityId}/summary${filterQuery(ratingFilter, periodsFilter)}`}
+                    className={buttonSecondary}
+                  >
+                    Printable summary
+                  </Link>
+                </>
               )}
               {detail.is_owner && <EntityActions entity={detail} />}
             </div>
@@ -279,16 +342,41 @@ export default function EntityPage() {
         </div>
 
         <RunBanner run={detail.latest_run} />
-        {ratings.data && (
-          <RatingsCard ratings={ratings.data} filter={ratingFilter} onFilterChange={filterRatings} />
+        {/* Side by side on a wide desktop screen; `contents` lets them stack as the page's own items. */}
+        <div className={desktop && hasRatings && overTime ? "grid gap-6 lg:grid-cols-2" : "contents"}>
+          {hasRatings && ratings.data && (
+            <RatingsCard ratings={ratings.data} filter={ratingFilter} onFilterChange={filterRatings} />
+          )}
+          {overTime && (
+            <ReviewsOverTime
+              data={overTime}
+              interval={periodInterval}
+              onIntervalChange={changePeriodInterval}
+              filter={periodsFilter}
+              onFilterChange={filterPeriods}
+            />
+          )}
+        </div>
+        {desktop && list && (list.themes.length > 0 || filtered) && (
+          <FilterBar
+            entityId={entityId}
+            totalReviews={detail.review_count}
+            shownReviews={updating ? null : list.total_reviews}
+            ratingFilter={ratingFilter}
+            periodsFilter={periodsFilter}
+            onClearRating={() => filterRatings(null)}
+            onClearPeriods={() => filterPeriods(null)}
+            onClearAll={clearFilters}
+            query={query}
+            view={viewToggle}
+          />
         )}
-        {canRate && (
-          <div className="self-start">
-            <Toggle label="View" options={VIEWS} value={view} onChange={setView} />
-          </div>
-        )}
+        {!desktop && viewToggle && <div className="self-start">{viewToggle}</div>}
         <ErrorNote error={themes.error} />
         {themes.isPending && <Loading label="Loading themes…" />}
+        {showRatings && filtered && (
+          <p className="text-sm text-muted">Ratings by theme cover every rated review; the filters apply to the theme list.</p>
+        )}
         {showRatings && themeRatings.data && (
           <RatingDrivers
             entityId={entityId}
@@ -299,19 +387,32 @@ export default function EntityPage() {
         {!showRatings && (
           <>
             {updating && list?.themes.length === 0 && <Loading label="Loading themes…" />}
-            {list && !updating && list.themes.length === 0 && !ratingFilter && <NoResults entity={detail} />}
-            {list && !updating && list.themes.length === 0 && ratingFilter && (
-              <p className={`${card} p-6`}>No theme is raised by reviews {describeRatingFilter(ratingFilter)}.</p>
+            {list && !updating && list.themes.length === 0 && !filtered && <NoResults entity={detail} />}
+            {list && !updating && list.themes.length === 0 && filtered && (
+              <p className={`${card} p-6`}>No theme is raised by reviews {filtered}.</p>
             )}
             <div
               aria-busy={updating}
               className={`flex flex-col gap-6 transition-opacity ${updating ? "opacity-50" : ""}`}
             >
-              {list && list.themes.length > 0 && (
-                <ThemesSection entityId={entityId} list={list} ratingFilter={ratingFilter} updating={updating} />
+              {desktop && list && list.themes.length > 0 && (
+                <DesktopThemes entityId={entityId} list={list} query={query} />
+              )}
+              {!desktop && list && list.themes.length > 0 && (
+                <ThemesSection
+                  entityId={entityId}
+                  list={list}
+                  ratingFilter={ratingFilter}
+                  periodsFilter={periodsFilter}
+                  updating={updating}
+                />
               )}
               {list?.candidates && (
-                <EmergingTopics entityId={entityId} topics={list.candidates} query={ratingQuery(ratingFilter)} />
+                <EmergingTopics
+                  entityId={entityId}
+                  topics={list.candidates}
+                  query={filterQuery(ratingFilter, periodsFilter)}
+                />
               )}
               {list && list.classified_reviews > 0 && (
                 <p className="text-sm text-muted">

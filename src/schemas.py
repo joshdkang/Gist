@@ -277,6 +277,11 @@ class PeriodCount(BaseModel):
     reviews: int = Field(description="The entity's classified reviews in the period")
 
 
+class ReviewPeriods(BaseModel):
+    interval: str
+    periods: list[PeriodCount] = Field(description="Every period with classified reviews, oldest first")
+
+
 class ThemeChange(BaseModel):
     id: int
     kind: ThemeKind

@@ -12,6 +12,7 @@ import { BackLink, buttonSecondary, card, ErrorNote, INTERVALS, Loading, Page, T
 import { ApiError, api } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent, SENTIMENTS, sentimentStyle } from "@/lib/format";
 import { useEntity, useThemes } from "@/lib/queries";
+import { filterQuery } from "@/lib/periodFilter";
 import { appendRatingFilter, describeRatingFilter, ratingQuery, readRatingFilter } from "@/lib/ratingFilter";
 import type {
   RatingFilter,
@@ -299,7 +300,11 @@ export default function ThemePage() {
     );
   }
   const total = themes.data?.classified_reviews ?? 0;
-  const backHref = `/entities/${entityId}${ratingQuery(ratingFilter)}`;
+  // Back to the entity page with this page's filters: its ratings and the periods chosen on the trend.
+  const backHref = `/entities/${entityId}${filterQuery(
+    ratingFilter,
+    selectedPeriods.length > 0 ? { interval, starts: selectedPeriods } : null,
+  )}`;
   const error = entity.error ?? resolved.error ?? themes.error;
 
   if (error instanceof ApiError && error.status === 404) {

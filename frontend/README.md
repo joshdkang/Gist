@@ -27,13 +27,37 @@ frontend's origin (the default allows `http://localhost:3000`).
   before, with the changes that aren't statistically significant set apart), `/entities/[id]/themes/[themeId]` (sentiment, trend by month, quarter or
   year as counts, a share of each period's reviews, or a sentiment mix, and the reviews), and
   `/entities/[id]/upload` (choose a CSV, map its columns, upload).
-- **URLs carry context**: the entity page keeps its rating filter in the URL (`rating_scale`, `rating`), and
-  links to a theme carry it, so the theme's counts, trend and reviews cover the same ratings. A theme's page
+- **URLs carry context**: the entity page keeps its rating filter (`rating_scale`, `rating`) and period
+  filter (`interval`, `period`) in the URL, and links to a theme carry them, so the theme's counts, trend and
+  reviews cover the same ratings and its trend opens on the same periods. A theme's page
   has its own ratings card (the ratings of the reviews that raise it), whose bars set the same filter. A period
   comparison row opens the theme with `interval` and both periods (`period`) chosen in its trend.
 - **Exports**: Export buttons on the theme list, ratings by theme, the period comparison and a theme's reviews
   download the API's CSV exports with the page's filters. A plain link can't send the sign-in token, so
   `downloadFile` in `src/lib/api.ts` fetches the file and hands it to the browser as a download.
+- **Layouts** (`src/lib/layout.ts`): Desktop or Mobile, chosen in the account menu and kept in this browser
+  only (a layout suits a device, unlike the palette, which follows the account). Until someone chooses, the
+  screen width decides (Desktop from 1024px). Mobile is the narrow stacked page with theme cards. Desktop
+  widens every page to 1360px (`pageWidth` in `components/ui.tsx`, which the header follows too) and, on
+  the entity page, puts Ratings and Reviews over time side by side, adds a filter bar
+  (`components/FilterBar.tsx`: the review count, a removable chip per filter, the view switch and the
+  exports; it stays at the top of the window only while a filter is on) and shows the themes as a sortable
+  table (`components/ThemeTable.tsx`). The server renders Mobile, which the browser corrects.
+- **Reviews over time** (`src/components/ReviewsOverTime.tsx`): on the entity page when reviews have dates, the
+  entity's reviews per month, quarter or year from `themes/periods`. Its bars choose a period filter, which
+  lives in the URL as `interval` and repeated `period` (`src/lib/periodFilter.ts`), the parameters the API
+  and the theme page's trend already use. It narrows the theme list like the rating filter, combines with
+  it, and carries into a theme's page (its trend opens on those periods), the exports and the printable
+  summary. Ratings by theme and the period comparison cover every review.
+- **Printable summary** (`entities/[entityId]/summary`): the themes, the significant changes between two
+  periods (picked on the page, or carried from the period comparison as `changes_interval`, `changes_period`
+  and `changes_compare_to`) and the significant ratings by theme, laid out for paper and printed with the
+  browser's own dialog (Save as PDF for a file). The rating and period filters carry over from the entity
+  page and narrow the themes; a filter on one period also starts the comparison on that period. Print styles
+  in `globals.css` keep the page white in dark mode and keep the sentiment colours of the user's palette; the
+  app header is hidden when printing. The printed page has no top or bottom margin, so the browser can't add
+  its own headers and footers (date, title, address); the report pads itself on every page instead
+  (`.print-report`).
 - **Upload** reads the CSV in the browser (Papa Parse) to count rows, guess the column mapping (the review
   text is the column with the longest values) and the rating scale, and preview the first rows. The API
   re-checks everything.

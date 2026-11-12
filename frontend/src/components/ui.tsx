@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { type Layout, useLayout } from "@/lib/layout";
 import type { TrendInterval } from "@/lib/types";
 
 export const buttonPrimary =
@@ -77,6 +78,19 @@ export function Toggle<T extends string>({
   );
 }
 
-export function Page({ children, width = "max-w-[1080px]" }: { children: React.ReactNode; width?: string }) {
-  return <main className={`mx-auto w-full ${width} px-4 pt-6 pb-16 sm:px-6 sm:pt-8`}>{children}</main>;
+/**
+ * The page's maximum width, padding included: wider in the desktop layout (1360px of content inside
+ * its 40px sides). The header uses it too, so they line up.
+ */
+export const pageWidth = (layout: Layout) => (layout === "desktop" ? "max-w-[1440px]" : "max-w-[1080px]");
+
+/** A page's frame. `width` fixes a narrower one (a form); by default it follows the layout. */
+export function Page({ children, width }: { children: React.ReactNode; width?: string }) {
+  const layout = useLayout();
+  const padding = layout === "desktop" ? "lg:px-10" : "";
+  return (
+    <main className={`mx-auto w-full ${width ?? pageWidth(layout)} px-4 pt-6 pb-16 sm:px-6 sm:pt-8 ${padding}`}>
+      {children}
+    </main>
+  );
 }

@@ -125,6 +125,12 @@ export interface ThemeChange {
   negative_change_clear: boolean;
 }
 
+/** The entity's classified reviews per period, oldest first (periods without reviews left out). */
+export interface ReviewPeriods {
+  interval: TrendInterval;
+  periods: { period_start: string; reviews: number }[];
+}
+
 export interface ThemeChanges {
   interval: TrendInterval;
   period_start: string | null;
