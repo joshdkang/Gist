@@ -43,7 +43,9 @@ frontend's origin (the default allows `http://localhost:3000`).
   (`components/FilterBar.tsx`: the review count, a removable chip per filter, the view switch and the
   exports; it stays at the top of the window only while a filter is on) and shows the themes as a sortable
   table (`components/ThemeTable.tsx`), and ratings by theme as another (in `components/RatingDrivers.tsx`, with the
-  themes whose ratings don't differ significantly behind a checkbox). Both use `components/SortableTable.tsx`. The server renders Mobile, which the browser corrects.
+  themes whose ratings don't differ significantly behind a checkbox). Both use `components/SortableTable.tsx`. A theme's page on desktop puts its sentiment and
+  trend across the page, then its ratings in a column that stays in view beside the reviews, whose active
+  filters (periods, ratings) are removable chips beside the sentiment chips. The server renders Mobile, which the browser corrects.
 - **Reviews over time** (`src/components/ReviewsOverTime.tsx`): on the entity page when reviews have dates, the
   entity's reviews per month, quarter or year from `themes/periods`. Its bars choose a period filter, which
   lives in the URL as `interval` and repeated `period` (`src/lib/periodFilter.ts`), the parameters the API

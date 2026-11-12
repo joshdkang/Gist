@@ -118,7 +118,8 @@ export function TrendChart({
     previousYear = year;
     return { key: point.period_start, label, point, tip: describe(point, interval, mode) };
   });
-  const barStyle = { flex: `1 0 ${MIN_BAR_WIDTH[interval]}`, maxWidth: "56px" };
+  // Wide enough to fill a page-wide card on desktop, capped so a short history doesn't turn into blocks.
+  const barStyle = { flex: `1 0 ${MIN_BAR_WIDTH[interval]}`, maxWidth: "96px" };
   const what = { count: "Reviews", share: "Share of reviews", mix: "Sentiment mix of reviews" }[mode];
 
   return (

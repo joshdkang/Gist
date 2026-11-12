@@ -5,14 +5,16 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { useMemo, useState } from "react";
 
 import { ExportButton } from "@/components/ExportButton";
+import { capitalize, FilterChip } from "@/components/FilterBar";
 import { RatingsCard } from "@/components/RatingsCard";
 import { SentimentBar, SentimentBreakdown } from "@/components/SentimentBar";
 import { periodName, TrendChart, type TrendMode } from "@/components/TrendChart";
 import { BackLink, buttonSecondary, card, ErrorNote, INTERVALS, Loading, Page, Toggle } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent, SENTIMENTS, sentimentStyle } from "@/lib/format";
+import { useLayout } from "@/lib/layout";
 import { useEntity, useThemes } from "@/lib/queries";
-import { filterQuery } from "@/lib/periodFilter";
+import { describePeriodsFilter, filterQuery } from "@/lib/periodFilter";
 import { appendRatingFilter, describeRatingFilter, ratingQuery, readRatingFilter } from "@/lib/ratingFilter";
 import type {
   RatingFilter,
@@ -37,12 +39,14 @@ const MODE_HINTS: Record<TrendMode, string> = {
   mix: "How the theme's reviews in each period felt, each bar adding up to 100%.",
 };
 
-function ReviewCard({ review }: { review: ThemeReview }) {
+function ReviewCard({ review, row = false }: { review: ThemeReview; row?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const style = review.sentiment ? sentimentStyle(review.sentiment) : null;
   const long = review.text.length > 600;
   return (
-    <article className="flex flex-col gap-2 rounded-[10px] border border-line px-4 py-3.5">
+    <article
+      className={`flex flex-col gap-2 ${row ? "border-b border-subtle px-5 py-4" : "rounded-[10px] border border-line px-4 py-3.5"}`}
+    >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
         {style && (
           <span className={`flex items-center gap-1.5 font-semibold ${style.text}`}>
@@ -77,12 +81,16 @@ function Reviews({
   periods,
   onClearPeriods,
   ratingFilter,
+  onClearRating,
+  desktop,
 }: {
   entityId: string;
   theme: ThemeSummary;
   periods: PeriodFilter | null;
   onClearPeriods: () => void;
   ratingFilter: RatingFilter | null;
+  onClearRating: () => void;
+  desktop: boolean;
 }) {
   const [filter, setFilter] = useState<Sentiment | "all">("all");
   const params = appendRatingFilter(new URLSearchParams({ limit: String(PAGE_SIZE) }), ratingFilter);
@@ -113,34 +121,112 @@ function Reviews({
   const periodNames = periods
     ? [...periods.starts].sort().map((start) => periodName(start, periods.interval))
     : [];
+  const chips = (
+    <div role="group" aria-label="Filter by sentiment" className="flex flex-wrap gap-1.5">
+      {filters.map((option) => (
+        <button
+          key={option.key}
+          type="button"
+          aria-pressed={filter === option.key}
+          onClick={() => setFilter(option.key)}
+          className={`rounded-full border px-3 py-1.5 text-sm ${
+            filter === option.key ? "border-primary bg-primary text-on-primary" : "border-line-strong bg-surface"
+          }`}
+        >
+          {option.label} <span className="opacity-80">{formatNumber(option.count)}</span>
+        </button>
+      ))}
+    </div>
+  );
+  const exportButton = total > 0 && (
+    <ExportButton
+      path={`/entities/${entityId}/exports/reviews.csv?${exportParams}`}
+      label={`Export ${formatNumber(total)} ${total === 1 ? "review" : "reviews"}`}
+    />
+  );
+  const footer = shown.length > 0 && (
+    <div className={`flex flex-wrap items-center justify-between gap-3 ${desktop ? "px-5 py-3.5" : ""}`}>
+      <span className="text-sm text-muted">
+        Showing {formatNumber(shown.length)} of {formatNumber(total)}, newest first
+      </span>
+      {reviews.hasNextPage && (
+        <button
+          type="button"
+          onClick={() => reviews.fetchNextPage()}
+          disabled={reviews.isFetchingNextPage}
+          className={`${buttonSecondary} h-10`}
+        >
+          {reviews.isFetchingNextPage ? "Loading…" : "Load more"}
+        </button>
+      )}
+    </div>
+  );
+
+  if (desktop) {
+    const anyFilter = Boolean(periods || ratingFilter || filter !== "all");
+    const what = filter === "all" ? "reviews" : `${filter} reviews`;
+    return (
+      <section className={`${card} min-w-0`}>
+        {/* While any filter is on (periods, ratings or a sentiment), the heading and its chips stay at the top
+            of the window as the reviews scroll, so the filter stays in view (as the entity page's filter bar does). */}
+        <div
+          className={`flex flex-col gap-3 border-b border-line px-5 py-4 ${
+            anyFilter ? "sticky top-0 z-10 rounded-t-xl bg-surface" : ""
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Reviews</h2>
+              <p className="text-sm text-muted">
+                {formatNumber(total)} {total === 1 ? what.replace(/s$/, "") : what}, newest first
+              </p>
+            </div>
+            {exportButton}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {chips}
+            {(periods || ratingFilter) && <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />}
+            {periods && (
+              <FilterChip
+                label={capitalize(describePeriodsFilter({ interval: periods.interval, starts: periods.starts }))}
+                onRemove={onClearPeriods}
+              />
+            )}
+            {ratingFilter && <FilterChip label={capitalize(describeRatingFilter(ratingFilter))} onRemove={onClearRating} />}
+            {anyFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("all");
+                  onClearPeriods();
+                  onClearRating();
+                }}
+                className="px-1 py-1 text-sm text-link hover:underline"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        </div>
+        <ErrorNote error={reviews.error} />
+        {reviews.isPending && <div className="px-5"><Loading label="Loading reviews…" /></div>}
+        {reviews.isSuccess && shown.length === 0 && <p className="px-5 py-4 text-muted">No reviews with this sentiment.</p>}
+        {shown.map((review) => (
+          <ReviewCard key={review.id} review={review} row />
+        ))}
+        {footer}
+      </section>
+    );
+  }
 
   return (
     <section className={`${card} flex flex-col gap-4 px-5 py-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="font-semibold">Reviews</h2>
-          {total > 0 && (
-            <ExportButton
-              path={`/entities/${entityId}/exports/reviews.csv?${exportParams}`}
-              label={`Export ${formatNumber(total)} ${total === 1 ? "review" : "reviews"}`}
-            />
-          )}
+          {exportButton}
         </div>
-        <div role="group" aria-label="Filter by sentiment" className="flex flex-wrap gap-1.5">
-          {filters.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              aria-pressed={filter === option.key}
-              onClick={() => setFilter(option.key)}
-              className={`rounded-full border px-3 py-1.5 text-sm ${
-                filter === option.key ? "border-primary bg-primary text-on-primary" : "border-line-strong bg-surface"
-              }`}
-            >
-              {option.label} <span className="opacity-80">{formatNumber(option.count)}</span>
-            </button>
-          ))}
-        </div>
+        {chips}
       </div>
       {periods && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-subtle px-3 py-2 text-sm">
@@ -158,23 +244,7 @@ function Reviews({
       {shown.map((review) => (
         <ReviewCard key={review.id} review={review} />
       ))}
-      {shown.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm text-muted">
-            Showing {formatNumber(shown.length)} of {formatNumber(total)}, newest first
-          </span>
-          {reviews.hasNextPage && (
-            <button
-              type="button"
-              onClick={() => reviews.fetchNextPage()}
-              disabled={reviews.isFetchingNextPage}
-              className={`${buttonSecondary} h-10`}
-            >
-              {reviews.isFetchingNextPage ? "Loading…" : "Load more"}
-            </button>
-          )}
-        </div>
-      )}
+      {footer}
     </section>
   );
 }
@@ -185,7 +255,9 @@ function Trend({
   onIntervalChange,
   selected,
   onToggle,
+  desktop,
 }: {
+  desktop: boolean;
   trend: ReturnType<typeof useTrend>;
   interval: TrendInterval;
   onIntervalChange: (interval: TrendInterval) => void;
@@ -196,9 +268,11 @@ function Trend({
   return (
     <section className={`${card} flex flex-col gap-4 px-5 py-4`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-md">
-          <h2 className="font-semibold">Reviews over time</h2>
-          <p className="text-[13px] text-muted">{MODE_HINTS[mode]} Select bars to list their reviews.</p>
+        <div className={desktop ? "min-w-[260px] flex-1" : "max-w-md"}>
+          <h2 className={desktop ? "text-lg font-semibold" : "font-semibold"}>Reviews over time</h2>
+          <p className={desktop ? "text-sm text-muted" : "text-[13px] text-muted"}>
+            {MODE_HINTS[mode]} Select bars to list their reviews{desktop ? " below" : ""}.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Toggle label="Show" options={MODES} value={mode} onChange={setMode} />
@@ -249,6 +323,7 @@ export default function ThemePage() {
   const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
   const entity = useEntity(entityId);
   const themes = useThemes(entityId, ratingFilter);
+  const desktop = useLayout() === "desktop";
   // A merged candidate's id resolves to the theme it merged into; the trend says which one that is.
   const resolved = useQuery({
     queryKey: ["trend", entityId, Number(themeId), "year"],
@@ -300,6 +375,18 @@ export default function ThemePage() {
     );
   }
   const total = themes.data?.classified_reviews ?? 0;
+  const ratingsCard = themeRatings.data && themeRatings.data.scales.length > 0 && (
+    <RatingsCard
+      ratings={themeRatings.data}
+      filter={ratingFilter}
+      onFilterChange={changeRatingFilter}
+      title="Ratings of these reviews"
+      hints={{
+        idle: "Select a rating to see only those reviews.",
+        active: "The counts, the trend and the reviews cover only the selected ratings.",
+      }}
+    />
+  );
   // Back to the entity page with this page's filters: its ratings and the periods chosen on the trend.
   const backHref = `/entities/${entityId}${filterQuery(
     ratingFilter,
@@ -341,6 +428,18 @@ export default function ThemePage() {
     );
   }
 
+  const reviewsList = (
+    <Reviews
+      entityId={entityId}
+      theme={theme}
+      periods={periods}
+      onClearPeriods={() => setSelectedPeriods([])}
+      ratingFilter={ratingFilter}
+      onClearRating={clearRatingFilter}
+      desktop={desktop}
+    />
+  );
+
   return (
     <Page>
       <div className="flex flex-col gap-6">
@@ -366,37 +465,30 @@ export default function ThemePage() {
             </span>
           </div>
         </div>
-        {themeRatings.data && (
-          <RatingsCard
-            ratings={themeRatings.data}
-            filter={ratingFilter}
-            onFilterChange={changeRatingFilter}
-            title="Ratings of these reviews"
-            hints={{
-              idle: "Select a rating to see only those reviews.",
-              active: "The counts, the trend and the reviews below cover only the selected ratings.",
-            }}
-          />
-        )}
+        {/* Mobile: ratings, sentiment, trend, reviews, stacked. Desktop: sentiment and the trend across
+            the page, then the ratings in a column that stays in view beside the reviews. */}
+        {!desktop && ratingsCard}
         <section className={`${card} flex flex-col gap-3 px-5 py-4`}>
           <h2 className="font-semibold">Sentiment</h2>
           <SentimentBar counts={theme.sentiment} height="h-3.5" />
           <SentimentBreakdown counts={theme.sentiment} />
         </section>
         <Trend
+          desktop={desktop}
           trend={trend}
           interval={interval}
           onIntervalChange={changeInterval}
           selected={selectedPeriods}
           onToggle={togglePeriod}
         />
-        <Reviews
-          entityId={entityId}
-          theme={theme}
-          periods={periods}
-          onClearPeriods={() => setSelectedPeriods([])}
-          ratingFilter={ratingFilter}
-        />
+        {desktop && ratingsCard ? (
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+            <div className="lg:sticky lg:top-4">{ratingsCard}</div>
+            {reviewsList}
+          </div>
+        ) : (
+          reviewsList
+        )}
       </div>
     </Page>
   );

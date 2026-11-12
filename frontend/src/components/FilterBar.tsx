@@ -6,10 +6,10 @@ import { describePeriodsFilter, type PeriodsFilter } from "@/lib/periodFilter";
 import { describeRatingFilter } from "@/lib/ratingFilter";
 import type { RatingFilter } from "@/lib/types";
 
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** One active filter, as a chip that removes it. */
-function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
+export function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <button
       type="button"
@@ -73,8 +73,8 @@ export function FilterBar({
                   ? "Counting the reviews…"
                   : `Showing ${formatNumber(shownReviews)} of ${formatNumber(totalReviews)} reviews`}
               </span>
-              {periodsFilter && <Chip label={capitalize(describePeriodsFilter(periodsFilter))} onRemove={onClearPeriods} />}
-              {ratingFilter && <Chip label={capitalize(describeRatingFilter(ratingFilter))} onRemove={onClearRating} />}
+              {periodsFilter && <FilterChip label={capitalize(describePeriodsFilter(periodsFilter))} onRemove={onClearPeriods} />}
+              {ratingFilter && <FilterChip label={capitalize(describeRatingFilter(ratingFilter))} onRemove={onClearRating} />}
               <button
                 type="button"
                 onClick={onClearAll}
