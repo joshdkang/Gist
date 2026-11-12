@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-
 import { SentimentBar } from "@/components/SentimentBar";
+import { cell, numberCell, PlainHeading, SortHeading, sortRows, useSorting } from "@/components/SortableTable";
 import { formatNumber, formatPercent } from "@/lib/format";
 import type { ThemeSummary } from "@/lib/types";
 
@@ -12,7 +11,6 @@ import type { ThemeSummary } from "@/lib/types";
  * over the same total for every theme, so it sorts exactly like reviews and sits under the count.
  */
 type SortKey = "name" | "reviews" | "positive" | "negative" | "recent";
-type Direction = "asc" | "desc";
 
 const share = (part: number, whole: number) => (whole ? part / whole : 0);
 
@@ -23,57 +21,6 @@ const VALUE: Record<SortKey, (theme: ThemeSummary) => number | string> = {
   negative: (theme) => share(theme.sentiment.negative, theme.sentiment.total),
   recent: (theme) => theme.recent_count,
 };
-
-function sortThemes(themes: ThemeSummary[], key: SortKey, direction: Direction): ThemeSummary[] {
-  return [...themes].sort((a, b) => {
-    const x = VALUE[key](a);
-    const y = VALUE[key](b);
-    const order = typeof x === "string" ? x.localeCompare(y as string) : x - (y as number);
-    // Ties fall back to the larger theme, so the order is stable and sensible.
-    return (direction === "asc" ? order : -order) || b.review_count - a.review_count;
-  });
-}
-
-/** A column heading that sorts by its column, showing the direction when it is the one sorted by. */
-function Heading({
-  column,
-  label,
-  className = "",
-  sortKey,
-  direction,
-  onSort,
-}: {
-  column: SortKey;
-  label: string;
-  className?: string;
-  sortKey: SortKey;
-  direction: Direction;
-  onSort: (column: SortKey) => void;
-}) {
-  const active = column === sortKey;
-  // Only the sorted heading has an arrow, after its label; the others take no room for one, so every
-  // heading, arrow and all, ends where its column's numbers do.
-  const arrow = active ? (
-    <span aria-hidden="true" className="ml-1">
-      {direction === "desc" ? "↓" : "↑"}
-    </span>
-  ) : null;
-  return (
-    <th
-      scope="col"
-      aria-sort={active ? (direction === "desc" ? "descending" : "ascending") : "none"}
-      className={`border-y border-line px-3 py-1.5 text-[13px] font-semibold whitespace-nowrap ${className}`}
-    >
-      <button type="button" onClick={() => onSort(column)} className={`py-1 hover:text-fg ${active ? "text-fg" : "text-muted"}`}>
-        {label}
-        {arrow}
-      </button>
-    </th>
-  );
-}
-
-const cell = "border-b border-subtle px-3 py-3 align-top";
-const numberCell = `${cell} text-right tabular-nums whitespace-nowrap`;
 
 /**
  * The theme list as a table, for the desktop layout: one row per theme with its description, reviews
@@ -92,32 +39,21 @@ export function ThemeTable({
   query: string;
   recentDays: number;
 }) {
-  const [sortKey, setSortKey] = useState<SortKey>("reviews");
-  const [direction, setDirection] = useState<Direction>("desc");
-  const sorted = sortThemes(themes, sortKey, direction);
-  const sorting = { sortKey, direction, onSort: sortBy };
-
-  function sortBy(key: SortKey) {
-    if (key === sortKey) setDirection(direction === "desc" ? "asc" : "desc");
-    else {
-      setSortKey(key);
-      setDirection(key === "name" ? "asc" : "desc");
-    }
-  }
+  // Ties fall back to the larger theme, so the order is stable and sensible.
+  const sorting = useSorting<SortKey>("reviews", "desc", ["name"]);
+  const sorted = sortRows(themes, VALUE, sorting, (a, b) => b.review_count - a.review_count);
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[880px] border-collapse text-[15px]">
         <thead>
           <tr>
-            <Heading {...sorting} column="name" label="Theme" className="pl-5 text-left" />
-            <Heading {...sorting} column="reviews" label="Reviews" className="w-[120px] text-right" />
-            <th scope="col" className="w-[220px] border-y border-line px-3 py-1.5 text-left text-[13px] font-semibold text-muted">
-              Sentiment
-            </th>
-            <Heading {...sorting} column="positive" label="Positive" className="w-[64px] text-right" />
-            <Heading {...sorting} column="negative" label="Negative" className="w-[68px] text-right" />
-            <Heading {...sorting} column="recent" label={`Last ${recentDays} days`} className="w-[84px] pr-5 text-right" />
+            <SortHeading {...sorting} column="name" label="Theme" className="pl-5 text-left" />
+            <SortHeading {...sorting} column="reviews" label="Reviews" className="w-[120px] text-right" />
+            <PlainHeading label="Sentiment" className="w-[220px] text-left" />
+            <SortHeading {...sorting} column="positive" label="Positive" className="w-[64px] text-right" />
+            <SortHeading {...sorting} column="negative" label="Negative" className="w-[68px] text-right" />
+            <SortHeading {...sorting} column="recent" label={`Last ${recentDays} days`} className="w-[84px] pr-5 text-right" />
           </tr>
         </thead>
         <tbody>

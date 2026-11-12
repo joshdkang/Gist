@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ExportButton } from "@/components/ExportButton";
+import { cell, numberCell, SortHeading, sortRows, useSorting } from "@/components/SortableTable";
 import { card } from "@/components/ui";
 import { formatNumber } from "@/lib/format";
+import { useLayout } from "@/lib/layout";
 import type { RatingScale, ThemeRatingImpact, ThemeRatings } from "@/lib/types";
 
 /** An average rating as the scale shows it: "4.1" on numbers, "78% positive" on binary, "2.4" (a position) on labels. */
@@ -121,6 +123,112 @@ function Group({
   );
 }
 
+type SortKey = "name" | "rated" | "with" | "without" | "effect";
+
+const VALUE: Record<SortKey, (impact: ThemeRatingImpact) => number | string> = {
+  name: (impact) => impact.name,
+  rated: (impact) => impact.rated_reviews,
+  with: (impact) => impact.average_with,
+  // A theme every rated review raises has no "without"; it sorts below every real one.
+  without: (impact) => impact.average_without ?? Number.NEGATIVE_INFINITY,
+  effect: (impact) => impact.effect,
+};
+
+/** What the ratings comparison says, above both the card and the table. */
+function Explanation({ data, scale, several }: { data: ThemeRatings; scale: RatingScale; several: boolean }) {
+  return (
+    <p className="mt-1 max-w-3xl text-sm text-muted">
+      The average rating of reviews that mention each theme, against reviews that don&apos;t, across{" "}
+      {formatNumber(data.rated_reviews)} rated reviews averaging {formatAverage(data.average!, scale)}
+      {several ? ` (${describeUnits(scale)})` : ""}. The effect is how much higher or lower the overall average
+      would be if those reviews were rated like the rest, so it weighs both how different a theme&apos;s ratings
+      are and how often it comes up. It shows an association, not proof that the theme causes the rating.
+    </p>
+  );
+}
+
+/**
+ * The desktop layout's ratings by theme: one sortable table, by default the themes that raise the
+ * average most first and those that lower it most last. Themes whose ratings don't differ
+ * significantly are left out until asked for, and then shown faded. The exports are in the filter bar.
+ */
+function RatingTable({ entityId, data, scale, several }: { entityId: string; data: ThemeRatings; scale: RatingScale; several: boolean }) {
+  const [showAll, setShowAll] = useState(false);
+  const sorting = useSorting<SortKey>("effect", "desc", ["name"]);
+  const significant = data.themes.filter((impact) => impact.significant);
+  const shown = showAll ? data.themes : significant;
+  const rows = sortRows(shown, VALUE, sorting, (a, b) => b.rated_reviews - a.rated_reviews);
+  const largest = Math.max(0, ...data.themes.map((impact) => Math.abs(impact.effect)));
+  const others = data.themes.length - significant.length;
+
+  return (
+    <section className={`${card} overflow-hidden`}>
+      <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-4 pb-3">
+        <div>
+          <h2 className="text-lg font-semibold">Ratings by theme</h2>
+          <Explanation data={data} scale={scale} several={several} />
+        </div>
+        {others > 0 && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={showAll} onChange={(event) => setShowAll(event.target.checked)} className="size-4" />
+            Show the {others} {others === 1 ? "theme" : "themes"} with no significant difference
+          </label>
+        )}
+      </div>
+      {rows.length === 0 ? (
+        <p className="border-t border-line px-5 py-4 text-sm">No theme&apos;s ratings differ significantly from the rest.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[880px] border-collapse text-[15px]">
+            <thead>
+              <tr>
+                <SortHeading {...sorting} column="name" label="Theme" className="pl-5 text-left" />
+                <SortHeading {...sorting} column="rated" label="Rated reviews" className="w-[130px] text-right" />
+                <SortHeading {...sorting} column="with" label="Average with" className="w-[130px] text-right" />
+                <SortHeading {...sorting} column="without" label="Average without" className="w-[150px] text-right" />
+                <SortHeading {...sorting} column="effect" label="Effect on the average" className="w-[320px] pr-5 text-right" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((impact) => {
+                const tone = !impact.significant ? "text-muted" : impact.effect < 0 ? "font-semibold text-neg-fg" : "font-semibold text-pos-fg";
+                return (
+                  <tr key={impact.id} className={`hover:bg-bg ${impact.significant ? "" : "opacity-60"}`}>
+                    <td className={`${cell} pl-5`}>
+                      <Link href={`/entities/${entityId}/themes/${impact.id}`} className="font-semibold hover:underline">
+                        {impact.name}
+                      </Link>
+                      {impact.kind === "candidate" && (
+                        <span className="ml-2 rounded-full bg-subtle px-2 py-0.5 text-[11px] font-semibold text-muted">Emerging</span>
+                      )}
+                    </td>
+                    <td className={numberCell}>{formatNumber(impact.rated_reviews)}</td>
+                    <td className={numberCell}>{formatAverage(impact.average_with, scale)}</td>
+                    <td className={numberCell}>
+                      {impact.average_without === null ? "—" : formatAverage(impact.average_without, scale)}
+                    </td>
+                    <td className={`${cell} pr-5`}>
+                      <span className="flex items-center gap-4">
+                        <span className="min-w-0 flex-1">
+                          <EffectBar effect={impact.effect} largest={largest} significant={impact.significant} />
+                        </span>
+                        <span className={`w-[72px] text-right tabular-nums whitespace-nowrap ${tone}`}>
+                          {formatEffect(impact.effect, scale)}
+                        </span>
+                      </span>
+                      {!impact.significant && <span className="mt-0.5 block text-right text-[13px] text-muted">Not significant</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Which themes go with lower or higher ratings: each theme's average rating against the reviews that
  * don't raise it, ranked by its effect on the overall average. Significant differences are split into
@@ -137,8 +245,10 @@ export function RatingDrivers({
   several: boolean;
 }) {
   const [showRest, setShowRest] = useState(false);
+  const desktop = useLayout() === "desktop";
   if (!data.scale || data.themes.length === 0 || data.average === null) return null;
   const scale = data.scale;
+  if (desktop) return <RatingTable entityId={entityId} data={data} scale={scale} several={several} />;
   const largest = Math.max(0, ...data.themes.map((impact) => Math.abs(impact.effect)));
   const lowering = data.themes.filter((impact) => impact.significant && impact.effect < 0);
   const raising = data.themes.filter((impact) => impact.significant && impact.effect > 0).reverse();
@@ -152,13 +262,7 @@ export function RatingDrivers({
           <h2 className="text-lg font-semibold">Ratings by theme</h2>
           <ExportButton path={`/entities/${entityId}/exports/themes.csv`} />
         </div>
-        <p className="mt-1 max-w-3xl text-sm text-muted">
-          The average rating of reviews that mention each theme, against reviews that don&apos;t, across{" "}
-          {formatNumber(data.rated_reviews)} rated reviews averaging {formatAverage(data.average, scale)}
-          {several ? ` (${describeUnits(scale)})` : ""}. The effect is how much higher or lower the overall average
-          would be if those reviews were rated like the rest, so it weighs both how different a theme&apos;s ratings
-          are and how often it comes up. It shows an association, not proof that the theme causes the rating.
-        </p>
+        <Explanation data={data} scale={scale} several={several} />
       </div>
       {lowering.length + raising.length === 0 && (
         <p className="border-t border-line px-5 py-4 text-sm">No theme&apos;s ratings differ significantly from the rest.</p>
