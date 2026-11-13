@@ -212,3 +212,35 @@ export interface RatingSummary {
   rated_reviews: number;
   scales: RatingScaleSummary[];
 }
+
+/** A theme a review raises, with the review's sentiment for it. */
+export interface ReviewTag {
+  id: number;
+  name: string;
+  kind: "discovered" | "candidate" | "general";
+  sentiment: Sentiment | null;
+}
+
+/** A review on the All reviews page, with every theme it raises (themes, then emerging topics, then General). */
+export interface ReviewListItem extends Omit<ThemeReview, "sentiment"> {
+  themes: ReviewTag[];
+}
+
+export interface ThemeFacet {
+  id: number;
+  name: string;
+  kind: "discovered" | "candidate" | "general";
+  /** Reviews raising the theme under the filters: the other filters with "any", the current results with "all". */
+  count: number;
+  /** For a chosen theme, its mentions by sentiment under the other filters. */
+  sentiments: SentimentCounts | null;
+}
+
+export interface ReviewFacets {
+  total: number;
+  themes: ThemeFacet[];
+  ratings: RatingSummary;
+  period_interval: TrendInterval;
+  /** Reviews per period under every filter but the period, oldest first (periods without reviews left out). */
+  periods: { period_start: string; reviews: number }[];
+}

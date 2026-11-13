@@ -48,6 +48,15 @@ frontend's origin (the default allows `http://localhost:3000`).
   filters (periods, ratings) are removable chips beside the sentiment chips. The period comparison on desktop is one table
   (`components/ChangesTable.tsx`) with the change in mentions and in the negative share side by side; it lists
   the significant changes, with the rest behind a checkbox. The server renders Mobile, which the browser corrects.
+- **All reviews** (`entities/[entityId]/reviews`): every review with its themes as tags, from the entity page's
+  All reviews button (which carries its filters). The filter column (`src/components/ReviewFilterPanel.tsx`)
+  has a search, the periods (`src/components/PeriodList.tsx`: a checklist with counts under the other
+  filters and a Month/Quarter/Year switch; years are rows, or headings over a grid of their quarters or months;
+  any mix can be ticked, and older years wait behind "Show earlier years"), the themes with counts from `reviews/facets` (ticking one reveals the sentiments of its
+  mentions to choose; Any/All says how several combine; ↗ opens a theme's page on hover), and the ratings.
+  Clicking a review's tag adds its theme to the filters. The filters live in the URL as the API's parameters
+  (`theme=12:negative`, `match`, plus the shared ones; `src/lib/reviewFilters.ts`). On mobile the filter
+  column opens from a Filters button.
 - **Search** (`src/components/SearchBox.tsx`): a box in the entity page's filter bar (or above the theme list on
   mobile) and on a theme's reviews searches the review text; it runs on Enter. The search lives in the URL as
   `q`, the API's parameter, and is a filter like the others: a chip, part of Clear all, carried into a theme's

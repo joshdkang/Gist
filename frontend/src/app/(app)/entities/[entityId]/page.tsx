@@ -333,6 +333,12 @@ export default function EntityPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {detail.theme_count > 0 && (
+                // Every review, with the filters set here (rating, period, search) carried over.
+                <Link href={`/entities/${entityId}/reviews${query}`} className={buttonSecondary}>
+                  All reviews
+                </Link>
+              )}
               {list?.as_of && list.themes.length > 0 && (
                 <>
                   <Link href={`/entities/${entityId}/changes`} className={buttonSecondary}>

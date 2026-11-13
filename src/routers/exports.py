@@ -40,6 +40,7 @@ from routers.themes import (
     period_filter,
     rating_filter,
 )
+from routers.reviews import THEME_DESCRIPTION, Match, ReviewFilters, parse_themes, resolve_themes
 from search import search_filter
 from theme_stats import per_review_theme_sentiment
 
@@ -255,14 +256,19 @@ async def export_reviews(
     rating: list[str] = Query([], description=RATING_DESCRIPTION),
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    themes: list[str] = Query([], alias="theme", description=THEME_DESCRIPTION),
+    match_mode: Match = Query(Match.ANY, alias="match", description="How several `theme` filters combine"),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
 ):
     """Tagged reviews: one row per review and theme it raises (merged candidates under the theme
     they merged into), with the review's sentiment for that theme, newest first. With `theme_id`,
     only that theme's reviews, filtered as a theme's page filters them; without it, every
-    classified review with all its themes, `general` included."""
-    match = both(rating_filter(rating_scale, rating), period_filter(period, interval), search_filter(q))
+    classified review with all its themes, `general` included. `theme` and `match` filter the reviews
+    as the All reviews page does (each review still lists all its themes)."""
+    chosen = await resolve_themes(db, entity, parse_themes(themes))
+    by_theme = ReviewFilters(entity.id, chosen, match_mode, None, None, None).theme_condition()
+    match = both(rating_filter(rating_scale, rating), period_filter(period, interval), search_filter(q), by_theme)
     theme = await get_theme(db, entity, theme_id) if theme_id is not None else None
 
     per_review, combined = per_review_theme_sentiment(entity.id, theme.id if theme else None)

@@ -11,6 +11,7 @@ import type {
   RatingFilter,
   RatingScale,
   RatingSummary,
+  ReviewFacets,
   ReviewPeriods,
   RunDetail,
   ThemeChanges,
@@ -115,11 +116,20 @@ export function useRefreshWhenRunEnds(entityId: string, run: RunDetail | null | 
   useEffect(() => {
     const active = isActive(run);
     if (wasActive.current && !active) {
-      for (const key of ["themes", "theme-reviews", "trend", "changes", "theme-ratings", "review-periods"]) {
+      for (const key of ["themes", "theme-reviews", "trend", "changes", "theme-ratings", "review-periods", "review-facets", "reviews"]) {
         queryClient.invalidateQueries({ queryKey: [key, entityId] });
       }
       queryClient.invalidateQueries({ queryKey: ["entities"] });
     }
     wasActive.current = active;
   }, [entityId, run, queryClient]);
+}
+
+/** The All reviews page's counts by theme, sentiment and rating, for its filters (an API query string). */
+export function useReviewFacets(entityId: string, query: string) {
+  return useQuery({
+    queryKey: ["review-facets", entityId, query],
+    queryFn: () => api<ReviewFacets>(`/entities/${entityId}/reviews/facets?${query}`),
+    placeholderData: keepPreviousData,
+  });
 }

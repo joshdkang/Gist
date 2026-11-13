@@ -391,3 +391,23 @@ discovery v8 and classification v5.
   and kid profiles, Advertising and lock screen ads, Battery and charging, Camera quality), and
   Battery and charging (511 reviews, 4.7%) stays a candidate. Promotion added Size and portability
   and Gift giving. Tokens per run were similar (about 690k to 720k in, 590k to 630k out).
+
+## Open issue: praise in a list is tagged neutral (2026-11-12)
+
+Noticed while mocking up the All reviews page; not yet fixed.
+
+Review 56618 (Cochon, Jan 7, 2022, rated 5) ends: "We've never had a bad meal from pork (cochon)
+to rabbit to gator bites to dessert!" Classification run 73 (Haiku, prompt v5 at the time) tagged
+Server attentiveness, Reservations and seating, and Drinks and bar as positive, but Pork cheeks,
+ribs and charcuterie, Rabbit and dumplings, and Fried alligator as **neutral**. All six should be
+positive: the whole review is praise, and the dishes are praised together by the closing sentence
+("never had a bad meal from ... to ...") rather than one by one.
+
+Likely cause: the model reads a dish that is only named, without an adjective of its own, as a
+neutral mention, even when a sentence-level judgement covers it. Neutral should mean the review
+mentions the topic without any opinion of it.
+
+To try: a prompt rule and an example for praise or criticism that covers several items at once
+(a list, "everything from X to Y", "all the dishes"), so each item takes the shared sentiment; then
+re-run classification on a sample of Cochon reviews with neutral tags in rated-5 reviews and compare
+the share still neutral. Check that genuinely neutral mentions ("we ordered the rabbit") stay neutral.

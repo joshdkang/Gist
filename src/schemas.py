@@ -207,6 +207,42 @@ class ThemeReviewOut(BaseModel):
     sentiment: Sentiment | None = Field(description="The review's combined sentiment for the theme")
 
 
+class ReviewTag(BaseModel):
+    id: int
+    name: str
+    kind: ThemeKind
+    sentiment: Sentiment | None = Field(description="The review's combined sentiment for the theme")
+
+
+class ReviewListItem(BaseModel):
+    id: int
+    title: str | None
+    text: str
+    rating: float | None
+    review_date: datetime | None
+    themes: list[ReviewTag] = Field(description="Themes first, then emerging topics, then General")
+
+
+class ThemeFacet(BaseModel):
+    id: int
+    name: str
+    kind: ThemeKind
+    count: int = Field(description="Reviews that raise the theme under the filters (see the facets endpoint)")
+    sentiments: SentimentCounts | None = Field(
+        None, description="A chosen theme's mentions by sentiment under the other filters"
+    )
+
+
+class ReviewFacets(BaseModel):
+    total: int = Field(description="Reviews the filters select")
+    themes: list[ThemeFacet]
+    ratings: "RatingSummary"
+    period_interval: str
+    periods: list["PeriodCount"] = Field(
+        description="Reviews per period (on period_interval) under every filter but the period, oldest first"
+    )
+
+
 class RatingBucket(BaseModel):
     label: str = Field(description="The level ('5'), range ('80–100'), or label ('good')")
     count: int
@@ -328,3 +364,7 @@ class ThemeTrend(BaseModel):
     theme_id: int
     interval: str
     points: list[TrendPoint]
+
+
+# ReviewFacets names RatingSummary, which is defined after it.
+ReviewFacets.model_rebuild()

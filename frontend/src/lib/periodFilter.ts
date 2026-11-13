@@ -70,10 +70,31 @@ export function describeFilters(
     .join(" ");
 }
 
-/** "from 2019 Q1", "from 2019 Q1 and 2019 Q3", or "from 6 quarters, 2018 Q1 to 2019 Q4". */
+/** The start of the period after `start` (an ISO period start, as the API writes them). */
+function nextStart(start: string, interval: TrendInterval): number {
+  const date = new Date(start);
+  const months = { month: 1, quarter: 3, year: 12 }[interval];
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1);
+}
+
+/**
+ * The chosen periods in words, each run of consecutive periods as a range: "from 2019 Q1",
+ * "from 2018 Q1 to 2019 Q4", "from 2012–2013 and 2019–2020", or "from 5 ranges, 2012 to 2021".
+ */
 export function describePeriodsFilter(filter: PeriodsFilter): string {
-  const names = [...filter.starts].sort().map((start) => periodName(start, filter.interval));
-  if (names.length === 1) return `from ${names[0]}`;
+  const starts = [...filter.starts].sort();
+  const runs: [string, string][] = [];
+  for (const start of starts) {
+    const run = runs.at(-1);
+    if (run && nextStart(run[1], filter.interval) === new Date(start).getTime()) run[1] = start;
+    else runs.push([start, start]);
+  }
+  const name = (start: string) => periodName(start, filter.interval);
+  if (runs.length === 1) {
+    const [first, last] = runs[0];
+    return first === last ? `from ${name(first)}` : `from ${name(first)} to ${name(last)}`;
+  }
+  const names = runs.map(([first, last]) => (first === last ? name(first) : `${name(first)}–${name(last)}`));
   if (names.length <= 3) return `from ${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
-  return `from ${names.length} ${filter.interval}s, ${names[0]} to ${names.at(-1)}`;
+  return `from ${names.length} ranges, ${name(runs[0][0])} to ${name(runs.at(-1)![1])}`;
 }
