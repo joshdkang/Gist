@@ -1,7 +1,7 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { ExportButton } from "@/components/ExportButton";
@@ -9,7 +9,7 @@ import { NotAnalyzed } from "@/components/NotAnalyzed";
 import { capitalize, FilterChip } from "@/components/FilterBar";
 import { ReviewFilterPanel } from "@/components/ReviewFilterPanel";
 import { Highlighted, searchTerms } from "@/components/SearchBox";
-import { BackLink, buttonSecondary, card, ErrorNote, inputBase, Loading, Page, PageTitle } from "@/components/ui";
+import { BackLink, buttonSecondary, card, ErrorNote, Loading, Page, PageTitle } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
 import { formatDate, formatNumber, sentimentStyle } from "@/lib/format";
 import { useLayout } from "@/lib/layout";
@@ -35,6 +35,7 @@ import {
   type ThemeChoices,
 } from "@/lib/reviewFilters";
 import type { RatingFilter, ReviewListItem, ReviewTag, TrendInterval } from "@/lib/types";
+import { useUrlParams } from "@/lib/useUrlParams";
 
 const PAGE_SIZE = 20;
 const SORTS: { key: ReviewSort; label: string }[] = [
@@ -133,9 +134,7 @@ function ReviewItem({
  */
 export default function AllReviewsPage() {
   const { entityId } = useParams<{ entityId: string }>();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [searchParams, replaceParams] = useUrlParams();
   const desktop = useLayout() === "desktop";
   const [showFilters, setShowFilters] = useState(false);
   const entity = useEntity(entityId);
@@ -169,7 +168,7 @@ export default function AllReviewsPage() {
   function go(next: Partial<Filters>, nextSort: ReviewSort = sort) {
     const params = filterParams({ ...filters, ...next });
     if (nextSort !== "newest") params.set("sort", nextSort);
-    router.replace(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false });
+    replaceParams(params);
   }
 
   function toggleTheme(themeId: number) {
@@ -277,13 +276,17 @@ export default function AllReviewsPage() {
                 <h2 className="text-lg font-semibold">
                   {total === null ? "Counting the reviews…" : `${formatNumber(total)} ${total === 1 ? "review" : "reviews"}${joined}`}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="review-sort" className="text-sm">
                     Sort
+                  </label>
+                  {/* The sort menu and the export share one width. */}
+                  <div className="grid grid-cols-2 gap-2">
                     <select
+                      id="review-sort"
                       value={sort}
                       onChange={(event) => go({}, event.target.value as ReviewSort)}
-                      className={`${inputBase} h-9 pr-8 text-sm`}
+                      className="h-9 w-full rounded-lg border border-line-strong bg-surface pr-8 pl-3 text-sm text-fg"
                     >
                       {SORTS.map((option) => (
                         <option key={option.key} value={option.key}>
@@ -291,13 +294,14 @@ export default function AllReviewsPage() {
                         </option>
                       ))}
                     </select>
-                  </label>
-                  {total !== null && total > 0 && (
-                    <ExportButton
-                      path={`/entities/${entityId}/exports/reviews.csv${query ? `?${query}` : ""}`}
-                      label={`Export ${formatNumber(total)} ${total === 1 ? "review" : "reviews"}`}
-                    />
-                  )}
+                    {total !== null && total > 0 && (
+                      <ExportButton
+                        path={`/entities/${entityId}/exports/reviews.csv${query ? `?${query}` : ""}`}
+                        label={`Export ${formatNumber(total)} ${total === 1 ? "review" : "reviews"}`}
+                        className="w-full"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
               {chips.length > 0 && (

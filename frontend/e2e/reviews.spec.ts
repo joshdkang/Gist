@@ -70,11 +70,11 @@ test("periods tick by year, quarter or month, and sorting by rating puts the low
 
   // Two separate years.
   const years = aside.locator("label").filter({ hasText: /^20\d\d/ });
-  // Each tick changes the address the page reads its filters from; wait for one before the next.
+  // Ticked straight after each other: the second tick must build on the first, not on the old URL.
   await years.nth(0).locator("input").click();
-  await expect(page.getByRole("button", { name: /^Remove filter: From / })).toBeVisible();
   await years.nth(2).locator("input").click();
   await expect(page.getByRole("button", { name: /^Remove filter: From .+ and / })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.getAll("period").length).toBe(2);
   await expect.poll(() => numberIn(total(page))).toBeLessThan(all);
 
   // Switching to quarters clears the choice and shows each year's quarters as a row of four.

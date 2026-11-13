@@ -37,10 +37,14 @@ frontend's origin (the default allows `http://localhost:3000`).
   `downloadFile` in `src/lib/api.ts` fetches the file and hands it to the browser as a download.
 - **Entity list**: cards on mobile; on desktop a sortable table (`src/components/EntityTable.tsx`) with reviews,
   themes, newest review, last analysed, created and status (analysed, queued, analysing, last run failed).
+- **Filters in the URL** go through `useUrlParams` (`src/lib/useUrlParams.ts`), not `useSearchParams`
+  directly. `router.replace` updates the URL in a transition, so a second quick click would build on the
+  old parameters and lose the first; the hook keeps them in React state that changes at once, follows the
+  URL when it changes from outside (back button, links), and ignores an earlier replace that lands late.
 - **Layouts** (`src/lib/layout.ts`): Desktop or Mobile, chosen in the account menu and kept in this browser
   only (a layout suits a device, unlike the palette, which follows the account). Until someone chooses, the
   screen width decides (Desktop from 1024px). Mobile is the narrow stacked page with theme cards. Desktop
-  widens every page to 1360px (`pageWidth` in `components/ui.tsx`, which the header follows too) and, on
+  widens every page to 1440px (`pageWidth` in `components/ui.tsx`, which the header follows too) and, on
   the entity page, puts Ratings and Reviews over time side by side, adds a filter bar
   (`components/FilterBar.tsx`: the review count, a removable chip per filter, the view switch and the
   exports; it stays at the top of the window only while a filter is on) and shows the themes as a sortable

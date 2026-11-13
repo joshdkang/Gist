@@ -1,6 +1,6 @@
 "use client";
 
-import { periodName } from "@/components/TrendChart";
+import { AxisEnd, PeriodAxis, periodName } from "@/components/TrendChart";
 import { card, INTERVALS, Toggle } from "@/components/ui";
 import { formatNumber } from "@/lib/format";
 import { describePeriodsFilter, type PeriodsFilter } from "@/lib/periodFilter";
@@ -42,13 +42,9 @@ export function ReviewsOverTime({
     onFilterChange(starts.length > 0 ? { interval: shown, starts } : null);
   }
 
-  let previousYear = "";
   const bars = slots.map((start) => {
-    const year = start.slice(0, 4);
-    const label = year !== previousYear ? year : "";
-    previousYear = year;
     const count = reviews.get(start) ?? 0;
-    return { start, label, count, tip: `${periodName(start, shown)}: ${formatNumber(count)} reviews` };
+    return { start, count, tip: `${periodName(start, shown)}: ${formatNumber(count)} reviews` };
   });
 
   return (
@@ -101,20 +97,9 @@ export function ReviewsOverTime({
                   </button>
                 );
               })}
+              <AxisEnd interval={shown} />
             </div>
-            <div className="flex h-6 gap-[3px]" aria-hidden="true">
-              {bars.map((bar) => (
-                <div
-                  key={bar.start}
-                  className={`overflow-visible border-t-[3px] text-xs whitespace-nowrap text-muted ${
-                    selected.includes(bar.start) ? "border-fg" : "border-transparent"
-                  }`}
-                  style={barStyle}
-                >
-                  {bar.label}
-                </div>
-              ))}
-            </div>
+            <PeriodAxis starts={slots} interval={shown} selected={selected} barStyle={barStyle} />
           </div>
         </div>
       </div>

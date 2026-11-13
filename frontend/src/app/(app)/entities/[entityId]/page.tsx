@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { EntityActions } from "@/components/EntityActions";
@@ -30,6 +30,7 @@ import {
 } from "@/lib/queries";
 import { readRatingFilter } from "@/lib/ratingFilter";
 import type { EntityDetail, RatingFilter, ThemeList, ThemeSummary, TrendInterval } from "@/lib/types";
+import { useUrlParams } from "@/lib/useUrlParams";
 
 type Sort = "total" | "recent";
 
@@ -243,9 +244,7 @@ export default function EntityPage() {
   const entity = useEntity(entityId);
   // The rating filter lives in the URL, so opening a theme, its back link, the browser's back
   // button and a reload all keep it.
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [searchParams, replaceParams] = useUrlParams();
   const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
   // The period filter lives in the URL too (`interval` and repeated `period`, as the theme page reads them).
   const periodsFilter = useMemo(() => readPeriodsFilter(searchParams), [searchParams]);
@@ -290,23 +289,23 @@ export default function EntityPage() {
   const viewToggle = canRate ? <Toggle label="View" options={VIEWS} value={view} onChange={setView} /> : null;
 
   function filterRatings(filter: RatingFilter | null) {
-    router.replace(`${pathname}${filterQuery(filter, periodsFilter, search)}`, { scroll: false });
+    replaceParams(filterQuery(filter, periodsFilter, search));
     // The rating bars filter the theme list, so choosing one shows it.
     if (filter) setView("themes");
   }
 
   function filterPeriods(filter: PeriodsFilter | null) {
-    router.replace(`${pathname}${filterQuery(ratingFilter, filter, search)}`, { scroll: false });
+    replaceParams(filterQuery(ratingFilter, filter, search));
     if (filter) setView("themes");
   }
 
   function searchReviews(next: string | null) {
-    router.replace(`${pathname}${filterQuery(ratingFilter, periodsFilter, next)}`, { scroll: false });
+    replaceParams(filterQuery(ratingFilter, periodsFilter, next));
     if (next) setView("themes");
   }
 
   function clearFilters() {
-    router.replace(pathname, { scroll: false });
+    replaceParams("");
   }
 
   function changePeriodInterval(next: TrendInterval) {
@@ -335,7 +334,8 @@ export default function EntityPage() {
                 {formatNumber(detail.review_count)} reviews{latest}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            {/* On a wide screen the buttons share one width (the widest one's), so the row reads evenly. */}
+            <div className="flex flex-wrap items-center gap-2 lg:grid lg:auto-cols-fr lg:grid-flow-col">
               {detail.theme_count > 0 && (
                 // Every review, with the filters set here (rating, period, search) carried over.
                 <Link href={`/entities/${entityId}/reviews${query}`} className={buttonSecondary}>

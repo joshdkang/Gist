@@ -15,21 +15,23 @@ type Panel = "none" | "menu" | "edit" | "delete";
 export function EntityActions({ entity }: { entity: EntityDetail }) {
   const [panel, setPanel] = useState<Panel>("none");
   return (
-    <div className="relative flex gap-2">
-      <Link href={`/entities/${entity.id}/upload`} className={`${buttonPrimary} h-10`}>
+    // `contents`: the two buttons sit in the page's row of buttons as items of their own, so they take
+    // the same size as the rest; the menu and panels hang from the Manage button's own box.
+    <div className="contents">
+      <Link href={`/entities/${entity.id}/upload`} className={buttonPrimary}>
         Upload reviews
       </Link>
+      <div className="relative">
       <button
         type="button"
-        aria-label="More actions"
+        aria-haspopup="true"
         aria-expanded={panel === "menu"}
         onClick={() => setPanel(panel === "menu" ? "none" : "menu")}
-        className="flex size-10 items-center justify-center rounded-lg border border-line-strong bg-surface"
+        className={`${buttonSecondary} w-full gap-1.5`}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <circle cx="5" cy="12" r="1.8" />
-          <circle cx="12" cy="12" r="1.8" />
-          <circle cx="19" cy="12" r="1.8" />
+        Manage
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
       </button>
       {panel === "menu" && (
@@ -48,6 +50,7 @@ export function EntityActions({ entity }: { entity: EntityDetail }) {
       )}
       {panel === "edit" && <EditPanel entity={entity} onClose={() => setPanel("none")} />}
       {panel === "delete" && <DeletePanel entity={entity} onClose={() => setPanel("none")} />}
+      </div>
     </div>
   );
 }

@@ -1,10 +1,13 @@
+import { type CSSProperties, useEffect, useRef, useState } from "react";
+
 import { formatNumber } from "@/lib/format";
 import type { SentimentCounts, ThemeTrend, TrendInterval, TrendPoint } from "@/lib/types";
 
 const CHART_HEIGHT = 188;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 // Months and quarters keep a readable width; a long history scrolls sideways instead of shrinking.
-const MIN_BAR_WIDTH: Record<TrendInterval, string> = { month: "16px", quarter: "16px", year: "0px" };
+// A month is wide enough for its name under the bar (see PeriodAxis), and a quarter a little wider.
+const MIN_BAR_WIDTH: Record<TrendInterval, string> = { month: "24px", quarter: "28px", year: "0px" };
 // Top to bottom, so positive sits on the baseline.
 const STACK = [
   { key: "negative", className: "bg-neg" },
@@ -35,6 +38,85 @@ export function periodName(periodStart: string, interval: TrendInterval): string
   if (interval === "year") return year;
   if (interval === "quarter") return `${year} Q${Math.floor(month / 3) + 1}`;
   return `${MONTHS[month]} ${year}`;
+}
+
+/**
+ * The labels under a chart's bars, so the axis says what a bar is: each year at the year interval;
+ * Q1-Q4 at quarters; at months, every month when the bars are wide enough for the names
+ * (`everyMonth`), or else the months that start a quarter (Jan, Apr, Jul, Oct). Below months and
+ * quarters, each year under its first period.
+ */
+export function periodTicks(
+  starts: string[],
+  interval: TrendInterval,
+  everyMonth = false,
+): { tick: string; year: string }[] {
+  let previousYear = "";
+  return starts.map((start) => {
+    const year = start.slice(0, 4);
+    const month = Number(start.slice(5, 7)) - 1;
+    const firstOfYear = year !== previousYear;
+    previousYear = year;
+    if (interval === "year") return { tick: year, year: "" };
+    const tick = interval === "quarter" ? `Q${Math.floor(month / 3) + 1}` : everyMonth || month % 3 === 0 ? MONTHS[month] : "";
+    return { tick, year: firstOfYear ? year : "" };
+  });
+}
+
+/**
+ * Room after a chart's last bar, at the end of both the bars' row and the labels' row (so the two
+ * stay in line), for the last label to overflow into: at months and quarters a label like "2022" is
+ * wider than its bar, and the chart's edge would cut it off. Year bars fit their labels.
+ */
+export function AxisEnd({ interval }: { interval: TrendInterval }) {
+  return interval === "year" ? null : <span aria-hidden="true" className="w-6 shrink-0" />;
+}
+
+/** The row of labels under a chart's bars, with a line under the chosen ones, each as wide as its bar. */
+export function PeriodAxis({
+  starts,
+  interval,
+  selected,
+  barStyle,
+}: {
+  starts: string[];
+  interval: TrendInterval;
+  selected: string[];
+  barStyle: CSSProperties;
+}) {
+  // A month's name fits under its bar from about this width ("May", "Sep" at the label's size, with space between).
+  const MONTH_LABEL_WIDTH = 24;
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [barWidth, setBarWidth] = useState(0);
+  useEffect(() => {
+    // Bars stretch to fill the card, so their width is only known once drawn, and changes with the window.
+    const first = rowRef.current?.firstElementChild;
+    if (!first) return;
+    const observer = new ResizeObserver(() => setBarWidth(first.getBoundingClientRect().width));
+    observer.observe(first);
+    return () => observer.disconnect();
+  }, [starts.length, interval]);
+  const ticks = periodTicks(starts, interval, barWidth >= MONTH_LABEL_WIDTH);
+  return (
+    <div ref={rowRef} className="flex gap-[3px]" aria-hidden="true">
+      {starts.map((start, index) => (
+        // min-w-0: a label wider than its bar overflows it instead of widening the cell, which
+        // would push every later label (and the selection line) out of line with its bar.
+        <div
+          key={start}
+          className={`min-w-0 overflow-visible border-t-[3px] text-xs leading-4 whitespace-nowrap text-muted ${
+            selected.includes(start) ? "border-fg" : "border-transparent"
+          } ${interval === "year" ? "h-6" : "h-9"}`}
+          style={barStyle}
+        >
+          {/* A bar without a label keeps the line's height, so the years stay on the second line. */}
+          <span className="block">{ticks[index].tick || <>&nbsp;</>}</span>
+          {ticks[index].year && <span className="block font-medium text-fg">{ticks[index].year}</span>}
+        </div>
+      ))}
+      <AxisEnd interval={interval} />
+    </div>
+  );
 }
 
 const percent = (value: number) => {
@@ -111,13 +193,7 @@ export function TrendChart({
   const axisTop = mode === "count" ? formatNumber(max) : percent(max);
   const hatched = trend.points.some((point) => isSmallSample(point, mode));
 
-  let previousYear = "";
-  const bars = trend.points.map((point) => {
-    const year = point.period_start.slice(0, 4);
-    const label = year !== previousYear ? year : "";
-    previousYear = year;
-    return { key: point.period_start, label, point, tip: describe(point, interval, mode) };
-  });
+  const bars = trend.points.map((point) => ({ key: point.period_start, point, tip: describe(point, interval, mode) }));
   // Wide enough to fill a page-wide card on desktop, capped so a short history doesn't turn into blocks.
   const barStyle = { flex: `1 0 ${MIN_BAR_WIDTH[interval]}`, maxWidth: "96px" };
   const what = { count: "Reviews", share: "Share of reviews", mix: "Sentiment mix of reviews" }[mode];
@@ -169,20 +245,14 @@ export function TrendChart({
                   </button>
                 );
               })}
+              <AxisEnd interval={trend.interval as TrendInterval} />
             </div>
-            <div className="flex h-6 gap-[3px]" aria-hidden="true">
-              {bars.map((bar) => (
-                <div
-                  key={bar.key}
-                  className={`overflow-visible border-t-[3px] text-xs whitespace-nowrap text-muted ${
-                    selected.includes(bar.key) ? "border-fg" : "border-transparent"
-                  }`}
-                  style={barStyle}
-                >
-                  {bar.label}
-                </div>
-              ))}
-            </div>
+            <PeriodAxis
+              starts={bars.map((bar) => bar.key)}
+              interval={trend.interval as TrendInterval}
+              selected={selected}
+              barStyle={barStyle}
+            />
           </div>
         </div>
       </div>

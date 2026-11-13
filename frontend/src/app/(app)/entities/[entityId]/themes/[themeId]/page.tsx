@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { ExportButton, smallButtonClass } from "@/components/ExportButton";
@@ -37,6 +37,7 @@ import type {
   ThemeTrend,
   TrendInterval,
 } from "@/lib/types";
+import { useUrlParams } from "@/lib/useUrlParams";
 
 const PAGE_SIZE = 20;
 const MODES: { key: TrendMode; label: string }[] = [
@@ -364,9 +365,7 @@ function sumPeriods(trend: ThemeTrend, starts: string[]): SentimentCounts {
 
 export default function ThemePage() {
   const { entityId, themeId } = useParams<{ entityId: string; themeId: string }>();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [searchParams, replaceParams] = useUrlParams();
   // A link can carry the entity page's rating filter, and the period comparison's interval and
   // periods (`interval`, repeated `period`), so the page opens on what was being looked at.
   const ratingFilter = useMemo(() => readRatingFilter(searchParams), [searchParams]);
@@ -409,15 +408,15 @@ export default function ThemePage() {
 
   // The rating filter and the search live in the URL; changing one keeps the other.
   function changeRatingFilter(filter: RatingFilter | null) {
-    router.replace(`${pathname}${filterQuery(filter, null, search)}`, { scroll: false });
+    replaceParams(filterQuery(filter, null, search));
   }
 
   function changeSearch(next: string | null) {
-    router.replace(`${pathname}${filterQuery(ratingFilter, null, next)}`, { scroll: false });
+    replaceParams(filterQuery(ratingFilter, null, next));
   }
 
   function clearUrlFilters() {
-    router.replace(pathname, { scroll: false });
+    replaceParams("");
   }
 
   function clearRatingFilter() {
