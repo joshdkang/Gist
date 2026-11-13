@@ -125,6 +125,13 @@ class EntityOut(BaseModel):
         )
 
 
+class EntityListItem(EntityOut):
+    """An entity in the list, with what a table of entities shows beside the counts."""
+    latest_run_status: RunStatus | None = Field(description="The latest analysis run's status, if any")
+    last_analyzed_at: datetime | None = Field(description="When the latest successful analysis finished")
+    latest_review_at: datetime | None = Field(description="The newest review's date")
+
+
 class EntityDetail(EntityOut):
     import_count: int
     latest_run: RunDetail | None

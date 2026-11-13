@@ -1,6 +1,8 @@
 "use client";
 
-import { ExportButton } from "@/components/ExportButton";
+import Link from "next/link";
+
+import { ExportButton, smallButtonClass } from "@/components/ExportButton";
 import { SearchBox } from "@/components/SearchBox";
 import { formatNumber } from "@/lib/format";
 import { describePeriodsFilter, describeSearch, type PeriodsFilter } from "@/lib/periodFilter";
@@ -100,6 +102,9 @@ export function FilterBar({
         <div className="flex flex-wrap items-center gap-2">
           <SearchBox value={search} onSearch={onSearch} className="w-64" />
           {view}
+          <Link href={`/entities/${entityId}/reviews${query}`} className={smallButtonClass}>
+            View reviews
+          </Link>
           <ExportButton path={`/entities/${entityId}/exports/themes.csv${query}`} label="Export themes" />
           <ExportButton path={`/entities/${entityId}/exports/reviews.csv${query}`} label="Export reviews" />
         </div>

@@ -5,6 +5,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { useMemo, useState } from "react";
 
 import { ExportButton } from "@/components/ExportButton";
+import { NotAnalyzed } from "@/components/NotAnalyzed";
 import { capitalize, FilterChip } from "@/components/FilterBar";
 import { ReviewFilterPanel } from "@/components/ReviewFilterPanel";
 import { Highlighted, searchTerms } from "@/components/SearchBox";
@@ -244,7 +245,9 @@ export default function AllReviewsPage() {
           </p>
         </div>
         <ErrorNote error={facets.error ?? reviews.error} />
+        {entity.data?.theme_count === 0 && <NotAnalyzed entity={entity.data} what="Its reviews and their themes" />}
 
+        {entity.data?.theme_count !== 0 && (
         <div className={desktop ? "grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]" : "flex flex-col gap-4"}>
           {desktop ? (
             <aside className={`${card} sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto`}>
@@ -333,6 +336,7 @@ export default function AllReviewsPage() {
             )}
           </section>
         </div>
+        )}
       </div>
     </Page>
   );

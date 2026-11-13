@@ -5,8 +5,11 @@ import { useState } from "react";
 import { downloadFile } from "@/lib/api";
 
 /** The export button's look, for a link that sits beside one. */
-export const exportButtonClass =
-  "inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm text-fg hover:bg-subtle disabled:cursor-wait disabled:opacity-60";
+export const smallButtonClass =
+  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm text-fg hover:bg-subtle disabled:cursor-wait disabled:opacity-60";
+
+/** The same, filling its wrapper, so buttons in a grid share a width. */
+export const exportButtonClass = `${smallButtonClass} w-full`;
 
 /**
  * A button that downloads one of the API's CSV exports, with the page's filters in `path`. It fills

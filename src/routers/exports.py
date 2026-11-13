@@ -116,6 +116,17 @@ def rating_suffix(ratings: list[str]) -> str:
     return f"rated {' '.join(ratings)}" if ratings else ""
 
 
+async def themes_suffix(db: AsyncSession, chosen: dict[int, list[Sentiment]]) -> str:
+    """'server attentiveness negative' for one chosen theme (with its sentiments), '3 themes' for several."""
+    if not chosen:
+        return ""
+    if len(chosen) > 1:
+        return f"{len(chosen)} themes"
+    theme_id, sentiments = next(iter(chosen.items()))
+    name = await db.scalar(select(Theme.name).where(Theme.id == theme_id))
+    return " ".join([name or "theme", *(sentiment.value for sentiment in sentiments)])
+
+
 def search_suffix(query: str | None) -> str:
     """'mentions valet' for a search, so the file says what it was filtered by."""
     return f"mentions {query.strip()[:40]}" if query and query.strip() else ""
@@ -314,5 +325,6 @@ async def export_reviews(
         period_suffix(period, interval),
         rating_suffix(rating),
         search_suffix(q),
+        await themes_suffix(db, chosen),
     ]
     return csv_response(body(), filename(entity, *parts))

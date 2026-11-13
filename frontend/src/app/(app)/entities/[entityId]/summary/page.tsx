@@ -51,6 +51,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
 function ThemesTable({ list }: { list: ThemeList }) {
   const themes = [...list.themes].sort((a, b) => b.review_count - a.review_count || b.recent_count - a.recent_count);
   return (
+    <div className="overflow-x-auto print:overflow-visible">
     <table className="w-full border-collapse text-sm">
       <thead>
         <tr className="border-b border-line-strong">
@@ -83,6 +84,7 @@ function ThemesTable({ list }: { list: ThemeList }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -119,6 +121,7 @@ function ChangeTable({
       {lines.length === 0 ? (
         <p className="mt-1 text-sm">No theme&apos;s {what} changed significantly.</p>
       ) : (
+        <div className="overflow-x-auto print:overflow-visible">
         <table className="mt-1 w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-line-strong">
@@ -146,6 +149,7 @@ function ChangeTable({
             })}
           </tbody>
         </table>
+        </div>
       )}
       {othersNote && <p className="mt-1.5 text-xs text-muted">{othersNote}</p>}
     </div>
@@ -269,6 +273,7 @@ function RatingsSection({ data }: { data: ThemeRatings }) {
         <p className="text-sm">No theme&apos;s ratings differ significantly from the rest.</p>
       )}
       {raising.length + lowering.length > 0 && (
+        <div className="overflow-x-auto print:overflow-visible">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-line-strong">
@@ -284,6 +289,7 @@ function RatingsSection({ data }: { data: ThemeRatings }) {
             <ImpactRows title="Lower the average" impacts={lowering} scale={scale} />
           </tbody>
         </table>
+        </div>
       )}
       {others > 0 && (
         <p className="text-xs text-muted">

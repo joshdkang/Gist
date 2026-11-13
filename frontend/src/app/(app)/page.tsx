@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
+import { EntityTable } from "@/components/EntityTable";
 import { buttonPrimary, card, ErrorNote, Loading, Page, PageTitle } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
-import type { Entity } from "@/lib/types";
+import { useLayout } from "@/lib/layout";
+import type { Entity, EntityListItem } from "@/lib/types";
 
 type Tab = "mine" | "public";
 const TABS: { key: Tab; label: string }[] = [
@@ -35,9 +37,11 @@ function EntityCard({ entity }: { entity: Entity }) {
 
 export default function EntitiesPage() {
   const [tab, setTab] = useState<Tab>("mine");
+  // Desktop lists the entities as a sortable table; mobile keeps the cards.
+  const desktop = useLayout() === "desktop";
   const entities = useQuery({
     queryKey: ["entities", tab],
-    queryFn: () => api<Entity[]>(`/entities?scope=${tab}&limit=100`),
+    queryFn: () => api<EntityListItem[]>(`/entities?scope=${tab}&limit=100`),
   });
   // Analyzed entities first, so the samples with results lead.
   const sorted = [...(entities.data ?? [])].sort(
@@ -92,11 +96,14 @@ export default function EntitiesPage() {
           </div>
         </div>
       )}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
-        {sorted.map((entity) => (
-          <EntityCard key={entity.id} entity={entity} />
-        ))}
-      </div>
+      {desktop && sorted.length > 0 && <EntityTable entities={sorted} />}
+      {!desktop && (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+          {sorted.map((entity) => (
+            <EntityCard key={entity.id} entity={entity} />
+          ))}
+        </div>
+      )}
     </Page>
   );
 }

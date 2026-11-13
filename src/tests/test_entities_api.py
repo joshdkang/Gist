@@ -382,3 +382,17 @@ async def test_ratings_on_different_scales_are_summarized_separately(upload, ent
     five, ten = body["scales"]                     # most ratings first
     assert five["scale"]["max"] == 5 and five["count"] == 10
     assert ten["scale"]["max"] == 10 and ten["count"] == 4 and len(ten["buckets"]) == 10
+
+
+async def test_the_entity_list_reports_runs_and_the_newest_review(call, seeded):
+    from tests.conftest import SEED_REVIEWS, seed_date
+
+    entities = {entity["id"]: entity for entity in (await call("GET", "/entities", params={"scope": "mine"})).json()}
+    listed = entities[seeded.entity_id]
+    assert listed["latest_run_status"] == "succeeded"           # the seeded classify run
+    assert listed["latest_review_at"][:10] == f"{seed_date(SEED_REVIEWS - 1):%Y-%m-%d}"
+    # The seeded run never recorded when it finished, so there is no date to report.
+    assert listed["last_analyzed_at"] is None
+    fresh = (await call("POST", "/entities", json={"name": "Fresh"})).json()
+    entities = {entity["id"]: entity for entity in (await call("GET", "/entities", params={"scope": "mine"})).json()}
+    assert (entities[fresh["id"]]["latest_run_status"], entities[fresh["id"]]["latest_review_at"]) == (None, None)

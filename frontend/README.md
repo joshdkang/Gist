@@ -35,6 +35,8 @@ frontend's origin (the default allows `http://localhost:3000`).
 - **Exports**: Export buttons on the theme list, ratings by theme, the period comparison and a theme's reviews
   download the API's CSV exports with the page's filters. A plain link can't send the sign-in token, so
   `downloadFile` in `src/lib/api.ts` fetches the file and hands it to the browser as a download.
+- **Entity list**: cards on mobile; on desktop a sortable table (`src/components/EntityTable.tsx`) with reviews,
+  themes, newest review, last analysed, created and status (analysed, queued, analysing, last run failed).
 - **Layouts** (`src/lib/layout.ts`): Desktop or Mobile, chosen in the account menu and kept in this browser
   only (a layout suits a device, unlike the palette, which follows the account). Until someone chooses, the
   screen width decides (Desktop from 1024px). Mobile is the narrow stacked page with theme cards. Desktop
@@ -49,7 +51,8 @@ frontend's origin (the default allows `http://localhost:3000`).
   (`components/ChangesTable.tsx`) with the change in mentions and in the negative share side by side; it lists
   the significant changes, with the rest behind a checkbox. The server renders Mobile, which the browser corrects.
 - **All reviews** (`entities/[entityId]/reviews`): every review with its themes as tags, from the entity page's
-  All reviews button (which carries its filters). The filter column (`src/components/ReviewFilterPanel.tsx`)
+  All reviews button and View reviews link (which carry its filters) and a theme page's Open in All reviews link
+  (that theme ticked, with the page's sentiment, periods, ratings and search). The filter column (`src/components/ReviewFilterPanel.tsx`)
   has a search, the periods (`src/components/PeriodList.tsx`: a checklist with counts under the other
   filters and a Month/Quarter/Year switch; years are rows, or headings over a grid of their quarters or months;
   any mix can be ticked, and older years wait behind "Show earlier years"), the themes with counts from `reviews/facets` (ticking one reveals the sentiments of its
@@ -86,3 +89,16 @@ frontend's origin (the default allows `http://localhost:3000`).
   and negative orange (`data-palette="colorblind"` on `<html>`). The choice is saved in the browser and
   in the Supabase user's metadata, so it follows the user; a script in the layout applies it before the
   page paints (`src/lib/palette.ts`).
+
+## Tests
+
+- `npm test`: unit tests (Vitest) of the plain logic: the filter and URL helpers, period wording, search
+  terms, shares and changes. They need nothing running.
+- `npm run test:e2e`: end-to-end tests (Playwright, `e2e/`) against the running app, the frontend here and
+  the API from `src/`. They sign in once (`e2e/auth.setup.ts`) as the account in `E2E_EMAIL` and
+  `E2E_PASSWORD` (make one with `src/create_user.py`; without them every test is skipped) and read the
+  public sample in `E2E_ENTITY` (default Cochon), which must be analyzed. They cover the entity page's
+  filters, a theme's page, All reviews (themes with sentiments, any and all, periods, sorting, export), the
+  period comparison, and on a phone's width that every page fits and the mobile layout. They check
+  behaviour, not exact counts, so they hold as the data changes. `E2E_BASE_URL` and `E2E_CHANNEL` (a browser
+  such as `msedge`; Edge by default on Windows) are optional.

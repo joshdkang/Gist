@@ -5,7 +5,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { useMemo, useState } from "react";
 
 import { EntityActions } from "@/components/EntityActions";
-import { ExportButton } from "@/components/ExportButton";
+import { ExportButton, smallButtonClass } from "@/components/ExportButton";
 import { FilterBar } from "@/components/FilterBar";
 import { RatingDrivers } from "@/components/RatingDrivers";
 import { RatingsCard } from "@/components/RatingsCard";
@@ -112,6 +112,9 @@ function ThemesSection({
             </p>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
+            <Link href={`/entities/${entityId}/reviews${query}`} className={smallButtonClass}>
+              View reviews
+            </Link>
             <ExportButton path={`/entities/${entityId}/exports/themes.csv${query}`} label="Export themes" />
             <ExportButton path={`/entities/${entityId}/exports/reviews.csv${query}`} label="Export reviews" />
           </div>

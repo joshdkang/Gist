@@ -77,24 +77,43 @@ function nextStart(start: string, interval: TrendInterval): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1);
 }
 
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * A run of consecutive periods in words, as short as it reads clearly: whole years by their year
+ * ("2020", "2019–2020"), and the year said once when the run stays in it ("2020 Q1–Q3", "Jan–Mar 2020").
+ */
+function runName(first: string, last: string, interval: TrendInterval): string {
+  const from = new Date(first), to = new Date(last);
+  const [y1, m1, y2, m2] = [from.getUTCFullYear(), from.getUTCMonth(), to.getUTCFullYear(), to.getUTCMonth()];
+  const years = y1 === y2 ? `${y1}` : `${y1}–${y2}`;
+  const wholeYears = interval === "year" || (m1 === 0 && m2 === (interval === "quarter" ? 9 : 11));
+  if (wholeYears) return years;
+  if (interval === "quarter") {
+    const [q1, q2] = [Math.floor(m1 / 3) + 1, Math.floor(m2 / 3) + 1];
+    if (y1 !== y2) return `${y1} Q${q1}–${y2} Q${q2}`;
+    return q1 === q2 ? `${y1} Q${q1}` : `${y1} Q${q1}–Q${q2}`;
+  }
+  if (y1 !== y2) return `${MONTH_NAMES[m1]} ${y1}–${MONTH_NAMES[m2]} ${y2}`;
+  return m1 === m2 ? `${MONTH_NAMES[m1]} ${y1}` : `${MONTH_NAMES[m1]}–${MONTH_NAMES[m2]} ${y1}`;
+}
+
 /**
  * The chosen periods in words, each run of consecutive periods as a range: "from 2019 Q1",
- * "from 2018 Q1 to 2019 Q4", "from 2012–2013 and 2019–2020", or "from 5 ranges, 2012 to 2021".
+ * "from 2018 Q1–2019 Q4", "from 2020 and 2021 Q2", "from 2012–2013 and 2019–2020", or
+ * "from 5 ranges, 2012 to 2021".
  */
 export function describePeriodsFilter(filter: PeriodsFilter): string {
-  const starts = [...filter.starts].sort();
+  const starts = [...filter.starts].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   const runs: [string, string][] = [];
   for (const start of starts) {
     const run = runs.at(-1);
     if (run && nextStart(run[1], filter.interval) === new Date(start).getTime()) run[1] = start;
     else runs.push([start, start]);
   }
-  const name = (start: string) => periodName(start, filter.interval);
-  if (runs.length === 1) {
-    const [first, last] = runs[0];
-    return first === last ? `from ${name(first)}` : `from ${name(first)} to ${name(last)}`;
-  }
-  const names = runs.map(([first, last]) => (first === last ? name(first) : `${name(first)}–${name(last)}`));
+  const names = runs.map(([first, last]) => runName(first, last, filter.interval));
+  if (names.length === 1) return `from ${names[0]}`;
   if (names.length <= 3) return `from ${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  const name = (start: string) => periodName(start, filter.interval);
   return `from ${names.length} ranges, ${name(runs[0][0])} to ${name(runs.at(-1)![1])}`;
 }

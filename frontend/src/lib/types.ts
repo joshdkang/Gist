@@ -47,6 +47,13 @@ export interface Entity {
   created_at: string;
 }
 
+/** An entity in the list, with what the table shows beside the counts. */
+export interface EntityListItem extends Entity {
+  latest_run_status: RunStatus | null;
+  last_analyzed_at: string | null;
+  latest_review_at: string | null;
+}
+
 export interface EntityDetail extends Entity {
   import_count: number;
   latest_run: RunDetail | null;

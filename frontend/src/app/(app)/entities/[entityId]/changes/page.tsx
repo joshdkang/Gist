@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { ChangesTable } from "@/components/ChangesTable";
 import { ExportButton, exportButtonClass } from "@/components/ExportButton";
+import { NotAnalyzed } from "@/components/NotAnalyzed";
 import { PeriodPicker, periodQuery, SUMMARY_CHANGES_PREFIX, usePeriodChoice } from "@/components/PeriodPicker";
 import { periodName } from "@/components/TrendChart";
 import { BackLink, card, ErrorNote, Loading, Page, PageTitle, Toggle } from "@/components/ui";
@@ -267,7 +268,10 @@ export default function ChangesPage() {
 
         <ErrorNote error={changes.error} />
         {changes.isPending && <Loading label="Comparing periods…" />}
-        {data && !data.period_start && <p className={`${card} p-6`}>None of this entity&apos;s reviews has a date.</p>}
+        {entity.data?.theme_count === 0 && <NotAnalyzed entity={entity.data} what="The comparison" />}
+        {data && !data.period_start && entity.data?.theme_count !== 0 && (
+          <p className={`${card} p-6`}>None of this entity&apos;s reviews has a date.</p>
+        )}
         {data && data.period_start && (
           <div aria-busy={updating} className={`flex flex-col gap-4 transition-opacity ${updating ? "opacity-50" : ""}`}>
             {!desktop && (

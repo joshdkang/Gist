@@ -102,8 +102,13 @@ async def test_the_reviews_export_takes_the_theme_filters(call, seeded):
     response = await call("GET", f"/entities/{seeded.entity_id}/exports/reviews.csv", params=params)
     assert response.status_code == 200, response.text
     rows = list(csv.DictReader(io.StringIO(response.content.decode("utf-8")[1:])))
-    # Reviews 0, 3, 6 and 9, each with both of its themes.
+    # Reviews 0, 3, 6 and 9, each with both of its themes; the file is named for the filter.
     assert len(rows) == 8 and {row["theme"] for row in rows} == {"Service", "Price"}
+    assert "-reviews-2-themes-" in response.headers["content-disposition"]
+    one = await call(
+        "GET", f"/entities/{seeded.entity_id}/exports/reviews.csv", params={"theme": f"{seeded.service.id}:negative"}
+    )
+    assert "-reviews-service-negative-" in one.headers["content-disposition"]
 
 
 async def test_facets_count_the_periods_under_the_other_filters(call, seeded):

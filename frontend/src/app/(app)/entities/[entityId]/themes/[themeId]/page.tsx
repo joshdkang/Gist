@@ -1,10 +1,11 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { ExportButton } from "@/components/ExportButton";
+import { ExportButton, smallButtonClass } from "@/components/ExportButton";
 import { capitalize, FilterChip } from "@/components/FilterBar";
 import { RatingsCard } from "@/components/RatingsCard";
 import { Highlighted, SearchBox, searchTerms } from "@/components/SearchBox";
@@ -15,7 +16,16 @@ import { ApiError, api } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent, SENTIMENTS, sentimentStyle } from "@/lib/format";
 import { useLayout } from "@/lib/layout";
 import { useEntity, useThemes } from "@/lib/queries";
-import { appendSearch, describeFilters, describePeriodsFilter, describeSearch, filterQuery, readSearch } from "@/lib/periodFilter";
+import {
+  appendPeriodsFilter,
+  appendSearch,
+  describeFilters,
+  describePeriodsFilter,
+  describeSearch,
+  filterQuery,
+  readSearch,
+} from "@/lib/periodFilter";
+import { appendThemeChoices } from "@/lib/reviewFilters";
 import { appendRatingFilter, describeRatingFilter, readRatingFilter } from "@/lib/ratingFilter";
 import type {
   RatingFilter,
@@ -153,6 +163,22 @@ function Reviews({
       ))}
     </div>
   );
+  // The same reviews on the All reviews page: this theme ticked with the sentiment chosen here, and
+  // the periods, ratings and search, where its other themes can be explored.
+  const allReviewsParams = appendThemeChoices(
+    appendSearch(appendRatingFilter(appendPeriodsFilter(new URLSearchParams(), periods), ratingFilter), search),
+    new Map([[theme.id, filter === "all" ? [] : [filter]]]),
+    "any",
+  );
+  const allReviewsLink = (
+    <Link
+      href={`/entities/${entityId}/reviews?${allReviewsParams}`}
+      className={smallButtonClass}
+      title="These reviews on the All reviews page, with all their themes"
+    >
+      Open in All reviews
+    </Link>
+  );
   const exportButton = total > 0 && (
     <ExportButton
       path={`/entities/${entityId}/exports/reviews.csv?${exportParams}`}
@@ -198,6 +224,7 @@ function Reviews({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <SearchBox value={search} onSearch={onSearch} placeholder="Search these reviews" className="w-64" />
+              {allReviewsLink}
               {exportButton}
             </div>
           </div>
@@ -243,6 +270,7 @@ function Reviews({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="font-semibold">Reviews</h2>
+          {allReviewsLink}
           {exportButton}
         </div>
         {chips}

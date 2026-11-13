@@ -10,10 +10,10 @@ from auth import get_current_user
 from config import settings
 from database import get_db
 from entities import create_entity
-from models import AnalysisRun, Entity, Import, Review, Theme, ThemeKind, User
+from models import AnalysisRun, Entity, Import, Review, RunStatus, Theme, ThemeKind, User
 from queueing import ACTIVE_STATUSES, is_analysis_run
 from routers.runs import run_detail
-from schemas import EntityCreate, EntityDetail, EntityOut, EntityUpdate
+from schemas import EntityCreate, EntityDetail, EntityListItem, EntityOut, EntityUpdate
 
 router = APIRouter(prefix="/entities", tags=["entities"])
 
@@ -30,6 +30,30 @@ def theme_count_of(entity_id):
         .where(Theme.entity_id == entity_id, Theme.kind == ThemeKind.DISCOVERED, Theme.merged_into_id.is_(None))
         .scalar_subquery()
     )
+
+
+def latest_run_status_of(entity_id):
+    """The status of the entity's latest analysis run (as its page reports it), or null."""
+    return (
+        select(AnalysisRun.status)
+        .where(AnalysisRun.entity_id == entity_id, is_analysis_run())
+        .order_by(AnalysisRun.id.desc())
+        .limit(1)
+        .scalar_subquery()
+    )
+
+
+def last_analyzed_of(entity_id):
+    """When the entity's latest successful analysis finished, or null."""
+    return (
+        select(func.max(AnalysisRun.completed_at))
+        .where(AnalysisRun.entity_id == entity_id, AnalysisRun.status == RunStatus.SUCCEEDED, is_analysis_run())
+        .scalar_subquery()
+    )
+
+
+def latest_review_of(entity_id):
+    return select(func.max(Review.review_date)).where(Review.entity_id == entity_id).scalar_subquery()
 
 
 async def build_out(db: AsyncSession, entity: Entity, user: User) -> EntityOut:
@@ -59,7 +83,7 @@ async def create(
     return EntityOut.build(entity, user.id, review_count=0, theme_count=0)
 
 
-@router.get("", response_model=list[EntityOut])
+@router.get("", response_model=list[EntityListItem])
 async def list_entities(
     scope: Literal["all", "mine", "public"] = "all",
     limit: int = Query(50, ge=1, le=100),
@@ -73,13 +97,28 @@ async def list_entities(
         "public": Entity.is_public,
     }[scope]
     rows = await db.execute(
-        select(Entity, review_count_of(Entity.id), theme_count_of(Entity.id))
+        select(
+            Entity,
+            review_count_of(Entity.id),
+            theme_count_of(Entity.id),
+            latest_run_status_of(Entity.id),
+            last_analyzed_of(Entity.id),
+            latest_review_of(Entity.id),
+        )
         .where(visible)
         .order_by(Entity.created_at.desc(), Entity.id.desc())
         .limit(limit)
         .offset(offset)
     )
-    return [EntityOut.build(entity, user.id, reviews, themes) for entity, reviews, themes in rows.all()]
+    return [
+        EntityListItem(
+            **EntityOut.build(entity, user.id, reviews, themes).model_dump(),
+            latest_run_status=run_status,
+            last_analyzed_at=analyzed_at,
+            latest_review_at=latest_review,
+        )
+        for entity, reviews, themes, run_status, analyzed_at, latest_review in rows.all()
+    ]
 
 
 @router.get("/{entity_id}", response_model=EntityDetail)
