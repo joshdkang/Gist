@@ -21,7 +21,7 @@ function describeStep(step: Step): string {
     case "consolidate":
       return "Merging overlapping emerging topics";
     case "promote":
-      return "Promoting emerging topics that reached 5% of reviews";
+      return "Promoting emerging topics that reached 4% of reviews";
   }
 }
 

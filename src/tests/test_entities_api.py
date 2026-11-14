@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 import queueing
 from config import settings
+from discover_themes import MIN_SAMPLE_SIZE
 from models import (
     AnalysisRun,
     Import,
@@ -22,6 +23,10 @@ from models import (
 
 MAPPING = json.dumps({"text": "review", "rating": "stars", "review_date": "when"})
 SCALE = json.dumps({"type": "numeric", "min": 1, "max": 5})
+
+
+# Enough reviews for an entity's first analysis: discovery needs MIN_SAMPLE_SIZE.
+ENOUGH = MIN_SAMPLE_SIZE + 10
 
 
 def csv_bytes(count: int, start: int = 0) -> bytes:
@@ -201,12 +206,12 @@ async def test_duplicates_are_skipped_and_small_entities_queue_nothing(upload, e
     assert second["import"]["status"] == "completed"
     assert second["import"]["rating_scale"] == {"type": "numeric", "min": 1.0, "max": 5.0}
     assert second["analysis"]["run"] is None
-    assert "50 reviews" in second["analysis"]["message"] and "has 20" in second["analysis"]["message"]
+    assert f"{MIN_SAMPLE_SIZE} reviews" in second["analysis"]["message"] and "has 20" in second["analysis"]["message"]
 
 
 async def test_enough_reviews_queue_one_job_for_the_user(upload, entity, db, alice):
     entity_id = entity["id"]
-    response = await upload(entity_id, csv_bytes(60))
+    response = await upload(entity_id, csv_bytes(ENOUGH))
     assert response.status_code == 201
     job = response.json()["analysis"]
     assert job["run"]["type"] == "analyze" and job["run"]["status"] == "queued" and not job["reused"]
@@ -216,7 +221,7 @@ async def test_enough_reviews_queue_one_job_for_the_user(upload, entity, db, ali
 
 async def test_a_waiting_job_is_reused_but_a_running_one_is_not(upload, call, entity, db):
     entity_id = entity["id"]
-    first = (await upload(entity_id, csv_bytes(60))).json()["analysis"]["run"]["id"]
+    first = (await upload(entity_id, csv_bytes(ENOUGH))).json()["analysis"]["run"]["id"]
     again = (await upload(entity_id, csv_bytes(5, start=1000))).json()["analysis"]
     assert again["run"]["id"] == first and again["reused"] and "already queued" in again["message"]
     assert await count(db, AnalysisRun, entity_id=entity_id) == 1
@@ -234,7 +239,7 @@ async def test_a_waiting_job_is_reused_but_a_running_one_is_not(upload, call, en
 
 async def test_losing_the_race_to_queue_reuses_the_winner(upload, entity, db, alice):
     entity_id = entity["id"]
-    queued = (await upload(entity_id, csv_bytes(60))).json()["analysis"]["run"]["id"]
+    queued = (await upload(entity_id, csv_bytes(ENOUGH))).json()["analysis"]["run"]["id"]
     lost = await queueing.queue_run(db, entity_id, alice.id)             # the unique index refuses a second
     assert lost.reused and lost.run.id == queued
     assert await count(db, AnalysisRun, entity_id=entity_id, status=RunStatus.QUEUED) == 1
@@ -251,12 +256,12 @@ async def test_an_entity_has_at_most_one_running_run(entity, db):
 
 async def test_daily_run_limit_is_per_user_and_inserts_nothing(upload, entity, db, alice, bob, monkeypatch):
     entity_id = entity["id"]
-    await upload(entity_id, csv_bytes(60))
+    await upload(entity_id, csv_bytes(ENOUGH))
     monkeypatch.setattr(settings, "max_runs_per_user_per_day", 1)
     assert await queueing.count_runs_today(db, alice.id) == 1
     response = await upload(entity_id, csv_bytes(5, start=7000))
     assert response.status_code == 429 and "1 analysis runs" in response.json()["detail"]
-    assert await count(db, Review, entity_id=entity_id) == 60               # nothing inserted
+    assert await count(db, Review, entity_id=entity_id) == ENOUGH           # nothing inserted
     assert await queueing.count_runs_today(db, bob.id) == 0
 
 
@@ -264,7 +269,7 @@ async def test_daily_run_limit_is_per_user_and_inserts_nothing(upload, entity, d
 
 async def test_run_list_and_detail(upload, call, entity, db, bob):
     entity_id = entity["id"]
-    first = (await upload(entity_id, csv_bytes(60))).json()["analysis"]["run"]["id"]
+    first = (await upload(entity_id, csv_bytes(ENOUGH))).json()["analysis"]["run"]["id"]
     await db.execute(update(AnalysisRun).where(AnalysisRun.id == first).values(status=RunStatus.RUNNING))
     await db.commit()
     second = (await upload(entity_id, csv_bytes(5, start=2000))).json()["analysis"]["run"]["id"]
@@ -288,13 +293,13 @@ async def test_run_list_and_detail(upload, call, entity, db, bob):
 
 async def test_a_run_of_another_entity_is_not_found(upload, call, entity, db):
     other = (await call("POST", "/entities", json={"name": "Other"})).json()
-    run_id = (await upload(other["id"], csv_bytes(60))).json()["analysis"]["run"]["id"]
+    run_id = (await upload(other["id"], csv_bytes(ENOUGH))).json()["analysis"]["run"]["id"]
     assert (await call("GET", f"/entities/{entity['id']}/runs/{run_id}")).status_code == 404
 
 
 async def test_latest_run_ignores_runs_that_changed_nothing(upload, call, entity, db):
     entity_id = entity["id"]
-    queued = (await upload(entity_id, csv_bytes(60))).json()["analysis"]["run"]["id"]
+    queued = (await upload(entity_id, csv_bytes(ENOUGH))).json()["analysis"]["run"]["id"]
 
     async def script_run(run_type, kind, outcome) -> int:
         run = AnalysisRun(entity_id=entity_id, type=run_type, status=RunStatus.SUCCEEDED)
@@ -331,7 +336,7 @@ async def test_imports_list_newest_first_and_readable_for_public_entities(upload
 
 async def test_delete_cascades_and_is_owner_only(upload, call, entity, db, bob, public_entity):
     entity_id = entity["id"]
-    first = (await upload(entity_id, csv_bytes(60))).json()["analysis"]["run"]["id"]
+    first = (await upload(entity_id, csv_bytes(ENOUGH))).json()["analysis"]["run"]["id"]
     db.add(RunStep(run_id=first, kind=StepKind.CLASSIFY, status=StepStatus.SUCCEEDED))
     await db.execute(update(AnalysisRun).where(AnalysisRun.id == first).values(status=RunStatus.SUCCEEDED))
     await db.commit()

@@ -104,11 +104,11 @@ def test_one_review_one_sentiment_per_theme(sentiments, expected):
     assert combine_sentiments(sentiments) == expected
 
 
-def test_a_theme_needs_five_percent_of_reviews_and_at_least_25():
+def test_a_theme_needs_four_percent_of_reviews_and_at_least_25():
     assert promote_min_reviews(100) == 25                  # the floor
-    assert promote_min_reviews(500) == 25
-    assert promote_min_reviews(1000) == 50                 # 5%
-    assert promote_min_reviews(4480) == 224
+    assert promote_min_reviews(600) == 25
+    assert promote_min_reviews(1000) == 40                 # 4%
+    assert promote_min_reviews(4480) == 179
 
 
 # --- ratings ---------------------------------------------------------------------------------

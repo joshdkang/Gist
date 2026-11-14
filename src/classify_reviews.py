@@ -14,10 +14,13 @@ The functions take their session and API client as arguments so the job worker c
 
 Usage (from src/):
     python classify_reviews.py <entity_id> [--limit 100] [--seed A] [--model M] [--dry-run]
+    python classify_reviews.py <entity_id> --review-ids evals/cochon_dev_ids.txt
 
 --limit takes a reproducible pseudo-random sample (change --seed for a different one), which is
 how to compare prompts or models on identical reviews. --dry-run records the run but saves no
-tags and creates no candidates.
+tags and creates no candidates. --review-ids classifies exactly the reviews listed in a file (one
+ID per line), tagged or not, always as a dry run: it is how a prompt is scored against the
+hand-labelled sets in evals/.
 """
 import argparse
 import asyncio
@@ -58,7 +61,10 @@ CHUNK_SIZE = 20  # reviews per request
 # model's thinking included), so 5 at a time came to about 80,000 output tokens a minute, which
 # hit a 429 at the organization's limit of 80,000. 3 keeps it near 50,000.
 CONCURRENCY = 3
-MAX_REVIEW_CHARS = 1000
+# Classification tags every topic a review raises, so it sees the whole review. The cap only bounds a
+# pathological upload (a chunk of 20 such reviews is about 50,000 input tokens); every review loaded so
+# far is 5,000 characters or less, Yelp's own limit.
+MAX_REVIEW_CHARS = 10000
 # Includes the model's adaptive thinking. A chunk of 20 used 7,600 of an earlier 8,000, and three
 # chunks in a real run were cut off mid-answer, so the whole chunk fell back to `general`.
 MAX_OUTPUT_TOKENS = 16000
@@ -409,12 +415,26 @@ async def resolve_review(review: ClassifiedReview, resolver: ThemeResolver) -> C
 
 
 async def fetch_unprocessed(
-    db: AsyncSession, entity_id: int, limit: int | None, seed: str, include_processed: bool = False
+    db: AsyncSession,
+    entity_id: int,
+    limit: int | None,
+    seed: str,
+    include_processed: bool = False,
+    review_ids: list[int] | None = None,
 ) -> list[tuple[int, str]]:
     """Reviews with no review_themes rows. With a limit: a reproducible pseudo-random sample.
 
     include_processed also returns already tagged reviews, for dry-run trials of a new prompt.
+    review_ids returns exactly those of the entity's reviews, tagged or not (the caller makes it a
+    dry run), in ID order.
     """
+    if review_ids is not None:
+        query = (
+            select(Review.id, Review.text)
+            .where(Review.entity_id == entity_id, Review.id.in_(review_ids))
+            .order_by(Review.id)
+        )
+        return [(review_id, text) for review_id, text in (await db.execute(query)).all()]
     already_tagged = (
         select(ReviewTheme.review_id).where(ReviewTheme.review_id == Review.id).exists()
     )
@@ -457,6 +477,7 @@ async def run_classification(
     seed: str = "0",
     dry_run: bool = False,
     include_processed: bool = False,
+    review_ids: list[int] | None = None,
     run: AnalysisRun | None = None,
 ) -> tuple[AnalysisRun, ClassificationOutcome, ThemeSet]:
     """Classify the entity's unprocessed reviews, saving each chunk as it finishes.
@@ -466,8 +487,8 @@ async def run_classification(
     re-run picks up where it stopped. On failure the session is rolled back before the failed step
     is recorded, so objects loaded earlier (such as the entity) are expired.
     """
-    if include_processed and not dry_run:
-        raise ValueError("include_processed is only for dry runs: it would tag reviews twice.")
+    if (include_processed or review_ids is not None) and not dry_run:
+        raise ValueError("include_processed and review_ids are only for dry runs: they would tag reviews twice.")
     entity_id = entity.id
     themes = await load_theme_set(db, entity_id)
     system_prompt = build_system_prompt(entity, themes)
@@ -481,7 +502,7 @@ async def run_classification(
     resolver = ThemeResolver(db, entity_id, run_id)
     try:
         await resolver.load()
-        reviews = await fetch_unprocessed(db, entity_id, limit, seed, include_processed)
+        reviews = await fetch_unprocessed(db, entity_id, limit, seed, include_processed, review_ids)
 
         # Reviews with almost no text skip the model and go straight to `general`.
         model_reviews = []
@@ -651,7 +672,13 @@ def print_report(report: dict[str, Any]) -> None:
 
 
 async def main(
-    entity_id: int, model: str, limit: int | None, seed: str, dry_run: bool, include_processed: bool
+    entity_id: int,
+    model: str,
+    limit: int | None,
+    seed: str,
+    dry_run: bool,
+    include_processed: bool,
+    review_ids: list[int] | None = None,
 ) -> None:
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
     async with async_session_maker() as db:
@@ -660,8 +687,10 @@ async def main(
             raise SystemExit(f"No entity with id {entity_id}")
         run, outcome, themes = await run_classification(
             db, client, entity, model=model, limit=limit, seed=seed, dry_run=dry_run,
-            include_processed=include_processed,
+            include_processed=include_processed, review_ids=review_ids,
         )
+        if review_ids is not None and len(outcome.classified) < len(set(review_ids)):
+            print(f"Note: {len(set(review_ids)) - len(outcome.classified)} listed IDs are not this entity's reviews.")
         report = build_report(entity, run, outcome, themes)
     print_report(report)
 
@@ -684,7 +713,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--include-processed", action="store_true", help="with --dry-run, also take already tagged reviews"
     )
+    parser.add_argument(
+        "--review-ids", type=Path, help="a file of review IDs, one per line: classify exactly those, as a dry run"
+    )
     args = parser.parse_args()
     if args.include_processed and not args.dry_run:
         parser.error("--include-processed needs --dry-run.")
-    asyncio.run(main(args.entity_id, args.model, args.limit, args.seed, args.dry_run, args.include_processed))
+    review_ids = None
+    if args.review_ids:
+        if args.limit:
+            parser.error("--review-ids and --limit can't be combined.")
+        # One ID per line; anything after a # is a comment.
+        lines = [line.split("#")[0].strip() for line in args.review_ids.read_text(encoding="utf-8").splitlines()]
+        review_ids = [int(line) for line in lines if line]
+    asyncio.run(main(
+        args.entity_id, args.model, args.limit, args.seed,
+        args.dry_run or review_ids is not None, args.include_processed, review_ids,
+    ))

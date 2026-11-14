@@ -411,3 +411,94 @@ To try: a prompt rule and an example for praise or criticism that covers several
 (a list, "everything from X to Y", "all the dishes"), so each item takes the shared sentiment; then
 re-run classification on a sample of Cochon reviews with neutral tags in rated-5 reviews and compare
 the share still neutral. Check that genuinely neutral mentions ("we ordered the rabbit") stay neutral.
+
+**Measured (2026-11-13, no model calls).** Neutral is 6.4% of the 9,354 topic tags on Cochon's
+5-star reviews (601 tags in 485 reviews), 4.4% on 1-star, and 10-11% on 3- and 4-star. 473 of the
+485 five-star reviews with a neutral tag also carry a positive one. Reservations and seating has the
+most (166), and those read as genuinely neutral: advice to book ahead. The dish and drink themes
+together carry about 260. Reading ten random five-star reviews with a neutral dish tag:
+
+- Clear misses, the pattern above: 53554 ("the rabbit & dumplings, I had the cochon, and we shared the
+  pork cheeks. They were all flavorful"), where rabbit and cochon are neutral and pork cheeks positive;
+  55853 ("Everything was flavorful and very good"), where rabbit is neutral.
+- Borderline: 52623 ("We also tried the cochon, catfish ..., and the rabbit & dumplings", in a review
+  calling the food spectacular), which tags rabbit positive but cochon neutral from the same list;
+  56135, dishes covered only by "very very good comfort food"; 53281, where "our favorite of the
+  three was the pork cheeks" may fairly leave the cochon neutral.
+- Right as neutral: an alligator joke, "quite interesting ... tasted like fried chicken", oysters
+  that "were decent, I'm not huge on oysters". Two were cut off before the dish, so not judged.
+
+So the error is real but not large: perhaps a third of the neutral dish tags on five-star reviews,
+around 1% of their topic tags. The fix must not move the genuinely neutral and lukewarm mentions,
+which are as common. A side finding: 56135's fried oysters were tagged Wood-fired oysters, a theme
+stretched past its description.
+
+**Decisions for the fix (2026-11-13).** Coverage is loose: a judgement of the meal or the food as a
+whole ("great meal", "the food was spectacular") covers every dish and drink the review names, since
+naming a dish and praising the meal is a roundabout way of praising the dish. Anything said about the
+dish itself overrides it, and praise of the service or the room does not reach the dishes. It works
+both ways: "worst meal I've had" makes the named dishes negative.
+
+Prompts are now scored against hand labels instead of impressions. `src/evals/make_label_sheets.py`
+chose two sets of 100 Cochon reviews, each 12 per rating level plus 40 four- and five-star reviews
+with a neutral dish tag (the problem's home), and wrote a workbook for each to label by hand, themes
+and sentiment both, blind to the model's tags and to the rating. The development set holds the
+reviews already read above and is used for tuning; the test set excludes them and is scored once,
+at the end. Labelling themes as well as sentiment also scores theme assignment (missed and stretched
+themes), which is the eval planned for roadmap step 11.
+
+## Threshold 4%, no cap on discovered themes, floor 25 everywhere (2026-11-13)
+
+**Problem.** Cochon's themes include grab-bags: "Sides, bread and small plates" (mac and cheese, grits,
+greens, rolls, boudin balls, livers, gumbo) is raised by 49.7% of classified reviews, "Pork cheeks, ribs
+and charcuterie" by 38.1%, "Atmosphere and noise" by 32.9%. Discovery asked for 5-15 themes, and runs
+kept returning exactly 15 (see the first real run above), so the cap acted as a target and related
+topics were packed together to fit. The pipeline can't repair this afterwards: consolidation only
+merges candidates and never splits an established theme, and a broad theme absorbs its own
+subtopics, since the classifier files gumbo under Sides and "Gumbo" never builds up as a candidate.
+
+**Decision.**
+- **No upper limit** on the themes discovery returns (`MAX_THEMES` removed; at least 5 remain). A theme
+  that turns out to be too small is demoted by confirmation, which counts every review.
+- **Threshold 4%** (was 5%), still one constant (`MIN_THEME_SHARE`) for discovery, confirmation and
+  promotion. On Cochon today no candidate sits between 4% and 5% (the largest, Brisket, is 2.0%), so
+  the change matters at discovery, not as a wave of promotions.
+- **Floor 25 everywhere**: a theme needs at least 25 of the sampled reviews in discovery (was 10), the
+  same floor promotion and confirmation already used (`PROMOTE_MIN_REVIEWS` is now discovery's
+  `MIN_THEME_REVIEWS`). Discovery's minimum sample becomes 125 reviews (5 themes at 25 each), so an
+  entity needs 125 reviews before its first analysis is queued (was 50).
+- Discovery prompt v9: "between 5 and 15" became "at least 5". Nothing else in the prompt changed yet;
+  it is to be tuned against hand labels (below).
+
+**Noted.** Dietary accommodations (3.3%), Catfish (2.4%) and Salads (2.3%) are established themes under
+both thresholds: they were promoted at 3%, before confirmation existed, and established themes are
+never demoted. A fresh rediscovery of Cochon, planned after the discovery eval, settles them.
+
+**Hand-labelled sets, revised.** Discovery is to be tuned before classification, because the
+classification labels name the themes and would go stale if the themes change. So the labels are
+free-form: each review's topics in the labeller's own words, each with a sentiment (open coding). The
+topics are grouped into a codebook, which scores discovery runs (coverage, precision, granularity).
+Once the themes are settled, each codebook entry maps to a theme, which turns the same labels into
+classification labels without relabelling. Two sets of 100 Cochon reviews: a development set for
+tuning (half random, half four- and five-star reviews with a neutral dish tag, including the reviews
+read above) and a random test set, scored once for the write-up. "Hype and expectations" stays as it is
+for now.
+
+## Classification sees whole reviews; discovery the first 2,000 characters (2026-11-13)
+
+Discovery and classification showed the model each review's first 1,000 characters. That cut 18% of
+Cochon's reviews (799 of 4,480; 10% across every entity), and long reviews often go through a meal dish
+by dish, so the topics at their end were never tagged.
+
+- **Classification** now sees the whole review, up to a cap of 10,000 characters. Its job is to tag
+  every topic a review raises, so a cut loses tags, and the counts behind every theme with them. The cap
+  only bounds a pathological upload (20 such reviews in a chunk is about 50,000 input tokens); every
+  review loaded so far is 5,000 characters or less (Yelp's own limit), so none is cut. The review text
+  sent grows by about 21% on Cochon (17% overall); input tokens grow by less, since the instructions
+  and theme list don't change, and output tokens, most of the cost, barely move.
+- **Discovery** sees the first 2,000 characters. It only has to see which topics recur across a
+  sample, so the end of the few longest reviews matters little, and the sample prompt stays smaller.
+  3.2% of Cochon's reviews (2.2% overall) are over 2,000.
+
+The labelling workbooks show what classification sees, so every review in full. Cochon's existing tags
+came from the 1,000-character text; the planned reclassification will redo them.

@@ -4,7 +4,7 @@ Discovery judges its themes from a sample, and the stratified sample over-repres
 so a theme can clear the threshold in the sample and be far under it across all the reviews. The
 themes are saved as provisional (`themes.provisional`). When the first classification has finished,
 each one's real share is counted from the tags, the same count promotion uses. A theme that fewer
-reviews raise than promotion asks for (`promote_min_reviews`: 5% of the classified reviews, at least
+reviews raise than promotion asks for (`promote_min_reviews`: 4% of the classified reviews, at least
 25) is demoted to a candidate. It keeps its name, description and tags, and promotion can bring it
 back if it grows. Every other provisional theme becomes a normal discovered theme.
 

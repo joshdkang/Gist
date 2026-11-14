@@ -9,3 +9,5 @@ src/classifications/
 src/Datafiniti Amazon product reviews.csv
 src/app reviews.csv
 src/app_reviews.parquet
+# Labelling workbooks hold Yelp review text; the ID lists and labels are kept
+src/evals/*.xlsx

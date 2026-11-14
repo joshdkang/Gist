@@ -5,7 +5,7 @@
 Every job is the same kind, `analyze`. When it runs, it looks at the entity's state and does
 whatever is needed, in order, one recorded step each (see run_steps):
 
-1. discover: if themes were never discovered for the entity (needs at least 50 reviews);
+1. discover: if themes were never discovered for the entity (needs at least MIN_SAMPLE_SIZE, 125, reviews);
 2. classify: if any review has no tags;
 3. confirm: once every review is tagged, demote the discovered themes too few reviews raise;
 4. consolidate: if enough new candidate themes have piled up;

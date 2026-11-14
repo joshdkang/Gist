@@ -58,11 +58,11 @@ from tracking import begin_step, set_step_outcome
 PROMPT_VERSION = 2  # see docs/decisions.md
 # A candidate becomes a theme when this share of classified reviews raise it, but never fewer
 # than PROMOTE_MIN_REVIEWS, so a small review set doesn't promote a topic a handful of reviews mention.
-# The share is discovery's (5%), so a theme is established by the same standard whichever way it
-# got there. Unlike discovery, the floor is 25, which also keeps a theme that confirm_themes demoted
-# from being promoted straight back.
+# The share and the floor are discovery's (4%, at least 25), so a theme is established by the same
+# standard whichever way it got there. A theme that confirm_themes demoted is under them, so it
+# isn't promoted straight back.
 PROMOTE_MIN_SHARE = discover.MIN_THEME_SHARE
-PROMOTE_MIN_REVIEWS = 25
+PROMOTE_MIN_REVIEWS = discover.MIN_THEME_REVIEWS
 # Consolidate once this many unmerged candidates have been created since the last applied
 # consolidation: 1% of the classified reviews, but at least 15, so a small review set still gets
 # consolidated and a large one is not run for a handful of new titles. A run costs about the

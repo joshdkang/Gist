@@ -1,6 +1,6 @@
 """Theme discovery for one entity.
 
-Samples the entity's reviews, asks the model for 5-15 recurring themes, validates the answer,
+Samples the entity's reviews, asks the model for the recurring themes (at least 5), validates the answer,
 and records the run (tokens included) in analysis_runs. By default it only prints the themes and
 saves a JSON report to src/themes/ so they can be checked by hand. With --save it also stores
 them in the themes table. The functions take their database session and API client as
@@ -42,18 +42,23 @@ from models import (
 from tracking import begin_step, set_step_outcome
 
 MODEL = "claude-sonnet-5-5"
-PROMPT_VERSION = 8  # see docs/decisions.md
-MIN_THEMES = 5  # loose limits: the reviews decide the count
-MAX_THEMES = 15
+PROMPT_VERSION = 9  # see docs/decisions.md
+# No upper limit: the reviews decide the count, and confirm_themes.py demotes any theme that the
+# classified reviews show to be under the threshold. A cap of 15 made the model pack related topics
+# into one theme to fit.
+MIN_THEMES = 5
 # A theme must be raised by at least this share of the sampled reviews, but never by fewer than
 # MIN_THEME_REVIEWS reviews, so a small sample doesn't make a handful of mentions look significant.
-MIN_THEME_SHARE = 0.05
-MIN_THEME_REVIEWS = 10
+# Promotion and confirmation use the same share and floor, so every theme meets one standard.
+MIN_THEME_SHARE = 0.04
+MIN_THEME_REVIEWS = 25
 # Fewer reviews than this can't support MIN_THEMES themes at MIN_THEME_REVIEWS mentions each.
 MIN_SAMPLE_SIZE = MIN_THEMES * MIN_THEME_REVIEWS
 SAMPLE_PER_LEVEL = 120  # reviews per rating level, or total / 5 when there are no usable ratings
 MAX_RATING_LEVELS = 10  # more distinct ratings than this is treated as unrated for sampling
-MAX_REVIEW_CHARS = 1000
+# Discovery sees each review's first this many characters: the sample only has to show which topics
+# recur, and 2,000 covers nearly every review in full (classification sees more, to tag every topic).
+MAX_REVIEW_CHARS = 2000
 MAX_ATTEMPTS = 2
 MAX_OUTPUT_TOKENS = 16000  # includes the model's adaptive thinking
 OUTPUT_DIR = Path(__file__).parent / "themes"
@@ -93,7 +98,7 @@ that fit no theme are handled separately."""
 SYSTEM_PROMPT_TEMPLATE = """You analyze customer reviews of {subject}.
 Identify the themes that recur in a significant share of the reviews. A theme must be raised
 by at least {min_reviews} of the {sample_size} reviews below ({min_share_percent}% of them).
-Let the reviews decide how many themes there are, between 5 and 15. The goal is not the most
+Let the reviews decide how many themes there are, at least 5. The goal is not the most
 themes but the ones that matter. Together the themes
 should cover the distinct aspects of the experience that customers discuss.
 
@@ -124,7 +129,7 @@ class DiscoveredTheme(BaseModel):
 
 
 class DiscoveryResult(BaseModel):
-    themes: list[DiscoveredTheme] = Field(min_length=MIN_THEMES, max_length=MAX_THEMES)
+    themes: list[DiscoveredTheme] = Field(min_length=MIN_THEMES)
 
     @model_validator(mode="after")
     def check_names(self):
@@ -214,8 +219,8 @@ async def request_themes(
     """Ask the model for themes as structured output, retrying once if the answer fails validation.
 
     Sonnet 5.5 rejects forced tool use, so the answer is constrained with `output_config.format`
-    instead. `transform_schema` strips what the API's schema subset can't express (the 5-15 length
-    limit), and Pydantic enforces that and the name rules after the fact.
+    instead. `transform_schema` strips what the API's schema subset can't express (the minimum
+    length), and Pydantic enforces that and the name rules after the fact.
     """
     numbered_reviews = "\n\n".join(
         f"[{number}] {review.text[:MAX_REVIEW_CHARS]}" for number, review in enumerate(sample, start=1)

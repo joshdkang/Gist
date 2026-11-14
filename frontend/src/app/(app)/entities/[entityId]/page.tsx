@@ -218,7 +218,7 @@ function NoResults({ entity }: { entity: EntityDetail }) {
         ? "Upload a CSV of reviews to get started."
         : "This entity has no reviews yet."
       : entity.review_count < 50
-        ? `Theme discovery needs at least 50 reviews; this entity has ${entity.review_count}.`
+        ? `Theme discovery needs at least 125 reviews; this entity has ${entity.review_count}.`
         : "This entity hasn't been analyzed yet.";
   return (
     <div className={`${card} flex flex-col items-start gap-3 p-6`}>
