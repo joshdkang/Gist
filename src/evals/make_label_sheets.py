@@ -15,9 +15,12 @@ that exclude everything read so far; it is scored once, at the end, for the writ
 describe the reviews as they are and judge a prompt on reviews it was not tuned on.
 
 The sets are written as ID lists (cochon_dev_ids.txt, cochon_test_ids.txt), which classify_reviews.py
-takes with --review-ids, and as workbooks. The workbooks hold review text from the Yelp dataset, so
-they stay out of git; the labels are read back from them. Rerunning picks the same reviews (the order
-is seeded), and never overwrites a workbook.
+takes with --review-ids, and as workbooks. Each ID is followed by how it was chosen (`# known`,
+`# enriched`, `# random`), because only the random ones give a fair share of reviews for a topic (see
+codebook.py). The ID lists are the record of the sets: once written they are never rewritten, since
+choosing again after a reclassification would pick other enriched reviews. A missing workbook is
+rebuilt from its list. The workbooks hold review text from the Yelp dataset, so they stay out of git;
+the labels are read back from them (labels.py). A workbook is never overwritten.
 """
 import asyncio
 import random
@@ -33,6 +36,7 @@ from sqlalchemy import text
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from classify_reviews import MAX_REVIEW_CHARS, has_enough_text  # noqa: E402
 from database import async_session_maker, engine  # noqa: E402
+from labels import read_ids  # noqa: E402
 
 ENTITY_ID = 11  # Cochon
 SEED = "labels-2026-11"
@@ -63,8 +67,8 @@ SENTIMENTS = ["positive", "negative", "mixed", "neutral"]
 FONT = "Arial"
 
 
-async def choose(db) -> tuple[list[int], list[int]]:
-    """The development and test sets' review IDs, each in a shuffled order."""
+async def choose(db) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
+    """The development and test sets' review IDs with how each was chosen, each set in a shuffled order."""
     rows = (await db.execute(text("""
         select r.id, r.rating, r.text,
                exists (select 1 from review_themes rt where rt.review_id = r.id and rt.sentiment = 'neutral'
@@ -81,17 +85,18 @@ async def choose(db) -> tuple[list[int], list[int]]:
         return picked
 
     # The test set first, from every review, so the development set's enrichment doesn't thin it.
-    test = take(lambda row: True, SET_SIZE)
+    test = [(review_id, "random") for review_id in take(lambda row: True, SET_SIZE)]
     enriched = lambda row: row.rating is not None and row.rating >= 4 and row.neutral_dish  # noqa: E731
-    dev = list(KNOWN) + take(enriched, DEV_ENRICHED - len(KNOWN))
-    dev += take(lambda row: True, SET_SIZE - len(dev))
+    dev = [(review_id, "known") for review_id in KNOWN]
+    dev += [(review_id, "enriched") for review_id in take(enriched, DEV_ENRICHED - len(dev))]
+    dev += [(review_id, "random") for review_id in take(lambda row: True, SET_SIZE - len(dev))]
     random.Random(SEED).shuffle(dev)
     return dev, test
 
 
 def write_workbook(path: Path, reviews: list[tuple[int, str]], title: str) -> None:
     workbook = Workbook()
-    guide = workbook.active
+    guide = workbook.worksheets[0]
     guide.title = "How to label"
     sheet = workbook.create_sheet("Labels")
 
@@ -202,10 +207,17 @@ def write_workbook(path: Path, reviews: list[tuple[int, str]], title: str) -> No
 
 async def main() -> None:
     async with async_session_maker() as db:
-        dev, test = await choose(db)
-        for name, ids, title in [("dev", dev, "Development set"), ("test", test, "Test set")]:
+        chosen = None
+        for name, title in [("dev", "Development set"), ("test", "Test set")]:
             id_path = HERE / f"cochon_{name}_ids.txt"
-            id_path.write_text("\n".join(str(review_id) for review_id in ids) + "\n", encoding="utf-8")
+            if id_path.exists():
+                ids = list(read_ids(id_path))
+            else:
+                chosen = chosen or await choose(db)
+                listed = chosen[0] if name == "dev" else chosen[1]
+                id_path.write_text("".join(f"{review_id}  # {origin}\n" for review_id, origin in listed),
+                                   encoding="utf-8")
+                ids = [review_id for review_id, _ in listed]
             book_path = HERE / f"cochon_{name}.xlsx"
             if book_path.exists():
                 print(f"{book_path.name} exists; not overwritten (it may hold labels)")

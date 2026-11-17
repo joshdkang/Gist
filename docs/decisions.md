@@ -502,3 +502,26 @@ by dish, so the topics at their end were never tagged.
 
 The labelling workbooks show what classification sees, so every review in full. Cochon's existing tags
 came from the 1,000-character text; the planned reclassification will redo them.
+
+## Five apps as public sample entities (2026-11-16)
+
+A third domain, after restaurants and a tablet: Android apps from the sealuzh/app_reviews dataset
+(288,065 Google Play reviews of 395 open-source apps, October 2014 to May 2017 for most). Most apps'
+reviews are too short to test with: the two largest (Google Play Services, 103,535 reviews, and
+Telegram, 22,816) have medians of 12 and 20 characters, and every app above 4,000 reviews is under 40.
+Among the 44 apps with 1,000 to 9,999 reviews, five were chosen for long reviews, a mix of ratings, and
+a long, even run of dates:
+
+| App | Entity | Reviews | Median characters | 1-2 stars | Months |
+|---|---|---|---|---|---|
+| NPR News | 1591 | 1,725 | 119 | 41% | 41 |
+| Reicast (Dreamcast emulator) | 1592 | 2,356 | 104 | 38% | 32 |
+| K-9 Mail | 1593 | 1,560 | 127 | 31% | 19 |
+| SMS Backup+ | 1594 | 2,422 | 91 | 27% | 27 |
+| AcDisplay (lock screen) | 1595 | 2,479 | 94 | 24% | 20 |
+
+NPR News has a burst of complaints in August and September 2016 (reviews more than doubled, 65% of
+them one or two stars against 41% overall), a real event the period comparison should find; Reicast
+has about 250 reviews every quarter with no spike, a control on which it should find little. They are
+loaded by `load_app_reviews.py` through the same ingestion as everything else (one duplicate skipped,
+in SMS Backup+), and not analysed yet.
