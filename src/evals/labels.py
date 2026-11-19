@@ -1,6 +1,11 @@
 """Read the hand labels back from a labelling workbook (make_label_sheets.py), and check them.
 
-    python evals/labels.py [dev|test]       (from src/; both sets when none is named)
+    python evals/labels.py [--study cochon|npr] [dev|test]      (from src/; Cochon and all its sets by default)
+
+A study is one entity's labelled sets (STUDIES): Cochon has a development set for tuning and a test
+set; NPR News, a second domain, has the same two sets, so prompts tuned on Cochon can be checked and
+fixed on an app before either test set is scored. Each set is an ID list,
+<study>_<set>_ids.txt, and a workbook, <study>_<set>.xlsx.
 
 Checking reports how many reviews are labelled and each problem a row has: a topic without a
 sentiment, a sentiment without a topic, a sentiment that isn't one of the four, or the same topic
@@ -9,7 +14,7 @@ twice in one review. Run it while labelling; codebook.py refuses labels with pro
 Topics are compared after `normalize_topic` (case and spacing), so "Wait for a table" and
 "wait for a  table" are one topic. Grouping wording that differs more is the codebook's job.
 """
-import sys
+import argparse
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,7 +24,24 @@ from openpyxl import load_workbook
 HERE = Path(__file__).parent
 
 SENTIMENTS = ("positive", "negative", "mixed", "neutral")
-SETS = ("dev", "test")
+
+
+@dataclass(frozen=True)
+class Study:
+    key: str  # file names start with it
+    name: str
+    entity_id: int
+    subject: str  # how the codebook's prompts name the entity
+    sets: tuple[str, ...]  # the first is the one tools use by default
+
+
+STUDIES = {
+    "cochon": Study("cochon", "Cochon", 11, "Cochon (a Cajun restaurant in New Orleans)", ("dev", "test")),
+    "npr": Study(
+        "npr", "NPR News", 1591,
+        "NPR News (an Android app for NPR news stories, podcasts and live public radio)", ("dev", "test"),
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -64,8 +86,12 @@ def normalize_topic(topic: str) -> str:
     return " ".join(topic.split()).lower()
 
 
-def workbook_path(name: str) -> Path:
-    return HERE / f"cochon_{name}.xlsx"
+def workbook_path(study: Study, name: str) -> Path:
+    return HERE / f"{study.key}_{name}.xlsx"
+
+
+def ids_path(study: Study, name: str) -> Path:
+    return HERE / f"{study.key}_{name}_ids.txt"
 
 
 def parse_labels(path: Path, name: str, origins: dict[int, str]) -> LabelSet:
@@ -105,10 +131,9 @@ def parse_labels(path: Path, name: str, origins: dict[int, str]) -> LabelSet:
     return result
 
 
-def read_labels(name: str) -> LabelSet:
+def read_labels(study: Study, name: str) -> LabelSet:
     """A set's labels, with how each of its reviews was chosen (from its ID list)."""
-    origins = read_ids(HERE / f"cochon_{name}_ids.txt")
-    return parse_labels(workbook_path(name), name, origins)
+    return parse_labels(workbook_path(study, name), name, read_ids(ids_path(study, name)))
 
 
 def print_check(label_set: LabelSet) -> None:
@@ -124,17 +149,21 @@ def print_check(label_set: LabelSet) -> None:
         print("  no problems")
 
 
-def main(names: list[str]) -> None:
-    for name in names:
-        if not workbook_path(name).exists():
-            print(f"{name}: no workbook (run make_label_sheets.py)")
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Check the hand labels in a study's workbooks.")
+    parser.add_argument("--study", choices=STUDIES, default="cochon")
+    parser.add_argument("sets", nargs="*", help="the sets to check (all of the study's by default)")
+    args = parser.parse_args()
+    study = STUDIES[args.study]
+    unknown = [name for name in args.sets if name not in study.sets]
+    if unknown:
+        raise SystemExit(f"{study.name} has no {', '.join(unknown)} set (it has {', '.join(study.sets)})")
+    for name in args.sets or study.sets:
+        if not workbook_path(study, name).exists():
+            print(f"{name}: no workbook (run make_label_sheets.py --study {study.key})")
             continue
-        print_check(read_labels(name))
+        print_check(read_labels(study, name))
 
 
 if __name__ == "__main__":
-    chosen = sys.argv[1:] or list(SETS)
-    unknown = [name for name in chosen if name not in SETS]
-    if unknown:
-        raise SystemExit(f"Unknown set: {', '.join(unknown)} (choose from {', '.join(SETS)})")
-    main(chosen)
+    main()

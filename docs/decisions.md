@@ -525,3 +525,25 @@ them one or two stars against 41% overall), a real event the period comparison s
 has about 250 reviews every quarter with no spike, a control on which it should find little. They are
 loaded by `load_app_reviews.py` through the same ingestion as everything else (one duplicate skipped,
 in SMS Backup+), and not analysed yet.
+
+## A second labelled set: NPR News (2026-11-16)
+
+Cochon's labels show how well prompts tuned on Cochon work on Cochon. A write-up claiming the engine
+is domain-agnostic also needs a domain the prompts were never tuned on, so NPR News gets a test set of
+its own: 100 random reviews (of those with enough text for the model), labelled the same free-form way
+and scored once, at the end, alongside Cochon's test set. It has a development set too (the next 100
+random reviews, added the same day): with a test set alone, a prompt that failed on apps could only be
+fixed by looking at the test scores, which would spoil them. So prompts tuned on Cochon are checked on
+NPR's development set, fixed there if needed (and checked on Cochon's again), and both test sets are
+scored once, at the end. NPR's development set is labelled first; its test set's results are not
+looked at until then. NPR News was chosen over the other datasets because its reviews are about things any
+labeller understands (unlike Reicast's emulator and device jargon), it has never been analysed (so
+the labels are blind to its themes), its reviews are short (a median of 120 characters, so 100 of
+them take about as long as 25 of Cochon's), and its complaints fill the gap in Cochon's test set: 41
+of the 100 are rated one or two stars, against 13 in Cochon's. The Fire Tablet was the alternative,
+but 97% of its reviews are positive and its themes have been seen.
+
+The labelling instructions carry the same rules in an app's terms. The loose coverage rule becomes:
+a judgement of the app as a whole covers every feature the review names, unless the review says
+something about the feature itself; and, as praise of a restaurant's service doesn't cover its
+dishes, praise of NPR's journalism or shows doesn't cover the app's features, nor the other way round.

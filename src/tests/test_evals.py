@@ -8,12 +8,12 @@ from openpyxl import load_workbook
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "evals"))
 import codebook as cb  # noqa: E402
 from labels import LabelSet, TopicLabel, parse_labels  # noqa: E402
-from make_label_sheets import write_workbook  # noqa: E402
+from make_label_sheets import GUIDES, write_workbook  # noqa: E402
 
 
 def labelled_workbook(path: Path, rows: dict[int, list[tuple[str, str]]]) -> Path:
     """A labelling workbook as make_label_sheets writes it, with these topic and sentiment pairs filled in."""
-    write_workbook(path, [(review_id, f"Review {review_id}") for review_id in rows], "Test")
+    write_workbook(path, [(review_id, f"Review {review_id}") for review_id in rows], "Test", GUIDES["cochon"])
     workbook = load_workbook(path)
     sheet = workbook["Labels"]
     for row, pairs in enumerate(rows.values(), start=2):

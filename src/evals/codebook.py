@@ -1,11 +1,13 @@
 """The codebook: the hand-labelled topics grouped into entries, and discovery scored against it.
 
-    python evals/codebook.py propose [--sets dev test]      (from src/)
-    python evals/codebook.py show [--set dev]
-    python evals/codebook.py score REPORT... [--set dev] [--rejudge]
+    python evals/codebook.py [--study cochon|npr] propose [--sets dev test]      (from src/)
+    python evals/codebook.py [--study cochon|npr] show [--set dev]
+    python evals/codebook.py [--study cochon|npr] score REPORT... [--set dev] [--rejudge]
 
-The labels (labels.py) are free-form: each review's topics in the labeller's words. The codebook,
-cochon_codebook.xlsx, groups them at two levels:
+Each study (labels.py) has its own codebook, <study>_codebook.xlsx; Cochon is the default.
+
+The labels (labels.py) are free-form: each review's topics in the labeller's words. The codebook
+groups them at two levels:
 
 - An entry is one topic, whatever the wording: "gumbo" and "duck and andouille gumbo" are the entry
   Gumbo, "wait for a table" and "table wait" the entry Wait for a table.
@@ -60,9 +62,8 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
 import discover_themes as discover  # noqa: E402
 from config import settings  # noqa: E402
-from labels import SETS, LabelSet, read_labels  # noqa: E402
+from labels import STUDIES, LabelSet, Study, read_labels  # noqa: E402
 
-CODEBOOK_PATH = HERE / "cochon_codebook.xlsx"
 JUDGEMENT_DIR = HERE / "judgements"
 MODEL = discover.MODEL
 MIN_SHARE = discover.MIN_THEME_SHARE  # an entry or group this common is one discovery should find
@@ -70,7 +71,10 @@ COVERED_GROUP_SHARE = 0.5  # a group is covered when its covered entries hold th
 OVERALL = "Overall"  # the entry for verdicts on the whole visit, not scored
 MAX_ATTEMPTS = 2
 MAX_OUTPUT_TOKENS = 16000  # includes the model's adaptive thinking; more needs streaming
-SUBJECT = "Cochon (a Cajun restaurant in New Orleans)"
+
+
+def codebook_path(study: Study) -> Path:
+    return HERE / f"{study.key}_codebook.xlsx"
 
 
 # The codebook.
@@ -108,7 +112,7 @@ ENTRY_HEADINGS = ["Entry", "Group", "Description", "Scored"]
 TOPIC_HEADINGS = ["Topic", "Mentions", "Entry", "Proposed", "Reviews"]
 
 
-def load_codebook(path: Path = CODEBOOK_PATH) -> tuple[Codebook, list[str]]:
+def load_codebook(path: Path) -> tuple[Codebook, list[str]]:
     """The codebook in the workbook, and its problems (an entry used but not defined, a name twice)."""
     codebook, problems = Codebook(), []
     if not path.exists():
@@ -153,7 +157,7 @@ def topic_mentions(label_sets: list[LabelSet]) -> tuple[Counter, dict[str, list[
     return mentions, reviews
 
 
-def write_codebook(codebook: Codebook, label_sets: list[LabelSet], path: Path = CODEBOOK_PATH) -> None:
+def write_codebook(codebook: Codebook, label_sets: list[LabelSet], path: Path) -> None:
     """Write the whole workbook from the codebook (entries by group, topics by entry)."""
     mentions, reviews = topic_mentions(label_sets)
     workbook = Workbook()
@@ -270,22 +274,23 @@ def check_numbers(numbers: list[int], count: int, what: str, exactly_once: bool)
 # Proposing entries.
 
 
-PROPOSE_SYSTEM = f"""You help build a codebook from hand labels of customer reviews of {SUBJECT}.
+PROPOSE_SYSTEM = """You help build a codebook from hand labels of customer reviews of {subject}.
 A person read each review and wrote down every topic it raises, in their own words. You group
 their topics into codebook entries, and the entries into groups.
 
 An entry is one topic. Different wordings of the same thing go together ("wait for a table",
-"table wait", "waited an hour for a seat"), and so does a thing with its variants ("gumbo",
-"duck and andouille gumbo"). Distinct things stay apart even when related: "gumbo" and
-"jambalaya" are two entries, and so are "wait for a table" and "wait for food". Name each entry as a
-topic in 1 to 4 words, never an opinion: "Service speed", not "Slow service".
+"table wait", "waited an hour for a seat"; "crashes on start-up", "won't open"), and so does a thing
+with its variants ("gumbo", "duck and andouille gumbo"). Distinct things stay apart even when
+related: "gumbo" and "jambalaya" are two entries, and so are "wait for a table" and "wait for food",
+or "crashes" and "slow loading". Name each entry as a topic in 1 to 4 words, never an opinion:
+"Service speed", not "Slow service".
 
 Give every entry a group: the broader area that one theme in a report could cover, such as a kind
-of dish, a course, or one aspect of the service. Entries in a group are related items a reader would
-expect together. A group can hold a single entry. Name groups as topics too.
+of dish, one aspect of the service, or a set of related features. Entries in a group are related
+items a reader would expect together. A group can hold a single entry. Name groups as topics too.
 
-Topics that give a verdict on the whole visit ("overall", "great place", "would come back") belong
-to the entry "{OVERALL}" in the group "{OVERALL}".
+Topics that give a verdict on the whole ("overall", "great place", "great app", "would recommend")
+belong to the entry "{overall}" in the group "{overall}".
 
 Every listed topic belongs to exactly one entry. To add topics to an existing entry, give its exact
 name (its group and description are kept). Create a new entry only when no existing one fits, and
@@ -305,7 +310,12 @@ class Proposal(BaseModel):
 
 
 async def propose_entries(
-    client: AsyncAnthropic, codebook: Codebook, new_topics: list[str], mentions: Counter, usage: discover.TokenUsage
+    client: AsyncAnthropic,
+    subject: str,
+    codebook: Codebook,
+    new_topics: list[str],
+    mentions: Counter,
+    usage: discover.TokenUsage,
 ) -> Proposal:
     existing = "\n".join(
         f"- {entry.name} (group: {entry.group}): {entry.description}" for entry in codebook.entries
@@ -324,7 +334,8 @@ async def propose_entries(
         numbers = [number for entry in proposal.entries for number in entry.topics]
         check_numbers(numbers, len(new_topics), "topic", exactly_once=True)
 
-    result = await ask(client, PROPOSE_SYSTEM, user_message, Proposal, check, usage)
+    system = PROPOSE_SYSTEM.format(subject=subject, overall=OVERALL)
+    result = await ask(client, system, user_message, Proposal, check, usage)
     assert isinstance(result, Proposal)
     return result
 
@@ -351,36 +362,43 @@ def apply_proposal(codebook: Codebook, proposal: Proposal, new_topics: list[str]
     return added
 
 
-async def propose(set_names: list[str]) -> None:
-    codebook, problems = load_codebook()
-    if problems:
-        raise SystemExit("Fix the codebook first:\n  " + "\n  ".join(problems))
-    label_sets = [checked_labels(name) for name in set_names]
+async def propose(study: Study, set_names: list[str]) -> None:
+    path = codebook_path(study)
+    codebook = loaded_codebook(study)
+    label_sets = [checked_labels(study, name) for name in set_names]
     mentions, _ = topic_mentions(label_sets)
+    if not mentions:
+        raise SystemExit(f"No topics are labelled in {study.name}'s {' or '.join(set_names)} set yet.")
     new_topics = sorted(topic for topic in mentions if topic not in codebook.topics)
     if not new_topics:
         print("Every labelled topic is in the codebook already.")
-        write_codebook(codebook, label_sets)  # refreshes the mention counts
+        write_codebook(codebook, label_sets, path)  # refreshes the mention counts
         return
     print(f"Asking {MODEL} to place {len(new_topics)} topics ({len(codebook.entries)} entries so far)...")
     usage = discover.TokenUsage()
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-    proposal = await propose_entries(client, codebook, new_topics, mentions, usage)
+    proposal = await propose_entries(client, study.subject, codebook, new_topics, mentions, usage)
     added = apply_proposal(codebook, proposal, new_topics)
-    write_codebook(codebook, label_sets)
+    write_codebook(codebook, label_sets, path)
     groups = {entry.group for entry in codebook.entries}
     print(
-        f"Wrote {CODEBOOK_PATH.name}: {added} new entries, {len(codebook.entries)} in {len(groups)} groups "
+        f"Wrote {path.name}: {added} new entries, {len(codebook.entries)} in {len(groups)} groups "
         f"({usage.input_tokens} input / {usage.output_tokens} output tokens). Check it by hand."
     )
 
 
-def checked_labels(name: str) -> LabelSet:
-    label_set = read_labels(name)
+def loaded_codebook(study: Study) -> Codebook:
+    codebook, problems = load_codebook(codebook_path(study))
+    if problems:
+        raise SystemExit(f"Fix {codebook_path(study).name} first:\n  " + "\n  ".join(problems))
+    return codebook
+
+
+def checked_labels(study: Study, name: str) -> LabelSet:
+    label_set = read_labels(study, name)
     if label_set.problems:
-        raise SystemExit(
-            f"The {name} labels have problems (python evals/labels.py {name}):\n  " + "\n  ".join(label_set.problems)
-        )
+        command = f"python evals/labels.py --study {study.key} {name}"
+        raise SystemExit(f"The {name} labels have problems ({command}):\n  " + "\n  ".join(label_set.problems))
     return label_set
 
 
@@ -417,15 +435,13 @@ def prevalence(codebook: Codebook, label_set: LabelSet) -> tuple[dict[str, Preva
     return by_entry, by_group, sorted(unmapped)
 
 
-def show(set_name: str) -> None:
-    codebook, problems = load_codebook()
-    if problems:
-        raise SystemExit("Fix the codebook first:\n  " + "\n  ".join(problems))
-    label_set = checked_labels(set_name)
+def show(study: Study, set_name: str) -> None:
+    codebook = loaded_codebook(study)
+    label_set = checked_labels(study, set_name)
     random_count = len(label_set.random_ids)
     by_entry, by_group, unmapped = prevalence(codebook, label_set)
     print(
-        f"{set_name}: {len(label_set.labelled_ids)} of {len(label_set.review_ids)} reviews labelled, "
+        f"{study.name} {set_name}: {len(label_set.labelled_ids)} of {len(label_set.review_ids)} reviews labelled, "
         f"{random_count} of them chosen at random. Shares are of those; * marks {MIN_SHARE:.0%} or more.\n"
     )
     print(f"{'':44}{'reviews':>8}{'random':>8}{'share':>7}   positive/negative/mixed/neutral")
@@ -456,7 +472,7 @@ def show(set_name: str) -> None:
 # Scoring discovery.
 
 
-JUDGE_SYSTEM = f"""You compare the themes an analysis found in customer reviews of {SUBJECT} with a
+JUDGE_SYSTEM = """You compare the themes an analysis found in customer reviews of {subject} with a
 codebook: topics people labelled by hand in the reviews, grouped into entries.
 
 For each theme, list the codebook entries it covers. A theme covers an entry when a review raising
@@ -477,7 +493,7 @@ class Judgement(BaseModel):
 
 
 async def judge(
-    client: AsyncAnthropic, codebook: Codebook, themes: list[dict], usage: discover.TokenUsage
+    client: AsyncAnthropic, subject: str, codebook: Codebook, themes: list[dict], usage: discover.TokenUsage
 ) -> dict[str, list[str]]:
     """Which entries each theme covers, by name."""
     numbered_themes = "\n".join(
@@ -494,7 +510,7 @@ async def judge(
         entries = [number for item in judgement.themes for number in item.entries]
         check_numbers(entries, len(codebook.entries), "entry", exactly_once=False)
 
-    result = await ask(client, JUDGE_SYSTEM, user_message, Judgement, check, usage)
+    result = await ask(client, JUDGE_SYSTEM.format(subject=subject), user_message, Judgement, check, usage)
     assert isinstance(result, Judgement)
     covers = {}
     for item in sorted(result.themes, key=lambda item: item.theme):
@@ -504,10 +520,12 @@ async def judge(
 
 
 async def judgement_for(
-    client: AsyncAnthropic, codebook: Codebook, report_path: Path, rejudge: bool
+    client: AsyncAnthropic, study: Study, codebook: Codebook, report_path: Path, rejudge: bool
 ) -> dict[str, list[str]]:
     """The saved judgement of a report if it still fits the codebook and the report, else a new one."""
     report = json.loads(report_path.read_text(encoding="utf-8"))
+    if report["entity"]["id"] != study.entity_id:
+        raise SystemExit(f"{report_path.name} is a report on entity {report['entity']['id']}, not {study.name}.")
     themes = [{"name": theme["name"], "description": theme["description"]} for theme in report["themes"]]
     saved_path = JUDGEMENT_DIR / f"{report_path.stem}.json"
     if saved_path.exists() and not rejudge:
@@ -516,7 +534,7 @@ async def judgement_for(
             return saved["covers"]
         print(f"  {saved_path.name} was judged against other entries or themes; judging again")
     usage = discover.TokenUsage()
-    covers = await judge(client, codebook, themes, usage)
+    covers = await judge(client, study.subject, codebook, themes, usage)
     JUDGEMENT_DIR.mkdir(exist_ok=True)
     saved_path.write_text(json.dumps({
         "report": report_path.name,
@@ -634,22 +652,20 @@ def print_score(name: str, result: Score) -> None:
         print(f"  Spans groups: {theme} covers {', '.join(groups)}")
 
 
-async def score(report_paths: list[Path], set_name: str, rejudge: bool) -> None:
-    codebook, problems = load_codebook()
-    if problems:
-        raise SystemExit("Fix the codebook first:\n  " + "\n  ".join(problems))
+async def score(study: Study, report_paths: list[Path], set_name: str, rejudge: bool) -> None:
+    codebook = loaded_codebook(study)
     if not codebook.entries:
         raise SystemExit("The codebook is empty: label some reviews and run propose first.")
-    label_set = checked_labels(set_name)
+    label_set = checked_labels(study, set_name)
     _, _, unmapped = prevalence(codebook, label_set)
     if unmapped:
         print(f"Note: {len(unmapped)} of the {set_name} set's topics aren't in the codebook and are left out "
-              f"(run propose{' --sets dev test' if set_name == 'test' else ''}).")
+              f"(run propose --sets {' '.join(sorted(set(study.sets[:1]) | {set_name}))}).")
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
     rows = []
     for report_path in report_paths:
         print(f"\n{report_path.name}")
-        covers = await judgement_for(client, codebook, report_path, rejudge)
+        covers = await judgement_for(client, study, codebook, report_path, rejudge)
         result = score_themes(codebook, label_set, covers)
         print_score(report_path.name, result)
         rows.append((report_path.stem, result))
@@ -666,25 +682,32 @@ async def score(report_paths: list[Path], set_name: str, rejudge: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--study", choices=STUDIES, default="cochon")
     commands = parser.add_subparsers(dest="command", required=True)
     propose_parser = commands.add_parser("propose", help="group the labelled topics not in the codebook yet")
-    propose_parser.add_argument("--sets", nargs="+", choices=SETS, default=["dev"])
+    propose_parser.add_argument("--sets", nargs="+", help="the sets whose topics to use (the study's first by default)")
     show_parser = commands.add_parser("show", help="each entry's and group's share of the labelled reviews")
-    show_parser.add_argument("--set", choices=SETS, default="dev")
+    show_parser.add_argument("--set", help="the set to count (the study's first by default)")
     score_parser = commands.add_parser("score", help="score discovery reports against the codebook")
     score_parser.add_argument("reports", nargs="+", type=Path)
-    score_parser.add_argument("--set", choices=SETS, default="dev")
+    score_parser.add_argument("--set", help="the set to score against (the study's first by default)")
     score_parser.add_argument("--rejudge", action="store_true", help="ask the model again even if a judgement is saved")
     args = parser.parse_args()
+    study = STUDIES[args.study]
+    # Cochon's first set is the development set, so the test set shapes nothing until it is named.
+    set_names = (args.sets if args.command == "propose" else [args.set] if args.set else None) or [study.sets[0]]
+    unknown = [name for name in set_names if name not in study.sets]
+    if unknown:
+        raise SystemExit(f"{study.name} has no {', '.join(unknown)} set (it has {', '.join(study.sets)})")
     if args.command == "propose":
-        asyncio.run(propose(args.sets))
+        asyncio.run(propose(study, set_names))
     elif args.command == "show":
-        show(args.set)
+        show(study, set_names[0])
     else:
         missing = [str(path) for path in args.reports if not path.exists()]
         if missing:
             raise SystemExit(f"No such report: {', '.join(missing)}")
-        asyncio.run(score(args.reports, args.set, args.rejudge))
+        asyncio.run(score(study, args.reports, set_names[0], args.rejudge))
 
 
 if __name__ == "__main__":
