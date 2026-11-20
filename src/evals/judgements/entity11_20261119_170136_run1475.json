@@ -1,0 +1,175 @@
+{
+  "report": "entity11_20261119_170136_run1475.json",
+  "prompt_version": 9,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 3986,
+  "output_tokens": 354,
+  "themes": [
+    {
+      "name": "Server attitude and attentiveness",
+      "description": "Friendliness, rudeness, attentiveness, and knowledge of servers and bartenders, including being ignored, forgotten, or having multiple servers rotate through the table."
+    },
+    {
+      "name": "Host stand and wait times",
+      "description": "Experiences with hostesses, seating policies, reservations, walk-ins, and how long guests waited for a table despite empty seats or reservations."
+    },
+    {
+      "name": "Pacing and order timing",
+      "description": "How quickly or slowly food and drinks arrived, courses coming out all at once or out of order, and diners feeling rushed or left waiting."
+    },
+    {
+      "name": "Saltiness and seasoning",
+      "description": "Comments on whether dishes were over-salted, bland, under-seasoned, or well-seasoned and flavorful."
+    },
+    {
+      "name": "Fried alligator",
+      "description": "Opinions on the fried alligator appetizer, including its texture, chewiness, sauce, and whether it lived up to its reputation."
+    },
+    {
+      "name": "Wood-fired oysters",
+      "description": "Reactions to the wood-fired or roasted oysters with chili garlic butter, including size, sauce, freshness, and cooking."
+    },
+    {
+      "name": "Louisiana Cochon dish",
+      "description": "Reviews of the signature pulled-pork Louisiana Cochon patty with cabbage, cracklins, and pickled peaches, including dryness, flavor, and temperature."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "Opinions on the rabbit and dumplings stew or entree, including tenderness, richness, seasoning, and amount of rabbit."
+    },
+    {
+      "name": "Pork ribs and pork cuts",
+      "description": "Comments on smoked ribs with watermelon pickle, pork cheeks, ham hock, brisket and similar meat dishes, including tenderness, sauce, spice, and fattiness."
+    },
+    {
+      "name": "Sides and mac and cheese",
+      "description": "Opinions on side dishes such as mac and cheese, grits, smothered greens, and eggplant and shrimp dressing."
+    },
+    {
+      "name": "Bread and rolls",
+      "description": "Comments on the complimentary rolls and bread basket, including quality, butter, and whether bread was delayed, refused, or never delivered."
+    },
+    {
+      "name": "Boudin and charcuterie",
+      "description": "Reactions to boudin balls, the boucherie plate, head cheese, fried livers, and other house-made charcuterie and small meat plates."
+    },
+    {
+      "name": "Price and portion size",
+      "description": "Whether prices felt fair relative to portion sizes, quality, and the amount of food, including small plates and high check totals."
+    },
+    {
+      "name": "Noise and seating comfort",
+      "description": "Comments on loudness, acoustics, cramped tables, hard chairs, temperature, and outdoor seating conditions."
+    },
+    {
+      "name": "Decor and atmosphere",
+      "description": "Opinions on the restaurant's look, vibe, lighting, open kitchen, and overall ambiance and trendiness."
+    },
+    {
+      "name": "Hype and expectations",
+      "description": "Reviews comparing the restaurant to its reputation, awards, and other reviews, and to other New Orleans restaurants or Cochon Butcher."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "Comments on the cocktails, beer, wine list, moonshine, bar program, and other beverages."
+    },
+    {
+      "name": "Desserts",
+      "description": "Opinions on desserts such as pineapple upside-down cake, pies, puddings, and cakes."
+    }
+  ],
+  "covers": {
+    "Server attitude and attentiveness": [
+      "Bartenders",
+      "Manager",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Host stand and wait times": [
+      "Hostess",
+      "Reservations",
+      "Wait time"
+    ],
+    "Pacing and order timing": [
+      "Wait time"
+    ],
+    "Saltiness and seasoning": [
+      "Saltiness"
+    ],
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Wood-fired oysters": [
+      "Wood-fired oysters",
+      "Oysters"
+    ],
+    "Louisiana Cochon dish": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Pork ribs and pork cuts": [
+      "Brisket",
+      "Ham hock",
+      "Other pork dishes",
+      "Pork cheeks",
+      "Pork ribs"
+    ],
+    "Sides and mac and cheese": [
+      "Grits",
+      "Mac and cheese",
+      "Eggplant side",
+      "Greens"
+    ],
+    "Bread and rolls": [
+      "Bread and rolls"
+    ],
+    "Boudin and charcuterie": [
+      "Boudin",
+      "Charcuterie",
+      "Fried livers"
+    ],
+    "Price and portion size": [
+      "Portion size",
+      "Price"
+    ],
+    "Noise and seating comfort": [
+      "Air-conditioning",
+      "Noise",
+      "Seating"
+    ],
+    "Decor and atmosphere": [
+      "Atmosphere",
+      "Decor",
+      "Kitchen"
+    ],
+    "Hype and expectations": [
+      "Cochon Butcher",
+      "Reputation"
+    ],
+    "Cocktails and drinks": [
+      "Bar",
+      "Bartenders",
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Whiskey and bourbon",
+      "Wine"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ]
+  }
+}

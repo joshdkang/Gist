@@ -43,6 +43,22 @@ def test_labels_are_read_normalized_with_their_problems(tmp_path):
     assert labels.random_ids == [1, 3]  # review 4 is random but not labelled yet
 
 
+def test_topics_beyond_the_columns_are_read_from_the_notes(tmp_path):
+    path = labelled_workbook(tmp_path / "set.xlsx", {1: [("Gumbo", "positive")], 2: []})
+    workbook = load_workbook(path)
+    sheet = workbook["Labels"]
+    notes_column = [cell.value for cell in sheet[1]].index("Notes") + 1
+    sheet.cell(row=2, column=notes_column, value="Grits: positive,\nmac & cheese: Mixed\nmusic: loud, gumbo: neutral")
+    sheet.cell(row=3, column=notes_column, value="weird review")
+    workbook.save(path)
+    labels = parse_labels(path, "set", {1: "random", 2: "random"})
+    assert labels.labels == [
+        TopicLabel(1, "gumbo", "positive"), TopicLabel(1, "grits", "positive"), TopicLabel(1, "mac & cheese", "mixed"),
+    ]
+    assert len(labels.problems) == 2  # "loud" isn't a sentiment, and gumbo is already in the columns
+    assert labels.remarks == ["weird review"]
+
+
 def sample_codebook() -> cb.Codebook:
     codebook = cb.Codebook(entries=[
         cb.Entry("Gumbo", "Sides", "The gumbo."),
@@ -131,6 +147,21 @@ def test_discovery_is_scored_against_the_codebook():
     assert result.verdict_themes == ["Overall experience"]
     assert result.overlaps == {"Gumbo": ["Sides", "Gumbo and wait"]}
     assert result.spanning == {"Gumbo and wait": ["Sides", "Wait for a table"]}
+
+
+def test_key_shares_near_the_threshold_are_told_apart():
+    # 4% of 50 random reviews is 2, but it takes 5 to be clear of sampling noise (8 of 100).
+    assert [cb.clearly_key(count, 50) for count in (2, 4, 5)] == [False, False, True]
+    assert [cb.clearly_key(count, 100) for count in (7, 8)] == [False, True]
+
+    codebook = sample_codebook()
+    labels = [TopicLabel(review_id, "gumbo", "positive") for review_id in range(1, 6)]
+    labels += [TopicLabel(review_id, "parking", "negative") for review_id in (6, 7)]
+    labels += [TopicLabel(review_id, "jambalaya", "positive") for review_id in range(8, 51)]
+    label_set = LabelSet("dev", list(range(1, 51)), dict.fromkeys(range(1, 51), "random"), labels)
+    result = cb.score_themes(codebook, label_set, {"Gumbo": ["Gumbo"]})
+    assert result.near_entries == ["Parking"] and result.near_groups == ["Parking"]
+    assert result.missed_groups == ["Sides", "Parking"] or set(result.missed_groups) == {"Sides", "Parking"}
 
 
 def test_a_group_is_covered_when_its_covered_entries_hold_half_its_mentions():

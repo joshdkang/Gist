@@ -1,0 +1,141 @@
+{
+  "report": "entity1591_20261119_170622_run1483.json",
+  "prompt_version": 10,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2397,
+  "output_tokens": 289,
+  "themes": [
+    {
+      "name": "Push notification controls",
+      "description": "Reviews about push or news alerts, especially the inability to turn them off in settings, notification frequency or content, or notifications that fail to dismiss or persist after being disabled."
+    },
+    {
+      "name": "Live stream connection",
+      "description": "Reviews about connecting to or playing live radio streams and local stations, including stuck 'connecting', 'no audio available' or 'unable to play media' errors, and stations or live streams that went missing."
+    },
+    {
+      "name": "Buffering and playback interruptions",
+      "description": "Reviews about audio that buffers, cuts out, drops, stops mid-story or stalls, including trouble when switching between WiFi and mobile data."
+    },
+    {
+      "name": "Audio skipping and playlist position",
+      "description": "Reviews about audio that jumps forward or backward, skips or cuts off the end of stories, or starts stories or playlist items partway through."
+    },
+    {
+      "name": "Playlist and queue behavior",
+      "description": "Reviews about the saved playlist or listening queue, including playlists deleted on close or update, queue management, and being unable to play whole programs without building a playlist."
+    },
+    {
+      "name": "App crashes and stability",
+      "description": "Reviews about the app force closing, freezing, failing to open, hanging, or otherwise being buggy and unreliable."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "Reviews about the app running or auto-starting in the background, battery drain, and memory or data use when not in use."
+    },
+    {
+      "name": "Lock screen glitch",
+      "description": "Reviews describing the screen flashing or cycling between the app and the lock screen, or the phone becoming unusable after an update, especially on Samsung Note devices."
+    },
+    {
+      "name": "Banner ads and sponsorship",
+      "description": "Reviews about banner ads that take up screen space or cannot be closed, pop-up ads, and sponsor or underwriting messages in audio."
+    },
+    {
+      "name": "Visual design and layout",
+      "description": "Reviews about the look, UI design, navigation and ease of finding things, including dated or outdated appearance and awkward layout."
+    },
+    {
+      "name": "Tablet and orientation support",
+      "description": "Reviews about tablet usability and the lack of landscape or rotated screen orientation."
+    },
+    {
+      "name": "Chromecast and casting",
+      "description": "Requests or complaints about missing Chromecast, Google Cast or similar casting support."
+    },
+    {
+      "name": "Offline and download options",
+      "description": "Reviews about offline use, downloading podcasts or articles, and listening without a connection."
+    },
+    {
+      "name": "Privacy and permissions",
+      "description": "Reviews concerned with the app accessing personal information, contacts, call history or location, and with the permissions it requests."
+    },
+    {
+      "name": "Political bias",
+      "description": "Reviews about perceived liberal or conservative slant, partisanship, propaganda or fairness in NPR's reporting, or praise of it as unbiased."
+    },
+    {
+      "name": "Content freshness and program availability",
+      "description": "Reviews about programs, episodes or hourly news not being updated on time or being outdated, and shows or podcasts that are missing from the app."
+    },
+    {
+      "name": "Article text, images and fonts",
+      "description": "Reviews about reading articles in the app, including text size and display options, scrambled text, and missing or crashing images, videos and tweets."
+    },
+    {
+      "name": "Settings and customization",
+      "description": "Reviews about the absence or difficulty of in-app settings and personalization, such as profiles, station ordering, dark theme or other options."
+    }
+  ],
+  "covers": {
+    "Push notification controls": [
+      "Push notifications"
+    ],
+    "Live stream connection": [
+      "Live radio and stations",
+      "Streaming"
+    ],
+    "Buffering and playback interruptions": [
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Audio skipping and playlist position": [
+      "Streaming issues"
+    ],
+    "Playlist and queue behavior": [
+      "Playlist"
+    ],
+    "App crashes and stability": [
+      "Crashes and bugs"
+    ],
+    "Background activity and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Lock screen glitch": [
+      "Devices and platforms"
+    ],
+    "Banner ads and sponsorship": [
+      "Ads"
+    ],
+    "Visual design and layout": [
+      "Design and interface"
+    ],
+    "Tablet and orientation support": [
+      "Devices and platforms",
+      "Auto rotation and orientation"
+    ],
+    "Chromecast and casting": [
+      "Chromecast and casting"
+    ],
+    "Offline and download options": [
+      "Offline use"
+    ],
+    "Privacy and permissions": [
+      "Storage and permissions"
+    ],
+    "Political bias": [
+      "Accuracy and bias"
+    ],
+    "Content freshness and program availability": [
+      "News content"
+    ],
+    "Article text, images and fonts": [
+      "Text size and display"
+    ],
+    "Settings and customization": []
+  }
+}

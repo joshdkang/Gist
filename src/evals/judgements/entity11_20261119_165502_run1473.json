@@ -1,0 +1,159 @@
+{
+  "report": "entity11_20261119_165502_run1473.json",
+  "prompt_version": 9,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 3990,
+  "output_tokens": 324,
+  "themes": [
+    {
+      "name": "Server attitude and attentiveness",
+      "description": "How friendly, rude, attentive, knowledgeable, or neglectful servers, bartenders and hosts were toward guests, including the tag-team multiple-server approach and being ignored or flagged down."
+    },
+    {
+      "name": "Wait times and reservations",
+      "description": "Waits to be seated, honoring of reservations and walk-in policies, hostess handling of seating and party size, and how hard it was to get a table."
+    },
+    {
+      "name": "Pacing of the meal",
+      "description": "Timing of courses and drinks, including food arriving all at once or too fast, being rushed out with the check, long gaps between dishes, and slow kitchen output."
+    },
+    {
+      "name": "Bread and rolls",
+      "description": "The complimentary dinner rolls and bread, including their quality, whether they were offered or withheld, and difficulty getting refills."
+    },
+    {
+      "name": "Oysters",
+      "description": "The wood-fired chili garlic butter oysters, including flavor, sauce, size, portion count and temperature."
+    },
+    {
+      "name": "Fried alligator",
+      "description": "The fried alligator appetizer, including texture, seasoning, sauce and whether it was a good way to try gator."
+    },
+    {
+      "name": "Louisiana Cochon signature dish",
+      "description": "The pulled pork Louisiana Cochon entree with cabbage, cracklins and turnips, including its moisture, saltiness, flavor and presentation."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "The rabbit and dumplings entree, including how the stew tasted, the dumplings, the amount of rabbit, and comparisons to chicken pot pie."
+    },
+    {
+      "name": "Ribs, ham hock and pork cheeks",
+      "description": "Reviews of the smoked pork ribs, ham hock and braised pork cheeks, including tenderness, sauce, seasoning and fat."
+    },
+    {
+      "name": "Mac and cheese and sides",
+      "description": "The side dishes such as macaroni and cheese casserole, grits, greens, lima beans, twice-baked potato and shrimp and eggplant dressing."
+    },
+    {
+      "name": "Saltiness and seasoning",
+      "description": "Whether dishes across the menu were over-salted, bland, over-sauced, too vinegary or spicy, or well balanced."
+    },
+    {
+      "name": "Prices and portion size",
+      "description": "Whether the cost felt fair or high relative to portion sizes, a la carte pricing and value, including check totals."
+    },
+    {
+      "name": "Atmosphere and noise",
+      "description": "The restaurant's decor, vibe, noise level, seating comfort and layout, including bench seating, crowded tables, temperature and outdoor seating."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "Quality, strength and pricing of cocktails, beer, wine, bourbon, moonshine and non-alcoholic drinks, plus the drink menu and glassware."
+    },
+    {
+      "name": "Dietary accommodations and substitutions",
+      "description": "How the restaurant handled vegetarian options, allergies, menu modifications, substitutions, special requests and split checks."
+    },
+    {
+      "name": "Hype and expectations",
+      "description": "Whether the restaurant met reviewers' expectations given its reviews, awards, and TV coverage, including tourist-trap perceptions and comparisons to Cochon Butcher and other New Orleans restaurants."
+    },
+    {
+      "name": "Cleanliness and food safety",
+      "description": "Concerns about hygiene, foreign objects in food, pests, dirty tableware, cross-contamination and illness after eating."
+    }
+  ],
+  "covers": {
+    "Server attitude and attentiveness": [
+      "Bartenders",
+      "Hostess",
+      "Manager",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Wait times and reservations": [
+      "Hostess",
+      "Reservations",
+      "Wait time"
+    ],
+    "Pacing of the meal": [
+      "Wait time"
+    ],
+    "Bread and rolls": [
+      "Bread and rolls"
+    ],
+    "Oysters": [
+      "Oysters",
+      "Wood-fired oysters"
+    ],
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Louisiana Cochon signature dish": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Ribs, ham hock and pork cheeks": [
+      "Ham hock",
+      "Pork cheeks",
+      "Pork ribs"
+    ],
+    "Mac and cheese and sides": [
+      "Grits",
+      "Mac and cheese",
+      "Potatoes",
+      "Eggplant side",
+      "Greens",
+      "Vegetables"
+    ],
+    "Saltiness and seasoning": [
+      "Saltiness"
+    ],
+    "Prices and portion size": [
+      "Portion size",
+      "Price"
+    ],
+    "Atmosphere and noise": [
+      "Air-conditioning",
+      "Atmosphere",
+      "Decor",
+      "Music",
+      "Noise",
+      "Seating"
+    ],
+    "Cocktails and drinks": [
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Non-alcoholic drinks",
+      "Whiskey and bourbon",
+      "Wine"
+    ],
+    "Dietary accommodations and substitutions": [],
+    "Hype and expectations": [
+      "Cochon Butcher",
+      "Overall",
+      "Reputation"
+    ],
+    "Cleanliness and food safety": [
+      "Cleanliness"
+    ]
+  }
+}

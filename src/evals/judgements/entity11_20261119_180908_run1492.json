@@ -1,0 +1,167 @@
+{
+  "report": "entity11_20261119_180908_run1492.json",
+  "prompt_version": 11,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 4022,
+  "output_tokens": 338,
+  "themes": [
+    {
+      "name": "Fried alligator",
+      "description": "Reviews discussing the fried alligator appetizer, including its texture, tenderness, batter, chili garlic mayo or aioli, and how it compares with other alligator."
+    },
+    {
+      "name": "Wood-fired oysters",
+      "description": "Reviews discussing the wood-fired or grilled oysters with chili garlic butter, including their flavor, sauce, doneness, and how they are plated."
+    },
+    {
+      "name": "Louisiana Cochon entree",
+      "description": "Reviews discussing the signature Louisiana Cochon pulled pork dish with cabbage, turnips and cracklins, including its moistness, flavor, and whether it lives up to being the namesake dish."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "Reviews discussing the rabbit and dumplings stew, including the amount of rabbit, the dumplings or biscuits, the gravy, and seasoning."
+    },
+    {
+      "name": "Mac and cheese",
+      "description": "Reviews discussing the macaroni and cheese casserole side or small plate, including its creaminess, crust, and seasoning."
+    },
+    {
+      "name": "Gumbo",
+      "description": "Reviews discussing any of the gumbos (chicken and andouille, duck, deviled egg), including roux, flavor, consistency, and portion."
+    },
+    {
+      "name": "Smoked ribs",
+      "description": "Reviews discussing the spicy or smoked pork ribs with pickled watermelon, including tenderness, sauce, and smoke flavor."
+    },
+    {
+      "name": "Pork cheeks",
+      "description": "Reviews discussing the braised or crispy pork cheek small plate, including tenderness, accompaniments, and portion."
+    },
+    {
+      "name": "Brisket",
+      "description": "Reviews discussing the smoked beef brisket entree and its horseradish potato salad."
+    },
+    {
+      "name": "Boudin",
+      "description": "Reviews discussing the fried boudin balls or boudin appetizer, including crust, filling, and flavor."
+    },
+    {
+      "name": "Bread and rolls",
+      "description": "Reviews discussing the complimentary dinner rolls or bread and butter, including their quality, timing, and whether refills are given."
+    },
+    {
+      "name": "Desserts",
+      "description": "Reviews discussing the dessert menu, such as the pineapple upside-down cake, puddings, pies, and ice cream."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "Reviews discussing the quality, variety, and pricing of cocktails, wine, beer, whiskey, and other beverages. Service by the bartender is covered under Waitstaff service."
+    },
+    {
+      "name": "Waitstaff service",
+      "description": "Reviews discussing the conduct of servers, bartenders, runners and managers once the guest is at the table, including attentiveness, friendliness, menu knowledge, pacing, rushing, and handling of complaints or requests."
+    },
+    {
+      "name": "Host stand and wait times",
+      "description": "Reviews discussing reservations, the hostesses and greeting at the door, quoted versus actual wait times, seating decisions, and walk-in or party-size policies."
+    },
+    {
+      "name": "Price and portions",
+      "description": "Reviews discussing the cost of the meal, value for money, and how big or small portions and small plates are."
+    },
+    {
+      "name": "Atmosphere and noise",
+      "description": "Reviews discussing the decor, ambiance, seating comfort, table spacing, temperature, noise level, and overall vibe of the dining room or bar."
+    },
+    {
+      "name": "Cochon Butcher",
+      "description": "Reviews that mention the neighboring sister sandwich shop Cochon Butcher, including mix-ups between the two and recommendations to visit it instead."
+    }
+  ],
+  "covers": {
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Wood-fired oysters": [
+      "Wood-fired oysters"
+    ],
+    "Louisiana Cochon entree": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Mac and cheese": [
+      "Mac and cheese"
+    ],
+    "Gumbo": [
+      "Gumbo"
+    ],
+    "Smoked ribs": [
+      "Pork ribs"
+    ],
+    "Pork cheeks": [
+      "Pork cheeks"
+    ],
+    "Brisket": [
+      "Brisket",
+      "Potatoes"
+    ],
+    "Boudin": [
+      "Boudin"
+    ],
+    "Bread and rolls": [
+      "Bread and rolls"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ],
+    "Cocktails and drinks": [
+      "Bar",
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Non-alcoholic drinks",
+      "Whiskey and bourbon",
+      "Wine"
+    ],
+    "Waitstaff service": [
+      "Bartenders",
+      "Manager",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Host stand and wait times": [
+      "Hostess",
+      "Reservations",
+      "Wait time",
+      "Large groups"
+    ],
+    "Price and portions": [
+      "Portion size",
+      "Price"
+    ],
+    "Atmosphere and noise": [
+      "Air-conditioning",
+      "Atmosphere",
+      "Decor",
+      "Music",
+      "Noise",
+      "Seating"
+    ],
+    "Cochon Butcher": [
+      "Cochon Butcher"
+    ]
+  }
+}

@@ -42,7 +42,7 @@ from models import (
 from tracking import begin_step, set_step_outcome
 
 MODEL = "claude-sonnet-5-5"
-PROMPT_VERSION = 9  # see docs/decisions.md
+PROMPT_VERSION = 11  # see docs/decisions.md
 # No upper limit: the reviews decide the count, and confirm_themes.py demotes any theme that the
 # classified reviews show to be under the threshold. A cap of 15 made the model pack related topics
 # into one theme to fit.
@@ -75,15 +75,17 @@ Make each theme specific enough to act on and broad enough to recur across many 
 "Customer support responsiveness" is right. "Support" is too broad, and "Great support" is an
 opinion.
 
-Give a single item, such as one dish or one product feature, its own theme only if it comes up
-in a large share of reviews on its own. Otherwise, group related items into one coherent theme
-("Main dishes" or "Desserts" for a restaurant, "Photo editing tools" for an app) rather than
-listing items individually.
+Give a single item, such as one dish or one product feature, its own theme whenever enough
+reviews raise it on its own to meet the threshold above, even when related items do too: "Gumbo"
+and "Jambalaya" can both be themes. Group closely related items of one kind into one theme
+("Desserts" for a restaurant, "Photo editing tools" for an app) only when none of them meets the
+threshold alone, and keep out of the group any item that does.
 
-Each theme must be a single topic that fits in a short name. Do not join unrelated topics with
-"and" to make one theme, and do not make leftover buckets such as "Other dishes" or
-"Miscellaneous". If some items fit no coherent group, leave them out: reviews that fit no
-theme are handled separately.
+Each theme must be a single topic that fits in a short name. Never join topics that are not the
+same subject to meet the threshold, whether with "and" ("Bread and salads") or under a broad name.
+An item that falls short of the threshold and has no closely related items is left out: reviews
+that fit no theme are tracked separately, and a topic that keeps recurring becomes a theme later.
+Do not make leftover buckets such as "Other dishes" or "Miscellaneous".
 
 Themes must not overlap. Before answering, compare every pair of themes. If a typical review
 could reasonably belong to both, combine them into one theme. Each description is one or two
@@ -102,7 +104,17 @@ Let the reviews decide how many themes there are, at least 5. The goal is not th
 themes but the ones that matter. Together the themes
 should cover the distinct aspects of the experience that customers discuss.
 
-""" + THEME_RULES
+""" + THEME_RULES + """
+
+Before answering, check the finished list for overlap. A classifier will read each review and
+assign every point it makes to the themes that cover that point. Two themes overlap when one point
+in a review could reasonably be assigned to either of them: "the server was friendly and checked
+on us often" under a theme about attentiveness and a theme about attitude, or a complaint about the
+bartender under a drinks theme that mentions bar service and a staff theme. For each pair that
+overlaps, either merge the themes, when they are facets of one subject that reviewers mention
+together, or rewrite one description so the shared point plainly belongs to the other. Two
+different items of one kind, such as two dishes or two features, are not an overlap: a review that
+mentions both makes two points."""
 
 
 def check_theme_names(names: list[str]) -> None:

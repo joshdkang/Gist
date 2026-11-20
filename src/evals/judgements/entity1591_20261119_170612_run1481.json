@@ -1,0 +1,94 @@
+{
+  "report": "entity1591_20261119_170612_run1481.json",
+  "prompt_version": 10,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2050,
+  "output_tokens": 185,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Reviews about news alerts and push notifications, including whether they can be turned off or controlled in the app settings, how often they arrive, and how they behave when tapped."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Reviews about building and managing the audio playlist or queue, including whether it persists after closing the app, reordering, finding it, and loading more episodes."
+    },
+    {
+      "name": "Streaming stability and buffering",
+      "description": "Reviews about audio that buffers, cuts out, disconnects, stops mid-story, or is slow to connect on Wi-Fi or mobile data, for live streams and on-demand audio."
+    },
+    {
+      "name": "Skipping and wrong playback position",
+      "description": "Reviews about audio that skips or repeats sections, jumps back and forth, starts the next story midway, or restarts or resumes by itself after being paused."
+    },
+    {
+      "name": "Live streams and local stations",
+      "description": "Reviews about finding, connecting to, and listening to live streams and local NPR stations, including missing stations, failed nearby-station search, and stations that won't play."
+    },
+    {
+      "name": "Crashes and freezes",
+      "description": "Reviews about the app crashing, closing on its own, freezing, hanging, or failing to run on particular devices or Android versions."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "Reviews about the app running in the background or at startup, and about its battery, data, and memory consumption."
+    },
+    {
+      "name": "Interface design",
+      "description": "Reviews about the look, layout, navigation, and ease of use of the app, including outdated styling, Material Design, and how easy it is to find things."
+    },
+    {
+      "name": "News bias and impartiality",
+      "description": "Reviews about NPR's political leaning, fairness, objectivity, and trustworthiness of its reporting, whether seen as balanced or biased."
+    },
+    {
+      "name": "Content quality",
+      "description": "Reviews about the quality, depth, and value of NPR's journalism, stories, and programming, including praise for favorite shows and coverage."
+    },
+    {
+      "name": "Program and podcast catalog",
+      "description": "Reviews about which shows, podcasts, and hourly news are available in the app, including missing or removed programs, outdated episodes, and programs that fail to load or play."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Streaming stability and buffering": [
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Skipping and wrong playback position": [
+      "Streaming issues"
+    ],
+    "Live streams and local stations": [
+      "Live radio and stations"
+    ],
+    "Crashes and freezes": [
+      "Crashes and bugs",
+      "Devices and platforms"
+    ],
+    "Background activity and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Interface design": [
+      "Design and interface"
+    ],
+    "News bias and impartiality": [
+      "Accuracy and bias"
+    ],
+    "Content quality": [
+      "News content"
+    ],
+    "Program and podcast catalog": [
+      "News content"
+    ]
+  }
+}

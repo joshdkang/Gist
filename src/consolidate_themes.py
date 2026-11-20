@@ -55,7 +55,7 @@ from models import (
 )
 from tracking import begin_step, set_step_outcome
 
-PROMPT_VERSION = 2  # see docs/decisions.md
+PROMPT_VERSION = 3  # see docs/decisions.md
 # A candidate becomes a theme when this share of classified reviews raise it, but never fewer
 # than PROMOTE_MIN_REVIEWS, so a small review set doesn't promote a topic a handful of reviews mention.
 # The share and the floor are discovery's (4%, at least 25), so a theme is established by the same
@@ -95,7 +95,8 @@ belongs with no other candidate.
 
 Groups must not overlap each other either. If one group's topic is a kind of another group's
 topic (a specific fish dish next to a general fish group, or short ribs next to a beef group),
-put them in one group, unless the specific one is raised by a large share of reviews on its own.
+put them in one group, unless the specific one is raised by at least {promote_reviews} reviews on
+its own.
 
 A candidate raised by at least {promote_reviews} reviews, or a group that reaches that number
 together, can become an established theme. For every such candidate that you did not put in a

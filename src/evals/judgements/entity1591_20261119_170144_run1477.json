@@ -1,0 +1,121 @@
+{
+  "report": "entity1591_20261119_170144_run1477.json",
+  "prompt_version": 9,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2201,
+  "output_tokens": 242,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Notifications sent by the app, including breaking-news alerts, the inability to find or change notification settings, and notifications that don't clear after opening an article."
+    },
+    {
+      "name": "Live station streaming",
+      "description": "Whether live streams of local and member stations load and play, plus station search, nearest-station lookup, and stations or live-stream options that disappear."
+    },
+    {
+      "name": "Playback reliability and buffering",
+      "description": "Audio that buffers, cuts out, skips, jumps or repeats, stops mid-story, or fails with errors such as 'unable to play this media'. Includes drops when switching networks or after interruptions such as calls and notification sounds."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Saving stories to a playlist or queue, including playlists that get erased, can't be found or reordered, and queue behavior such as skipping or starting mid-story when moving between items."
+    },
+    {
+      "name": "App crashes and stability",
+      "description": "Force closes, freezes, apps that won't open or run, and breakage after Android or app updates or on specific devices."
+    },
+    {
+      "name": "Battery and background activity",
+      "description": "The app running in the background when closed, draining battery, using data or memory, restarting or playing audio on its own after being closed, and permission concerns."
+    },
+    {
+      "name": "Advertising",
+      "description": "Banner and pop-up ads, ads that can't be closed or cover article text, and ads or sponsor messages in audio."
+    },
+    {
+      "name": "Interface design and navigation",
+      "description": "Visual design and layout, how outdated it looks, and ease of finding things. Includes requests for Material Design or a dark theme and the screen layout."
+    },
+    {
+      "name": "Screen orientation support",
+      "description": "Lack of landscape or auto-rotate mode, especially on tablets and mounted devices, and requests to support it."
+    },
+    {
+      "name": "Chromecast and device integration",
+      "description": "Requests for casting support and for integration with the lock screen, widget, SD card installation, Tasker, or Google TV."
+    },
+    {
+      "name": "Political bias and trust",
+      "description": "Opinions on the fairness, bias, accuracy, and trustworthiness of NPR's journalism and coverage, whether praising it as unbiased or criticizing it as slanted."
+    },
+    {
+      "name": "Content quality and programs",
+      "description": "Praise or comments about NPR's stories, shows, and podcasts, plus availability of specific programs and episodes and whether content is current or complete."
+    },
+    {
+      "name": "Article reading experience",
+      "description": "Reading news text in the app, including images, tweets, and videos that fail to load, overlapping text, links, and missing features like comments or sharing."
+    },
+    {
+      "name": "Offline listening and downloads",
+      "description": "Requests to download or cache audio and articles for offline use, and the lack of such features."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Live station streaming": [
+      "Live radio and stations"
+    ],
+    "Playback reliability and buffering": [
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "App crashes and stability": [
+      "Crashes and bugs",
+      "Devices and platforms",
+      "Updates"
+    ],
+    "Battery and background activity": [
+      "Battery use",
+      "Data usage",
+      "Storage and permissions",
+      "App works alone"
+    ],
+    "Advertising": [
+      "Ads"
+    ],
+    "Interface design and navigation": [
+      "Design and interface",
+      "Text size and display"
+    ],
+    "Screen orientation support": [
+      "Auto rotation and orientation"
+    ],
+    "Chromecast and device integration": [
+      "Chromecast and casting",
+      "Storage and permissions"
+    ],
+    "Political bias and trust": [
+      "Accuracy and bias"
+    ],
+    "Content quality and programs": [
+      "News content"
+    ],
+    "Article reading experience": [
+      "Text size and display",
+      "News content"
+    ],
+    "Offline listening and downloads": [
+      "Offline use"
+    ]
+  }
+}

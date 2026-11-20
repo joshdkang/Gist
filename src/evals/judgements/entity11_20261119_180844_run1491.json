@@ -1,0 +1,159 @@
+{
+  "report": "entity11_20261119_180844_run1491.json",
+  "prompt_version": 11,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 4010,
+  "output_tokens": 321,
+  "themes": [
+    {
+      "name": "Fried alligator",
+      "description": "Reviews discussing the fried alligator appetizer, including its texture, breading, chili garlic mayo or aioli sauce, and how it compares to chicken."
+    },
+    {
+      "name": "Wood-fired oysters",
+      "description": "Reviews discussing the wood-fired or chargrilled oysters with chili garlic butter, including their flavor, size, sauce, cooking, count per order and price."
+    },
+    {
+      "name": "Louisiana cochon",
+      "description": "Reviews discussing the signature Louisiana cochon entree of pulled pork patty with cabbage, cracklins and pickled turnips or peaches, including its moisture, seasoning and portion."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "Reviews discussing the rabbit and dumplings entree, including the rabbit meat, dumplings, gravy, herbs, seasoning and comparisons to pot pie."
+    },
+    {
+      "name": "Mac and cheese",
+      "description": "Reviews discussing the macaroni and cheese casserole side, including its creaminess, crust, seasoning and richness."
+    },
+    {
+      "name": "Smoked pork ribs",
+      "description": "Reviews discussing the smoked or BBQ pork ribs, including tenderness, sauce, spice level, saltiness and the pickled watermelon relish."
+    },
+    {
+      "name": "Pork cheeks",
+      "description": "Reviews discussing the braised or paneed pork cheeks small plate, including tenderness, preparation, accompaniments and portion."
+    },
+    {
+      "name": "Gumbo",
+      "description": "Reviews discussing the gumbo, whether chicken and andouille, duck, turkey or other versions, including its roux, flavor, saltiness, portion and price."
+    },
+    {
+      "name": "Boudin",
+      "description": "Reviews discussing the fried boudin balls, including their texture, flavor, seasoning, pickled pepper accompaniment and order size."
+    },
+    {
+      "name": "Fish entrees",
+      "description": "Reviews discussing the fish dishes such as the gulf fish or redfish served fisherman's style and the catfish courtbouillon, including freshness, seasoning, portion, scales and skin."
+    },
+    {
+      "name": "Wait staff service",
+      "description": "Reviews discussing servers, runners and bartenders as service providers, including attentiveness, speed, attitude, friendliness, menu knowledge, rushing guests, order accuracy and handling complaints."
+    },
+    {
+      "name": "Hostess and reservations",
+      "description": "Reviews discussing the host stand, reservations, wait times for a table, seating decisions and table placement, and how the hostess or manager handled walk-ins and party sizes."
+    },
+    {
+      "name": "Bread and rolls",
+      "description": "Reviews discussing the complimentary bread, rolls and butter, including their quality, whether they arrived at all, how late they came and requests for more."
+    },
+    {
+      "name": "Prices and portions",
+      "description": "Reviews discussing menu prices, portion sizes and overall value for money, including small plates and bill totals."
+    },
+    {
+      "name": "Ambiance and noise",
+      "description": "Reviews discussing the restaurant's decor, atmosphere, noise level, seating comfort, table spacing, temperature and cleanliness of the space."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "Reviews discussing the beverages themselves, including cocktails, whiskey, moonshine, beer, wine list, lemonade and other drinks."
+    },
+    {
+      "name": "Desserts",
+      "description": "Reviews discussing the dessert offerings such as the pineapple upside-down cake, pies and puddings, including taste and menu variety."
+    }
+  ],
+  "covers": {
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Wood-fired oysters": [
+      "Wood-fired oysters",
+      "Oysters"
+    ],
+    "Louisiana cochon": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Mac and cheese": [
+      "Mac and cheese"
+    ],
+    "Smoked pork ribs": [
+      "Pork ribs"
+    ],
+    "Pork cheeks": [
+      "Pork cheeks"
+    ],
+    "Gumbo": [
+      "Gumbo"
+    ],
+    "Boudin": [
+      "Boudin"
+    ],
+    "Fish entrees": [
+      "Catfish courtbouillon",
+      "Fish",
+      "Redfish"
+    ],
+    "Wait staff service": [
+      "Bartenders",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Hostess and reservations": [
+      "Hostess",
+      "Manager",
+      "Reservations",
+      "Wait time"
+    ],
+    "Bread and rolls": [
+      "Bread and rolls"
+    ],
+    "Prices and portions": [
+      "Portion size",
+      "Price"
+    ],
+    "Ambiance and noise": [
+      "Air-conditioning",
+      "Atmosphere",
+      "Cleanliness",
+      "Noise",
+      "Seating"
+    ],
+    "Cocktails and drinks": [
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Non-alcoholic drinks",
+      "Whiskey and bourbon",
+      "Wine"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ]
+  }
+}

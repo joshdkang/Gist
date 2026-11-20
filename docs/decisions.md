@@ -547,3 +547,157 @@ The labelling instructions carry the same rules in an app's terms. The loose cov
 a judgement of the app as a whole covers every feature the review names, unless the review says
 something about the feature itself; and, as praise of a restaurant's service doesn't cover its
 dishes, praise of NPR's journalism or shows doesn't cover the app's features, nor the other way round.
+
+## Codebook groups never join unrelated topics; key groups near the threshold reported apart (2026-11-19)
+
+The first codebook proposals defined a group as "the broader area one theme could cover, such as a
+kind of dish" and produced grab-bags: NPR's "Features" (content access, casting, offline use),
+Cochon's "Food in general" and "Other dishes". Merging small groups was considered, so that rare
+topics would reach the 4% threshold, and rejected: a model that joins unrelated topics to reach the
+threshold is the failure the codebook should catch, and it catches it only if those topics sit in
+different groups (a theme covering two groups is reported as spanning). The proposal prompt now
+groups only entries a reader would call one subject, and a rare entry keeps a group of its own. Cochon
+went from 25 groups to 50 and NPR from 22 to 21 (its entries got coarser, 48 to 27, with groups mostly
+one entry each). The first proposals were set aside, uncorrected.
+
+Leaving out a topic under the threshold is right for discovery (the classifier tracks it as a
+candidate), but a development set's 50 or 100 random reviews can't tell 3% from 5%: 4% of 50 is 2
+reviews. So the score reports key entries and groups clearly above the threshold (the lower end of a
+one-sided 95% Wilson interval for the share reaches 4%: 5 of 50 reviews, 8 of 100) apart from those
+near it, whose miss may be only the sample's noise. Discovery is judged on the first.
+
+## Discovery prompt v10: an item that meets the threshold is its own theme (2026-11-19)
+
+**Problem.** The first score against the hand labels (three v9 runs each, development sets) found NPR
+News well covered (every clear group, 89-96% of mentions) but Cochon missing dishes far above the
+threshold: Menu and Beef in every run, Gumbo and Salads in two, Desserts in one. A keyword count put
+gumbo in about 8% of the stratified sample and desserts in about 22%, so the sample wasn't the cause:
+v9 told the model to give an item its own theme "only if it comes up in a large share of reviews",
+and 8% isn't large to it. The same rule ("otherwise, group related items", with "Main dishes" as an
+example) produced grab-bags: one run's "Boudin and small plates" spanned seven codebook groups,
+gumbo, bread, pies and livers among them, and the best-scoring v9 run owed its coverage to them.
+
+**Change.** In `THEME_RULES` (shared with consolidation, whose prompt goes to v3 with the matching
+line): an item gets its own theme whenever it meets the threshold alone, even when related items do
+too; closely related items of one kind are grouped only when none of them meets it, and an item that
+does stays out of the group; topics that aren't the same subject are never joined to meet the
+threshold, with "and" or under a broad name; an item under the threshold with nothing closely
+related is left out, because the classifier tracks it as a candidate. "Main dishes" is gone.
+
+**Result** (three runs each; clear groups are those clearly above the threshold):
+
+| | themes | clear groups | mentions covered | spanning themes |
+|---|---|---|---|---|
+| Cochon v9 | 17, 18, 21 | 12, 13, 15 of 17 | 69, 76, 85% | 6, 9, 9 |
+| Cochon v10 | 28, 22, 18 | 13, 12, 13 of 17 | 79, 68, 73% | 5, 4, 5 |
+| NPR v9 | 14, 17, 14 | 9 of 9 each | 89, 96, 94% | 6, 4, 5 |
+| NPR v10 | 18, 11, 18 | 9 of 9 each | 95, 81, 92% | 6, 1, 2 |
+
+The grab-bags are gone (Cochon's remaining spanning themes are drinks and ambience, which the
+codebook splits finely, and the host stand, which touches service, seating and reservations).
+Desserts is a theme in every v10 run and Gumbo in two (once in v9, inside a grab-bag); single dishes
+such as Ham hock and Brisket appear. Coverage is slightly lower because the small sides (greens,
+salads) are now left out instead of packed, which is the intended trade: they are 5 of 50 random
+reviews, the edge of "clear", and salads were 2.3% of classified reviews. Menu (menu variety,
+appetizers, small plates) and Beef (short ribs, about 4% of reviews by keyword) are still missed
+every time. v10 is kept. Run-to-run variation is large on Cochon (18 to 28 themes).
+
+## Rediscovery of Cochon, and an overlap check after discovery (2026-11-19)
+
+Cochon's themes and tags were cleared (backed up in `src/themes/backups/`, 859 themes and 18,898 tags)
+and a fresh v10 discovery saved (run 1485, 19 provisional themes). It was the weakest of the v10
+runs: no Desserts (5.4% of classified reviews in the old analysis, so classification and promotion
+would have brought it back), and service split into "Service attentiveness" and "Staff attitude".
+
+A dry run of the development set against those themes (run 1486, Haiku, classification v5) showed:
+- **The split overlaps.** 13 reviews were tagged with both service themes, and in 10 of them the
+  labeller wrote a single service point: one point, two themes. Run 1485's drinks theme also said
+  "including ... bar service", which drew a waitress's slowness with the wine list into it.
+- **Co-occurrence can't find overlap.** The service pair was tagged together 1.5 times as often as
+  chance, two distinct dishes (alligator and ribs) 1.8 times: long reviews raise many topics. A merge
+  step driven by co-occurrence, considered, would merge dishes before service.
+- **Recall is high.** 93% of the labelled mentions of a covered topic got the theme, and the topics
+  with no theme were mostly picked up as candidate titles (salads 8 of 9, beef 13 of 13, desserts 17
+  of 19; menu 3 of 8 and location 1 of 7 are the weak ones). So passing mentions are tagged; the old
+  analysis's 2.3% for salads was its older classification or a high draw of 5 in 50.
+- **Sentiment is the weakness**: 77% agreement with the labels. Praise in a list tagged neutral (24)
+  is the open issue above; one complaint among praise tagged negative instead of mixed is the other
+  clear error (5 of the 15 cases where neutral or mixed came back negative; of the rest, 4 look right
+  and 6 are judgement calls).
+
+**Decision.** Discovery checks its own list for overlap in the same call, unreliably, so a second
+call (`check_overlaps`, overlap prompt v1) now runs inside the discover step. It sees only the
+themes' names and descriptions, and for each pair that one point in a review could fit, either
+merges them (facets of one subject reviewers mention together) or narrows one description (distinct
+subjects sharing wording or an edge case). It is told that two items of one kind, two dishes, are
+not an overlap, and never to merge to make a broader theme. Code applies the changes and refuses an
+answer that names a missing theme, changes a theme twice, or breaks the discovery rules (names, at
+least 5 themes); after two invalid answers the themes are kept as discovered and the step notes it.
+It costs about 2,400 input and 1,600 output tokens. `--check-report` runs it on an earlier report.
+
+**On run 1485** it merged the two service themes into "Staff service", took bar service out of the
+drinks description and prompt bread refills out of the bread one, made "Saltiness and seasoning"
+about the food in general rather than one dish, and moved portion size out of Gumbo and Rabbit into
+"Price and portion value". The checked themes replaced 1485's (no tags yet). Against the labels, a
+second dry run (run 1487): points tagged 94% (was 93%), points given two or more themes 0 (was 6 by
+the codebook's mapping; the reviews with one service point under both service themes, 10, are gone
+by construction), codebook overlaps 0 (was 3), sentiment agreement 78% (was 78%). Desserts is still
+missing, as a check that only merges and narrows can't add a theme.
+
+### Discovery prompt v11: the overlap check's wording in the prompt too (2026-11-19)
+
+Asked whether the second call is needed if the discovery prompt says the same: v11 ends the
+discovery prompt with the check's wording (one point fitting two themes, the friendly-server and
+bar-service examples, merge or rewrite one description, two dishes are not an overlap). Three v11
+runs on Cochon without the check, against the four v10 runs (scored on the codebook after Menu was
+split into Menu, Appetizers, Small plates and Mains, so 16 clear groups):
+
+| | clear groups | mentions covered | codebook overlaps | service split in two | Desserts |
+|---|---|---|---|---|---|
+| v10 (4 runs) | 13, 12, 13, 12 | 79, 68, 73, 68% | 3, 4, 1, 3 | 3 of 4 | 3 of 4 |
+| v11 (3 runs) | 13, 13, 13 | 83, 73, 72% | 8, 0, 0 | 1 of 3 | 3 of 3 |
+
+The prompt helps (two of three runs came back with one service theme and no overlaps) but doesn't
+replace the check: run 1490 split service into "Service attentiveness and pacing" and "Staff
+attitude and hospitality" anyway, and had 8 overlaps; the check merged them. v11 is kept and the
+check stays.
+
+The check's other changes, in every run, mostly narrow an item against a cross-cutting aspect:
+portion size taken out of Gumbo, Pork cheeks or Boudin and given to "Prices and portions", a dish's
+saltiness taken out of "Saltiness and seasoning" and given to the dish. In run 1492 it did both
+directions at once (dish portions to the price theme, and the price theme's description narrowed to
+leave dish portions to the dishes), and gave bartender service to the drinks theme in both
+descriptions. Open: whether an item and a cross-cutting aspect are an overlap at all.
+
+### Overlap check v2: an item and a cross-cutting aspect are not an overlap (2026-11-19)
+
+They are not. "The gumbo portion was small" is a point about the gumbo and a point about portions;
+tagged with both, it counts once in each, and each count means something different. Narrowing them
+apart left the Gumbo theme blind to complaints about its size and "Saltiness and seasoning" without
+the salty dishes it exists to collect. Overlap is two themes competing for one meaning, so the
+classifier picks between them by chance. Check v2 says so, keeps the aspect in both descriptions,
+and changes only one theme per overlapping pair (v1 narrowed both sides of a pair in opposite ways).
+
+Rerun on the seven Cochon reports, v2 made no dish-and-aspect changes and no contradictory ones; it
+merged 1485's service pair and took bar service out of the drinks theme as v1 did, and otherwise
+narrowed host stand against reservations and waits, pace against attentiveness, and seating against
+atmosphere (one to four changes a run; none on 1492). It did not merge run 1490's "Service
+attentiveness and pacing" and "Staff attitude and hospitality", whose descriptions separate them
+more carefully ("as people"); in two more tries it merged them once. The check is reliable on a
+plain overlap and not on a borderline one. Cochon's saved themes are now 1485 checked by v2 (18
+themes, the dish themes keeping their portions).
+
+### The overlap check removed (2026-11-19)
+
+Removed, with its code, tests and options, the same day. It caught plain overlaps that the v11
+prompt, which now carries the same wording, already avoids in most runs, and on the borderline
+split where it was needed (run 1490) it merged one try in three; a second model call whose answer
+is a coin toss on the cases that matter adds cost and run-to-run variation without a dependable
+gain. Discovery prompt v11 (the overlap paragraph) stays. What was learned stays too: co-occurrence
+can't detect overlap, an item and a cross-cutting aspect are not an overlap, and overlap is two
+themes competing for one meaning. An overlapping pair that reaches the saved themes is visible in a
+dry run against the labels (one labelled point, two themes), which is where to catch it.
+
+Cochon's saved themes were replaced with run 1492's (v11, no check; 18 themes, one service theme,
+Desserts, Gumbo and Brisket among them, 13 of 16 clear groups and no codebook overlaps), so they
+come from discovery as it now works.

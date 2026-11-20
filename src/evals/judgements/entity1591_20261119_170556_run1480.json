@@ -1,0 +1,147 @@
+{
+  "report": "entity1591_20261119_170556_run1480.json",
+  "prompt_version": 10,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2367,
+  "output_tokens": 301,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Reviews about push or news alert notifications, including the lack of a setting to turn them off, frequency, and notifications that don't clear after being opened."
+    },
+    {
+      "name": "Live station streaming",
+      "description": "Reviews about connecting to and playing live radio streams or local stations, including failures to load, buffering, dropouts, and stream disconnects on network changes."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Reviews about building and managing the playlist or queue, including playlists being deleted, reordering, adding items, and stories in the queue skipping or starting at the wrong point."
+    },
+    {
+      "name": "Audio playback reliability",
+      "description": "Reviews about on-demand audio and podcast playback, including stories cutting off early, skipping or rewinding, 'unable to play this media' errors, and slow loading."
+    },
+    {
+      "name": "App crashes and bugs",
+      "description": "Reviews about force closes, freezing, crashes on opening images or captions, and device-specific glitches such as lock screen loops."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "Reviews about the app running constantly in the background, battery drain, memory use, the app restarting on its own, and the lack of an exit or close option."
+    },
+    {
+      "name": "UI design and navigation",
+      "description": "Reviews about the look, layout, ease of use, and navigation of the app, including dated appearance, Material Design, number of taps, and font size."
+    },
+    {
+      "name": "Landscape and tablet support",
+      "description": "Reviews about screen rotation, portrait-only layout, and tablet usability."
+    },
+    {
+      "name": "Advertising",
+      "description": "Reviews about ads in the app, including banner or full-screen ads that cannot be closed and ads covering article content."
+    },
+    {
+      "name": "Political bias",
+      "description": "Reviews about perceived political slant, objectivity, and trustworthiness of NPR's reporting, including claims of liberal or other bias or of unbiased news."
+    },
+    {
+      "name": "Chromecast and casting",
+      "description": "Reviews requesting or discussing Chromecast, Google Cast, or Android Auto support."
+    },
+    {
+      "name": "Offline listening and downloads",
+      "description": "Reviews about downloading podcasts, programs, or articles for offline use or data savings."
+    },
+    {
+      "name": "Widget",
+      "description": "Reviews about the home screen widget, including it being only a shortcut, not showing news, or being buggy."
+    },
+    {
+      "name": "Show and program availability",
+      "description": "Reviews about specific programs or podcasts missing from the app or not updating, such as This American Life, Invisibilia, Radiolab, and stale or old episodes and hourly newscasts."
+    },
+    {
+      "name": "Station finding and live stream lookup",
+      "description": "Reviews about locating or searching for local NPR stations and the find-live-stream-by-program feature, including stations missing from search or lists."
+    },
+    {
+      "name": "Article content display",
+      "description": "Reviews about reading articles in the app, including images, charts, videos, tweets not showing, overlapping or doubled text, and missing content compared to the website."
+    },
+    {
+      "name": "News content quality",
+      "description": "Reviews praising or criticizing NPR's journalism and programming itself, such as depth, coverage, international focus, and favorite shows."
+    },
+    {
+      "name": "Developer support and updates",
+      "description": "Reviews about developer responsiveness, feedback links, update frequency, and update-related regressions."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Live station streaming": [
+      "Live radio and stations",
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Audio playback reliability": [
+      "Streaming",
+      "Buffering",
+      "Streaming issues"
+    ],
+    "App crashes and bugs": [
+      "Crashes and bugs",
+      "Devices and platforms"
+    ],
+    "Background activity and battery": [
+      "Battery use"
+    ],
+    "UI design and navigation": [
+      "Design and interface",
+      "Text size and display"
+    ],
+    "Landscape and tablet support": [
+      "Auto rotation and orientation",
+      "Devices and platforms"
+    ],
+    "Advertising": [
+      "Ads"
+    ],
+    "Political bias": [
+      "Accuracy and bias"
+    ],
+    "Chromecast and casting": [
+      "Chromecast and casting"
+    ],
+    "Offline listening and downloads": [
+      "Offline use",
+      "Data usage"
+    ],
+    "Widget": [],
+    "Show and program availability": [
+      "News content"
+    ],
+    "Station finding and live stream lookup": [
+      "Live radio and stations"
+    ],
+    "Article content display": [
+      "Text size and display"
+    ],
+    "News content quality": [
+      "News content"
+    ],
+    "Developer support and updates": [
+      "Support and feedback",
+      "Updates"
+    ]
+  }
+}

@@ -11,9 +11,10 @@ groups them at two levels:
 
 - An entry is one topic, whatever the wording: "gumbo" and "duck and andouille gumbo" are the entry
   Gumbo, "wait for a table" and "table wait" the entry Wait for a table.
-- A group is the broader area a theme in a report might cover, such as a kind of dish or one aspect
-  of the service: Gumbo and Jambalaya might share a group. A discovered theme may be as specific as an
-  entry (a dish that recurs on its own) or as broad as a group, so scoring checks both.
+- A group is the entries one coherent theme would cover, such as a dish and its variants or one
+  aspect of the service. Unrelated entries are never grouped, however rare, so a theme that packs
+  unrelated topics together to reach the threshold shows up as spanning groups. A discovered theme
+  may be as specific as an entry or as broad as a group, so scoring checks both.
 
 `propose` asks Sonnet to group the topics that aren't in the codebook yet, adding to the existing
 entries where they fit, and writes the workbook. Correct it by hand: on the Entries sheet, rename,
@@ -33,18 +34,21 @@ be read and corrected by hand. Each report gets:
 
 - Key entries and key groups covered: the scored entries, and groups, raised by at least 4% of the
   random reviews, and how many some theme covers (a group counts as covered when its covered entries
-  hold at least half of its mentions). This is recall.
+  hold at least half of its mentions). This is recall. Those clearly above the threshold (the lower
+  end of a one-sided 95% interval for the share reaches 4%) are reported apart from those near it,
+  whose miss may be only the set's sampling noise: discovery is right to leave out a topic under it.
 - Mentions covered: the share of every labelled mention of a scored entry, in all the set's reviews,
   whose entry some theme covers.
 - Themes matching no entry: themes for something no labeller wrote down (precision).
 - Overlaps: entries more than one theme covers, which classification can't place consistently.
 - Spanning groups: themes covering entries from more than one group, the grab-bags a cap on the
-  number of themes produced.
+  number of themes produced, or that packing rare topics together to reach the threshold would.
 """
 import argparse
 import asyncio
 import hashlib
 import json
+import math
 import sys
 from collections import Counter, defaultdict
 from collections.abc import Callable
@@ -68,6 +72,20 @@ JUDGEMENT_DIR = HERE / "judgements"
 MODEL = discover.MODEL
 MIN_SHARE = discover.MIN_THEME_SHARE  # an entry or group this common is one discovery should find
 COVERED_GROUP_SHARE = 0.5  # a group is covered when its covered entries hold this share of its mentions
+# A key entry or group is clearly key when the lower end of a one-sided 95% Wilson interval for its
+# share still reaches MIN_SHARE. With 50 random reviews that takes 5 of them, with 100 it takes 8.
+CLEAR_Z = 1.645
+
+
+def clearly_key(count: int, total: int) -> bool:
+    """Whether count of total reviews is a share above MIN_SHARE beyond sampling noise."""
+    if not total:
+        return False
+    share = count / total
+    z_squared = CLEAR_Z ** 2
+    spread = CLEAR_Z * math.sqrt(share * (1 - share) / total + z_squared / (4 * total * total))
+    lower = (share + z_squared / (2 * total) - spread) / (1 + z_squared / total)
+    return lower >= MIN_SHARE
 OVERALL = "Overall"  # the entry for verdicts on the whole visit, not scored
 MAX_ATTEMPTS = 2
 MAX_OUTPUT_TOKENS = 16000  # includes the model's adaptive thinking; more needs streaming
@@ -285,9 +303,12 @@ related: "gumbo" and "jambalaya" are two entries, and so are "wait for a table" 
 or "crashes" and "slow loading". Name each entry as a topic in 1 to 4 words, never an opinion:
 "Service speed", not "Slow service".
 
-Give every entry a group: the broader area that one theme in a report could cover, such as a kind
-of dish, one aspect of the service, or a set of related features. Entries in a group are related
-items a reader would expect together. A group can hold a single entry. Name groups as topics too.
+Give every entry a group: the entries so closely related that one coherent theme would cover them
+all, such as one dish and its variants, desserts, or the staff and their attentiveness. Group only
+entries a reader would call one subject. Never join unrelated entries because they are each rare or
+loosely of the same kind: "Bread" and "Salads" are two groups, and so are "Crashes" and
+"Notifications". Most groups hold one entry or a few, and a rare entry keeps a group of its own.
+Name groups as topics, never "Other ..." or "Miscellaneous".
 
 Topics that give a verdict on the whole ("overall", "great place", "great app", "would recommend")
 belong to the entry "{overall}" in the group "{overall}".
@@ -442,13 +463,16 @@ def show(study: Study, set_name: str) -> None:
     by_entry, by_group, unmapped = prevalence(codebook, label_set)
     print(
         f"{study.name} {set_name}: {len(label_set.labelled_ids)} of {len(label_set.review_ids)} reviews labelled, "
-        f"{random_count} of them chosen at random. Shares are of those; * marks {MIN_SHARE:.0%} or more.\n"
+        f"{random_count} of them chosen at random. Shares are of those; * marks {MIN_SHARE:.0%} or more "
+        f"beyond sampling noise, ~ {MIN_SHARE:.0%} or more but near the threshold.\n"
     )
     print(f"{'':44}{'reviews':>8}{'random':>8}{'share':>7}   positive/negative/mixed/neutral")
 
     def line(name: str, counted: Prevalence, indent: str, scored: bool) -> str:
         share = counted.share(random_count)
-        mark = "*" if share >= MIN_SHARE and scored else " "
+        mark = " "
+        if share >= MIN_SHARE and scored:
+            mark = "*" if clearly_key(len(counted.random_reviews), random_count) else "~"
         sentiments = "/".join(str(counted.sentiments[sentiment]) for sentiment in ("positive", "negative", "mixed", "neutral"))
         label = f"{indent}{name}" + ("" if scored else " (not scored)")
         return f"{label[:43]:44}{len(counted.reviews):>8}{len(counted.random_reviews):>8}{share:>6.0%}{mark}  {sentiments}"
@@ -559,6 +583,8 @@ class Score:
     key_groups: dict[str, float]
     missed_entries: list[str]
     missed_groups: list[str]
+    near_entries: list[str]  # key entries, and groups, whose share could be under MIN_SHARE (clearly_key)
+    near_groups: list[str]
     mentions: int  # labelled mentions of scored entries
     mentions_covered: int
     unmatched_themes: list[str]  # cover no entry at all
@@ -620,6 +646,10 @@ def score_themes(codebook: Codebook, label_set: LabelSet, covers: dict[str, list
         key_groups=key_groups,
         missed_entries=[name for name in key_entries if not covering.get(name)],
         missed_groups=missed_groups,
+        near_entries=[name for name in key_entries
+                      if not clearly_key(len(by_entry[name].random_reviews), random_count)],
+        near_groups=[group for group in key_groups
+                     if not clearly_key(len(by_group[group].random_reviews), random_count)],
         mentions=mentions,
         mentions_covered=mentions_covered,
         unmatched_themes=unmatched,
@@ -633,13 +663,19 @@ def print_score(name: str, result: Score) -> None:
     def shares(items: list[str], table: dict[str, float]) -> str:
         return ", ".join(f"{item} ({table[item]:.0%})" for item in sorted(items, key=lambda item: -table[item]))
 
-    covered_entries = len(result.key_entries) - len(result.missed_entries)
-    covered_groups = len(result.key_groups) - len(result.missed_groups)
+    def coverage(label: str, key: dict[str, float], missed: list[str], near: list[str]) -> None:
+        # Clear misses are discovery's; a miss near the threshold may only be the set's sampling noise.
+        for part, names in (("clearly above the threshold", [name for name in key if name not in near]),
+                            ("near the threshold", near)):
+            if not names:
+                continue
+            part_missed = [name for name in names if name in missed]
+            print(f"  Key {label} covered, {part}: {len(names) - len(part_missed)} of {len(names)}"
+                  + (f"; missed: {shares(part_missed, key)}" if part_missed else ""))
+
     print(f"  {len(result.themes)} themes, against {result.random_count} random labelled reviews")
-    print(f"  Key entries covered: {covered_entries} of {len(result.key_entries)}"
-          + (f"; missed: {shares(result.missed_entries, result.key_entries)}" if result.missed_entries else ""))
-    print(f"  Key groups covered: {covered_groups} of {len(result.key_groups)}"
-          + (f"; missed: {shares(result.missed_groups, result.key_groups)}" if result.missed_groups else ""))
+    coverage("entries", result.key_entries, result.missed_entries, result.near_entries)
+    coverage("groups", result.key_groups, result.missed_groups, result.near_groups)
     if result.mentions:
         print(f"  Mentions covered: {result.mentions_covered / result.mentions:.0%} of {result.mentions}")
     if result.unmatched_themes:
@@ -670,13 +706,19 @@ async def score(study: Study, report_paths: list[Path], set_name: str, rejudge: 
         print_score(report_path.name, result)
         rows.append((report_path.stem, result))
     if len(rows) > 1:
-        print(f"\n{'report':44}{'themes':>7}{'entries':>9}{'groups':>8}{'mentions':>10}{'no match':>10}"
-              f"{'overlaps':>10}{'spanning':>10}")
+        def covered(key: dict[str, float], missed: list[str], names: list[str], clear: bool) -> str:
+            part = [name for name in key if (name in names) != clear]
+            return f"{len([name for name in part if name not in missed])}/{len(part)}"
+
+        # entries and groups: those clearly above the threshold; near groups: those near it.
+        print(f"\n{'report':40}{'themes':>7}{'entries':>9}{'groups':>8}{'near groups':>12}{'mentions':>10}"
+              f"{'no match':>10}{'overlaps':>10}{'spanning':>10}")
         for stem, result in rows:
-            entries = f"{len(result.key_entries) - len(result.missed_entries)}/{len(result.key_entries)}"
-            groups = f"{len(result.key_groups) - len(result.missed_groups)}/{len(result.key_groups)}"
+            entries = covered(result.key_entries, result.missed_entries, result.near_entries, True)
+            groups = covered(result.key_groups, result.missed_groups, result.near_groups, True)
+            near = covered(result.key_groups, result.missed_groups, result.near_groups, False)
             mentions = f"{result.mentions_covered / result.mentions:.0%}" if result.mentions else "-"
-            print(f"{stem[:43]:44}{len(result.themes):>7}{entries:>9}{groups:>8}{mentions:>10}"
+            print(f"{stem[:39]:40}{len(result.themes):>7}{entries:>9}{groups:>8}{near:>12}{mentions:>10}"
                   f"{len(result.unmatched_themes):>10}{len(result.overlaps):>10}{len(result.spanning):>10}")
 
 

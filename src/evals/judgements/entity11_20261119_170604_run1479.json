@@ -1,0 +1,234 @@
+{
+  "report": "entity11_20261119_170604_run1479.json",
+  "prompt_version": 10,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 4560,
+  "output_tokens": 488,
+  "themes": [
+    {
+      "name": "Server attitude and attentiveness",
+      "description": "Waitstaff and bartender friendliness, rudeness, attentiveness, knowledge of the menu, and responsiveness during the meal, such as drink refills, being checked on, or being ignored."
+    },
+    {
+      "name": "Hostess and seating policy",
+      "description": "Experiences at the host stand, including rude or welcoming hostesses, refusal to seat partial parties or solo diners, empty tables held back, and how guests are seated or turned away."
+    },
+    {
+      "name": "Reservations and wait times",
+      "description": "How easy it is to get a reservation, lost or mishandled reservations, delays seating guests with reservations, walk-in waits, and advice to book ahead."
+    },
+    {
+      "name": "Speed and pacing of service",
+      "description": "How quickly drinks, food and the check arrive, long gaps between courses, dishes arriving all at once, or feeling rushed through the meal."
+    },
+    {
+      "name": "Saltiness and seasoning",
+      "description": "Whether dishes were over-salted, bland, under-seasoned, over-spiced, or well-balanced in flavor."
+    },
+    {
+      "name": "Prices and portion sizes",
+      "description": "Value for money, cost of dishes and drinks, and whether portions or small plates were large enough for the price."
+    },
+    {
+      "name": "Wood-fired oysters",
+      "description": "The wood-fired or char-grilled oysters with chili garlic butter, including their flavor, sauce, size, and how they compare to oysters elsewhere."
+    },
+    {
+      "name": "Fried alligator",
+      "description": "The fried alligator appetizer, including its texture (chewy or tender), the chili garlic mayo sauce, and whether it was worth trying."
+    },
+    {
+      "name": "Louisiana cochon",
+      "description": "The signature Louisiana cochon entree of pulled pork with cabbage, cracklins and pickled turnips or peaches, including its flavor, temperature, dryness and saltiness."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "The rabbit and dumplings entree, including its flavor, the amount of rabbit, the dumplings, and comparisons to pot pie or stew."
+    },
+    {
+      "name": "Mac and cheese",
+      "description": "The macaroni and cheese casserole side, whether praised as a standout or criticized as bland or overcooked."
+    },
+    {
+      "name": "Pork ribs",
+      "description": "The smoked pork ribs with watermelon pickle, including tenderness, dryness, sauce, and smoke flavor."
+    },
+    {
+      "name": "Pork cheeks",
+      "description": "The braised pork cheeks appetizer, including tenderness, flavor, portion size, and whether it was a standout."
+    },
+    {
+      "name": "Gumbo",
+      "description": "The gumbo varieties, such as deviled egg, chicken and andouille, duck, or black-eyed pea, including roux, saltiness, portion size, and price."
+    },
+    {
+      "name": "Brisket",
+      "description": "The smoked beef brisket and horseradish potato salad, including tenderness, fattiness, flavor, and comparisons to other brisket."
+    },
+    {
+      "name": "Ham hock",
+      "description": "The smoked ham hock entree, including tenderness, dryness, saltiness, smoke flavor and accompaniments."
+    },
+    {
+      "name": "Boudin and charcuterie",
+      "description": "The fried boudin balls, boucherie plate, head cheese and other house-cured meats, including their quality and flavor."
+    },
+    {
+      "name": "Fish entrees",
+      "description": "Fish dishes such as catfish courtbouillon, redfish, drum, gulf fish and other daily fish specials, including flavor, doneness and freshness."
+    },
+    {
+      "name": "Bread and rolls",
+      "description": "The complimentary bread and rolls with butter, including quality, whether they were offered or refilled, and complaints about getting them."
+    },
+    {
+      "name": "Desserts",
+      "description": "Dessert choices such as pineapple upside-down cake, chocolate cake, pies and puddings, including taste and quality."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "The cocktail menu, bourbon and whiskey selection, beer, wine list and non-alcoholic drinks, including quality, size and bar service."
+    },
+    {
+      "name": "Ambiance and noise level",
+      "description": "Decor, lighting, seating comfort and spacing, temperature, and how loud the restaurant is, including its hipster or rustic feel."
+    },
+    {
+      "name": "Splitting checks and special requests",
+      "description": "The policy against splitting checks, refusals to substitute menu items or accommodate dietary needs, and takeout or to-go limitations."
+    },
+    {
+      "name": "Vegetarian and dietary options",
+      "description": "How well the menu suits vegetarians, vegans, pescatarians, and guests with allergies such as peanuts, given the pork-focused menu."
+    },
+    {
+      "name": "Oyster and bacon sandwich",
+      "description": "The fried oyster and bacon sandwich, including its flavor, size, and bread."
+    },
+    {
+      "name": "Cochon versus Cochon Butcher",
+      "description": "Confusion between Cochon and the neighboring Cochon Butcher, and comparisons favoring one over the other."
+    },
+    {
+      "name": "Food safety and cleanliness",
+      "description": "Reports of illness after eating, cockroaches, dirty restrooms, hair or foreign objects in food, and general cleanliness."
+    },
+    {
+      "name": "Hype and expectations",
+      "description": "Whether the restaurant lived up to its reviews, awards, media coverage and reputation, including tourist-trap and overrated comments."
+    }
+  ],
+  "covers": {
+    "Server attitude and attentiveness": [
+      "Bartenders",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Hostess and seating policy": [
+      "Hostess"
+    ],
+    "Reservations and wait times": [
+      "Reservations",
+      "Wait time"
+    ],
+    "Speed and pacing of service": [
+      "Wait time",
+      "Service"
+    ],
+    "Saltiness and seasoning": [
+      "Saltiness"
+    ],
+    "Prices and portion sizes": [
+      "Portion size",
+      "Price"
+    ],
+    "Wood-fired oysters": [
+      "Wood-fired oysters"
+    ],
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Louisiana cochon": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Mac and cheese": [
+      "Mac and cheese"
+    ],
+    "Pork ribs": [
+      "Pork ribs"
+    ],
+    "Pork cheeks": [
+      "Pork cheeks"
+    ],
+    "Gumbo": [
+      "Gumbo"
+    ],
+    "Brisket": [
+      "Brisket"
+    ],
+    "Ham hock": [
+      "Ham hock"
+    ],
+    "Boudin and charcuterie": [
+      "Boudin",
+      "Charcuterie"
+    ],
+    "Fish entrees": [
+      "Catfish courtbouillon",
+      "Fish",
+      "Redfish"
+    ],
+    "Bread and rolls": [
+      "Bread and rolls"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ],
+    "Cocktails and drinks": [
+      "Bar",
+      "Bartenders",
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Non-alcoholic drinks",
+      "Whiskey and bourbon",
+      "Wine"
+    ],
+    "Ambiance and noise level": [
+      "Air-conditioning",
+      "Atmosphere",
+      "Decor",
+      "Music",
+      "Noise",
+      "Seating"
+    ],
+    "Splitting checks and special requests": [],
+    "Vegetarian and dietary options": [],
+    "Oyster and bacon sandwich": [
+      "Oyster and bacon sandwich"
+    ],
+    "Cochon versus Cochon Butcher": [
+      "Cochon Butcher"
+    ],
+    "Food safety and cleanliness": [
+      "Cleanliness"
+    ],
+    "Hype and expectations": [
+      "Reputation"
+    ]
+  }
+}

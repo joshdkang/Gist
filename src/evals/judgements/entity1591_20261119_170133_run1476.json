@@ -1,0 +1,142 @@
+{
+  "report": "entity1591_20261119_170133_run1476.json",
+  "prompt_version": 9,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2369,
+  "output_tokens": 287,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Push or pop-up notification behavior, including whether they can be turned off in app settings, their frequency, and whether they dismiss after being opened or display correctly in the status bar."
+    },
+    {
+      "name": "Live station streaming",
+      "description": "Connecting to and playing live radio streams of local and other NPR stations, including buffering, dropped connections, stations missing from the list, and streams that will not play."
+    },
+    {
+      "name": "Audio playback reliability",
+      "description": "Playback of stories, podcasts, and hourly news, such as skipping, cutting out, starting mid-story, 'unable to play media' or 'no audio available' errors, and playback that stops or restarts unexpectedly."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Adding, ordering, removing, and keeping stories in the playlist or queue, including playlists that vanish after closing the app or updates, and difficulty finding or playing the playlist."
+    },
+    {
+      "name": "Offline listening",
+      "description": "Requests or complaints about downloading or caching audio and articles for use without a data connection or while commuting."
+    },
+    {
+      "name": "App stability and crashes",
+      "description": "Crashes, freezes, force closes, glitches, and compatibility problems with specific devices or OS updates, including screen-flashing loops with the lock screen."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "The app running, starting itself, or staying in the notification area in the background, plus battery and data drain, and the lack of a way to close it."
+    },
+    {
+      "name": "Ads",
+      "description": "Banner, pop-up, and full-screen advertisements, including ads that cannot be closed, cover article text, or take up screen space."
+    },
+    {
+      "name": "Screen rotation and tablet support",
+      "description": "Lack of landscape or auto-rotate mode, tablet layout, font size and zoom options, and other display-orientation or accessibility needs."
+    },
+    {
+      "name": "Design and interface",
+      "description": "Visual design, look and feel, ease of navigation, and layout of the app, including how dated it looks, Material Design, and iOS-versus-Android design."
+    },
+    {
+      "name": "Programs and podcast catalog",
+      "description": "Availability and discoverability of shows, podcasts, and past episodes, such as missing programs, stale or outdated episodes, and difficulty browsing or loading more."
+    },
+    {
+      "name": "News content and freshness",
+      "description": "Quality, breadth, accuracy, and timeliness of the stories and articles in the app, including outdated or rarely refreshed content and stories that fail to load."
+    },
+    {
+      "name": "Article display issues",
+      "description": "Problems displaying article text and media in the app, such as garbled or doubled text, missing images, tweets, or videos, and jittery scrolling."
+    },
+    {
+      "name": "Bias and trust",
+      "description": "Opinions on NPR's political slant, objectivity, trustworthiness, and credibility as a news source."
+    },
+    {
+      "name": "Widget and external controls",
+      "description": "Home screen widget functionality, lock screen and notification-bar playback controls, and casting support such as Chromecast."
+    },
+    {
+      "name": "Privacy and permissions",
+      "description": "Concerns about permissions requested, personal data collection, and location or phone access."
+    },
+    {
+      "name": "Developer responsiveness and updates",
+      "description": "How actively the app is maintained, whether updates fix or break things, and the ability to contact support or give feedback."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Live station streaming": [
+      "Live radio and stations",
+      "Streaming",
+      "Buffering",
+      "Streaming issues"
+    ],
+    "Audio playback reliability": [
+      "Streaming issues",
+      "Buffering",
+      "Streaming"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Offline listening": [
+      "Offline use"
+    ],
+    "App stability and crashes": [
+      "Crashes and bugs",
+      "Devices and platforms"
+    ],
+    "Background activity and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Ads": [
+      "Ads"
+    ],
+    "Screen rotation and tablet support": [
+      "Auto rotation and orientation",
+      "Text size and display",
+      "Accessibility",
+      "Devices and platforms"
+    ],
+    "Design and interface": [
+      "Design and interface"
+    ],
+    "Programs and podcast catalog": [
+      "News content"
+    ],
+    "News content and freshness": [
+      "News content"
+    ],
+    "Article display issues": [
+      "Text size and display"
+    ],
+    "Bias and trust": [
+      "Accuracy and bias"
+    ],
+    "Widget and external controls": [
+      "Chromecast and casting"
+    ],
+    "Privacy and permissions": [
+      "Storage and permissions"
+    ],
+    "Developer responsiveness and updates": [
+      "Support and feedback",
+      "Updates"
+    ]
+  }
+}

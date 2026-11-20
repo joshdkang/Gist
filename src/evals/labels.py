@@ -9,12 +9,15 @@ fixed on an app before either test set is scored. Each set is an ID list,
 
 Checking reports how many reviews are labelled and each problem a row has: a topic without a
 sentiment, a sentiment without a topic, a sentiment that isn't one of the four, or the same topic
-twice in one review. Run it while labelling; codebook.py refuses labels with problems.
+twice in one review. Run it while labelling; codebook.py refuses labels with problems. A review
+with more topics than the columns hold continues in the Notes column, as "topic: sentiment" pieces
+separated by commas or line breaks; anything else in the notes is a remark and ignored.
 
 Topics are compared after `normalize_topic` (case and spacing), so "Wait for a table" and
 "wait for a  table" are one topic. Grouping wording that differs more is the codebook's job.
 """
 import argparse
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -58,6 +61,7 @@ class LabelSet:
     origins: dict[int, str]  # how each review was chosen: known, enriched or random
     labels: list[TopicLabel] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
+    remarks: list[str] = field(default_factory=list)  # pieces of notes that aren't "topic: sentiment"
 
     @property
     def labelled_ids(self) -> list[int]:
@@ -104,6 +108,7 @@ def parse_labels(path: Path, name: str, origins: dict[int, str]) -> LabelSet:
         for column, heading in enumerate(headings)
         if heading.startswith("Topic") and column + 1 < len(headings) and headings[column + 1] == "Sentiment"
     ]
+    notes_column = next((column for column, heading in enumerate(headings) if heading.startswith("Note")), None)
     result = LabelSet(name=name, review_ids=[], origins=origins)
     for row in rows:
         if not row or row[0] is None:
@@ -111,10 +116,18 @@ def parse_labels(path: Path, name: str, origins: dict[int, str]) -> LabelSet:
         review_id = int(row[0])
         result.review_ids.append(review_id)
         seen: set[str] = set()
-        for slot, (topic_column, sentiment_column) in enumerate(pairs, start=1):
-            topic = normalize_topic(str(row[topic_column] or "")) if topic_column < len(row) else ""
-            sentiment = str(row[sentiment_column] or "").strip().lower() if sentiment_column < len(row) else ""
-            where = f"review {review_id}, topic {slot}"
+        cells = [
+            (f"topic {slot}",
+             str(row[topic_column] or "") if topic_column < len(row) else "",
+             str(row[sentiment_column] or "") if sentiment_column < len(row) else "")
+            for slot, (topic_column, sentiment_column) in enumerate(pairs, start=1)
+        ]
+        if notes_column is not None and notes_column < len(row) and row[notes_column]:
+            cells += note_labels(str(row[notes_column]), result.remarks)
+        for slot, raw_topic, raw_sentiment in cells:
+            topic = normalize_topic(raw_topic)
+            sentiment = raw_sentiment.strip().lower()
+            where = f"review {review_id}, {slot}"
             if not topic and not sentiment:
                 continue
             if not topic:
@@ -129,6 +142,25 @@ def parse_labels(path: Path, name: str, origins: dict[int, str]) -> LabelSet:
                 seen.add(topic)
                 result.labels.append(TopicLabel(review_id, topic, sentiment))
     return result
+
+
+def note_labels(notes: str, remarks: list[str]) -> list[tuple[str, str, str]]:
+    """The topics in a Notes cell, for a review with more than the columns hold.
+
+    Notes are written "topic: sentiment", separated by commas or line breaks. A piece with no colon
+    is a remark ("weird review"), kept in `remarks` and not read as a topic.
+    """
+    found = []
+    for piece in re.split(r"[,\n]", notes):
+        piece = piece.strip()
+        if not piece:
+            continue
+        topic, colon, sentiment = piece.rpartition(":")
+        if colon:
+            found.append(("notes", topic, sentiment))
+        else:
+            remarks.append(piece)
+    return found
 
 
 def read_labels(study: Study, name: str) -> LabelSet:
@@ -147,6 +179,10 @@ def print_check(label_set: LabelSet) -> None:
         print(f"  {problem}")
     if not label_set.problems:
         print("  no problems")
+    if label_set.remarks:
+        # Only counted: a test set's notes stay unread until it is scored. A remark that is really a
+        # topic split by a comma would show up here as an extra remark.
+        print(f"  {len(label_set.remarks)} remarks in the notes (not topics)")
 
 
 def main() -> None:
