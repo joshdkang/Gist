@@ -1,0 +1,144 @@
+{
+  "report": "entity1591_20261121_181924_run1502.json",
+  "prompt_version": 11,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2348,
+  "output_tokens": 292,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Reviews about push notifications and alerts, including the inability to turn them off in the app, their frequency or content, and whether they clear after being tapped."
+    },
+    {
+      "name": "Streaming reliability",
+      "description": "Reviews about live and station streams that buffer, cut out, disconnect, fail to connect or stop mid-playback, including drops when switching between WiFi and mobile data."
+    },
+    {
+      "name": "Playlist and queue behavior",
+      "description": "Reviews about the listening playlist or queue: stories skipping or starting partway through, playlists being erased on close or update, no reordering, and played items not being separated."
+    },
+    {
+      "name": "App crashes and freezes",
+      "description": "Reviews about the app crashing, freezing, force closing or failing to open, and device-specific glitches such as the lock-screen loop on certain phones."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "Reviews about the app running or auto-starting in the background, restarting after being closed, and consuming battery, RAM or data."
+    },
+    {
+      "name": "Media unavailable errors",
+      "description": "Reviews about stories, programs or hourly news that fail to play, with errors such as 'no audio available' or 'unable to play this media', and programs, topics or stories that will not load."
+    },
+    {
+      "name": "Station finding and local stations",
+      "description": "Reviews about finding, searching for and selecting local or other NPR stations, favorites and the nearest-station feature, including missing or removed streams."
+    },
+    {
+      "name": "Screen orientation",
+      "description": "Reviews about the lack of landscape or auto-rotate support, especially on tablets and with stands or keyboards."
+    },
+    {
+      "name": "Chromecast support",
+      "description": "Reviews requesting or discussing casting to Chromecast or other cast devices."
+    },
+    {
+      "name": "Offline listening and downloads",
+      "description": "Reviews about downloading or caching audio and articles for offline playback, and avoiding data use."
+    },
+    {
+      "name": "Interface design",
+      "description": "Reviews about the look, layout, navigation and visual style of the app, including outdated UI, material design, and widget design."
+    },
+    {
+      "name": "Advertisements",
+      "description": "Reviews about ads in the app, including banner ads that cannot be closed and sponsor messages or ad intros replaying."
+    },
+    {
+      "name": "Political bias",
+      "description": "Reviews about whether NPR's news coverage is biased, balanced or trustworthy, including claims of liberal or conservative slant."
+    },
+    {
+      "name": "Content freshness and archive",
+      "description": "Reviews about how current the stories and shows are, how often programs are updated, and access to past episodes or the archive."
+    },
+    {
+      "name": "Missing shows and content",
+      "description": "Reviews about specific programs or content being absent or removed, such as This American Life, Science Friday or Invisibilia, or too little content."
+    },
+    {
+      "name": "Permissions and privacy",
+      "description": "Reviews about the permissions the app requests, such as phone ID or call information, and privacy or spyware concerns."
+    },
+    {
+      "name": "SD card and storage",
+      "description": "Reviews about installing or moving the app to an SD card, internal storage limits, and app size."
+    },
+    {
+      "name": "Article display and images",
+      "description": "Reviews about article text and images: scrambled or overlapping text, images failing to load, crashes from tapping photos, text size, and missing multimedia."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Streaming reliability": [
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Playlist and queue behavior": [
+      "Playlist"
+    ],
+    "App crashes and freezes": [
+      "Crashes and bugs",
+      "Devices and platforms"
+    ],
+    "Background activity and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Media unavailable errors": [
+      "Crashes and bugs"
+    ],
+    "Station finding and local stations": [
+      "Live radio and stations"
+    ],
+    "Screen orientation": [
+      "Auto rotation and orientation"
+    ],
+    "Chromecast support": [
+      "Chromecast and casting"
+    ],
+    "Offline listening and downloads": [
+      "Offline use",
+      "Data usage"
+    ],
+    "Interface design": [
+      "Design and interface"
+    ],
+    "Advertisements": [
+      "Ads"
+    ],
+    "Political bias": [
+      "Accuracy and bias"
+    ],
+    "Content freshness and archive": [
+      "News content"
+    ],
+    "Missing shows and content": [
+      "News content"
+    ],
+    "Permissions and privacy": [
+      "Storage and permissions"
+    ],
+    "SD card and storage": [
+      "Storage and permissions"
+    ],
+    "Article display and images": [
+      "Text size and display"
+    ]
+  }
+}

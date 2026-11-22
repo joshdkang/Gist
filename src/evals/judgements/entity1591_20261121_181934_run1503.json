@@ -1,0 +1,144 @@
+{
+  "report": "entity1591_20261121_181934_run1503.json",
+  "prompt_version": 11,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2394,
+  "output_tokens": 295,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Reviews about push or news-alert notifications: inability to disable them, notifications that persist or won't dismiss after tapping, too-frequent or irrelevant alerts, or requests for or missing alerts."
+    },
+    {
+      "name": "Live stream reliability",
+      "description": "Reviews about live radio stations and streams connecting, buffering, cutting out, dropping on network switches or phone calls, or failing to play at all."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Reviews about saving stories to a playlist or queue: playlists disappearing or being erased, items starting mid-story or skipping to the end, playlist organization and access."
+    },
+    {
+      "name": "App crashes and bugs",
+      "description": "Reviews about the app crashing, force closing, freezing, not launching, or failing to work after an OS or app update, including device-specific glitches like lock-screen flashing."
+    },
+    {
+      "name": "Visual design and interface",
+      "description": "Reviews about the look, layout, and navigation of the app: outdated UI, Material Design requests, dark theme, font size, ease of finding things, and requests for a redesign."
+    },
+    {
+      "name": "Tablet and landscape support",
+      "description": "Reviews about the app on tablets or lack of landscape and auto-rotate orientation support."
+    },
+    {
+      "name": "Background service and battery",
+      "description": "Reviews about the app running constantly in the background, starting on its own, using battery, memory, or data, or being impossible to close."
+    },
+    {
+      "name": "Political bias and trust",
+      "description": "Reviews about NPR's editorial slant, fairness, fake-news accusations, trustworthiness, accuracy, or journalism quality and reliability as a news source."
+    },
+    {
+      "name": "Ads and sponsorship",
+      "description": "Reviews about advertisements, pop-up or banner ads, sponsor messages and underwriting in the app, including ads that can't be closed."
+    },
+    {
+      "name": "Chromecast support",
+      "description": "Reviews requesting or discussing Chromecast or Google Cast casting, including comparisons to NPR One having it."
+    },
+    {
+      "name": "Offline downloads",
+      "description": "Reviews requesting or discussing downloading podcasts, stories, or articles for offline listening or reading."
+    },
+    {
+      "name": "Local station finding",
+      "description": "Reviews about searching for, selecting, saving, or locating local NPR stations, including missing stations and favorites that disappear."
+    },
+    {
+      "name": "Widget",
+      "description": "Reviews about the home-screen or lock-screen widget and its functionality, size, or bugs."
+    },
+    {
+      "name": "Comparison to NPR One",
+      "description": "Reviews comparing this app to the NPR One app, including preferences, feature differences, and complaints that NPR One gets the focus."
+    },
+    {
+      "name": "Permissions and privacy",
+      "description": "Reviews about the permissions the app requests, access to phone or call info and location, and data collection concerns."
+    },
+    {
+      "name": "Article content display",
+      "description": "Reviews about how article text, images, tweets, videos, and captions are displayed in the app, including overlapping text and missing media."
+    },
+    {
+      "name": "Program availability and updates",
+      "description": "Reviews about whether specific programs, episodes, and hourly news appear and refresh on time, including stale content, missing shows, and the programs tab failing."
+    },
+    {
+      "name": "Playback skipping",
+      "description": "Reviews about audio skipping forward or backward, repeating segments, cutting off before the end, or playing from the wrong position during playback."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Live stream reliability": [
+      "Live radio and stations",
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "App crashes and bugs": [
+      "Crashes and bugs",
+      "Updates"
+    ],
+    "Visual design and interface": [
+      "Text size and display",
+      "Design and interface"
+    ],
+    "Tablet and landscape support": [
+      "Devices and platforms",
+      "Auto rotation and orientation"
+    ],
+    "Background service and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Political bias and trust": [
+      "Accuracy and bias"
+    ],
+    "Ads and sponsorship": [
+      "Ads"
+    ],
+    "Chromecast support": [
+      "Chromecast and casting"
+    ],
+    "Offline downloads": [
+      "Offline use"
+    ],
+    "Local station finding": [
+      "Live radio and stations"
+    ],
+    "Widget": [],
+    "Comparison to NPR One": [
+      "Other apps and browser"
+    ],
+    "Permissions and privacy": [
+      "Storage and permissions"
+    ],
+    "Article content display": [
+      "Text size and display"
+    ],
+    "Program availability and updates": [
+      "News content"
+    ],
+    "Playback skipping": [
+      "Streaming issues"
+    ]
+  }
+}

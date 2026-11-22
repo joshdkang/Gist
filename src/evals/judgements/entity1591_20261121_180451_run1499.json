@@ -1,0 +1,146 @@
+{
+  "report": "entity1591_20261121_180451_run1499.json",
+  "prompt_version": 11,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2373,
+  "output_tokens": 300,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Breaking-news or story push notifications, including the lack of an in-app way to disable them, their frequency, and notifications that stay in the tray after being opened."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Creating, saving, reordering, finding and clearing the playlist or queue, including playlists that get deleted on closing the app or after updates."
+    },
+    {
+      "name": "Live station streaming",
+      "description": "Connecting to and playing live radio and local station streams, including stations that never connect, are missing, or show 'no audio available' or 'connecting' forever."
+    },
+    {
+      "name": "Buffering and dropouts",
+      "description": "Audio that buffers, stutters or cuts out during playback, including drops when switching between WiFi and mobile data or when interrupted by phone calls and alerts."
+    },
+    {
+      "name": "Skipping and story cut-offs",
+      "description": "Audio that skips forward or backward, restarts, starts mid-story, or ends before the story finishes, particularly within playlists and podcasts."
+    },
+    {
+      "name": "Crashes and freezes",
+      "description": "App crashes, force closes, freezes, lock-screen conflicts and other general instability or bugs."
+    },
+    {
+      "name": "Battery and background activity",
+      "description": "Battery drain, memory use, and the app running or restarting in the background, including the lack of a way to close or exit it."
+    },
+    {
+      "name": "Ads",
+      "description": "Banner ads and pop-up ads in the app, including ads that cannot be closed, block screen space or text, or precede audio."
+    },
+    {
+      "name": "Chromecast support",
+      "description": "Requests for or comments about casting audio to Chromecast or other cast devices and external playback."
+    },
+    {
+      "name": "Offline downloads",
+      "description": "Ability or inability to download articles, podcasts or programs for offline listening or reading."
+    },
+    {
+      "name": "Interface design",
+      "description": "Visual look, layout, outdated UI, material design, dark theme and ease of navigating the app, including needing to tap 'load more stories'."
+    },
+    {
+      "name": "Tablet and screen rotation",
+      "description": "Support for landscape mode, auto-rotation and tablet-sized layouts."
+    },
+    {
+      "name": "Political bias and fairness",
+      "description": "Opinions on NPR's editorial slant, objectivity, trustworthiness and political leaning, such as liberal bias or praise for unbiased reporting."
+    },
+    {
+      "name": "News content quality",
+      "description": "Opinions on the quality, depth, variety and informative value of NPR's stories, programs and reporting itself, apart from bias."
+    },
+    {
+      "name": "Loading and connection errors",
+      "description": "Content that fails to load or shows 'check connection' or 'unable to play media' errors despite a working connection, and slow load times for stories, audio or the app."
+    },
+    {
+      "name": "Permissions and privacy",
+      "description": "Concerns about location, contacts or phone-call access and other personal data the app requests or collects."
+    },
+    {
+      "name": "Images and article display",
+      "description": "Problems displaying or reading article content, such as missing photos, tweets or videos, overlapping text, small font size or scrolling glitches."
+    },
+    {
+      "name": "Hourly news",
+      "description": "The hourly newscast feature, including it not playing, replaying old headlines, or only playing the sponsor message."
+    },
+    {
+      "name": "Update regressions",
+      "description": "Comments on how the app has changed over app versions, including features lost or broken, improvements, or lack of updates and developer support."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Live station streaming": [
+      "Live radio and stations"
+    ],
+    "Buffering and dropouts": [
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Skipping and story cut-offs": [
+      "Streaming issues"
+    ],
+    "Crashes and freezes": [
+      "Crashes and bugs"
+    ],
+    "Battery and background activity": [
+      "Battery use"
+    ],
+    "Ads": [
+      "Ads"
+    ],
+    "Chromecast support": [
+      "Chromecast and casting"
+    ],
+    "Offline downloads": [
+      "Offline use"
+    ],
+    "Interface design": [
+      "Design and interface"
+    ],
+    "Tablet and screen rotation": [
+      "Auto rotation and orientation",
+      "Devices and platforms"
+    ],
+    "Political bias and fairness": [
+      "Accuracy and bias"
+    ],
+    "News content quality": [
+      "News content"
+    ],
+    "Loading and connection errors": [
+      "Streaming"
+    ],
+    "Permissions and privacy": [
+      "Storage and permissions"
+    ],
+    "Images and article display": [
+      "Text size and display"
+    ],
+    "Hourly news": [],
+    "Update regressions": [
+      "Updates"
+    ]
+  }
+}

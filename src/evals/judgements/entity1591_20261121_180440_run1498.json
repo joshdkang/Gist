@@ -1,0 +1,79 @@
+{
+  "report": "entity1591_20261121_180440_run1498.json",
+  "prompt_version": 11,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 1895,
+  "output_tokens": 153,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Reviews about push or news-alert notifications, including whether they can be turned off or customized, how frequent they are, and whether they clear after being tapped."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Reviews about building, saving, reordering, and managing the playlist or listening queue, including playlists that are lost or cleared after closing or updating the app."
+    },
+    {
+      "name": "Story and podcast playback",
+      "description": "Reviews about on-demand story and podcast audio behavior, such as skipping, repeating, cutting off early, starting mid-story, jumping to the next item, or not resuming a position."
+    },
+    {
+      "name": "Live stream and stations",
+      "description": "Reviews about streaming live radio and local stations, including connecting, buffering, dropped streams, missing stations, and 'unable to play this media' errors."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "Reviews about the app running in the background, starting at boot or on its own, lacking a way to quit, and its battery, data, or memory use."
+    },
+    {
+      "name": "Crashes and stability",
+      "description": "Reviews about the app crashing, force closing, freezing, failing to launch, or breaking after an update or on a particular device."
+    },
+    {
+      "name": "Political bias and trust",
+      "description": "Reviews about NPR's perceived political slant, impartiality, honesty, and trustworthiness as a news source."
+    },
+    {
+      "name": "Interface design and usability",
+      "description": "Reviews about how the app looks and is laid out, how easy it is to navigate, and whether the design feels dated or modern."
+    },
+    {
+      "name": "Programming and content",
+      "description": "Reviews about the quality, variety, and availability of NPR's stories, shows, and podcasts offered in the app."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Story and podcast playback": [
+      "Streaming issues"
+    ],
+    "Live stream and stations": [
+      "Live radio and stations",
+      "Streaming",
+      "Buffering",
+      "Streaming issues"
+    ],
+    "Background activity and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Crashes and stability": [
+      "Crashes and bugs"
+    ],
+    "Political bias and trust": [
+      "Accuracy and bias"
+    ],
+    "Interface design and usability": [
+      "Design and interface"
+    ],
+    "Programming and content": [
+      "News content"
+    ]
+  }
+}

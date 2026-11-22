@@ -1,0 +1,123 @@
+{
+  "report": "entity1591_20261121_181914_run1500.json",
+  "prompt_version": 11,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2220,
+  "output_tokens": 247,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Notifications the app sends, including the inability to turn them off in the app settings, notification volume or content, and notification behavior such as dismissal or the notification icon."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Adding, saving, reordering, deleting and clearing items in the playlist or queue, including playlists that disappear after closing the app or an update, and queue playback order."
+    },
+    {
+      "name": "Streaming buffering and dropouts",
+      "description": "Audio that buffers, stutters, skips, cuts out, or stops mid-story or mid-stream, including drops when switching networks and unreliable connections."
+    },
+    {
+      "name": "Live station streaming",
+      "description": "Finding, connecting to and playing live streams of local or member stations, including stations that are missing, will not load, or fail to connect."
+    },
+    {
+      "name": "Crashes and freezing",
+      "description": "The app crashing, force closing, freezing, failing to open, or not working after an app or Android update or on a specific device."
+    },
+    {
+      "name": "Political bias",
+      "description": "Perceptions of NPR's editorial slant, fairness, balance, trustworthiness and political coverage, whether seen as biased or as unbiased and trustworthy."
+    },
+    {
+      "name": "Screen orientation and tablets",
+      "description": "Lack of landscape or auto-rotate support and tablet layout, including the app being locked in portrait mode."
+    },
+    {
+      "name": "Interface design",
+      "description": "Look and feel of the app, including layout, dated or modern design, Material design, menus, navigation ease, theme options, and widget design and function."
+    },
+    {
+      "name": "Background running and battery",
+      "description": "The app starting at boot, running or restarting by itself in the background, being unable to be closed or quit, and consuming memory, battery or resources."
+    },
+    {
+      "name": "Ads",
+      "description": "Advertising in the app, including pop-up or full-screen ads, ads that cannot be dismissed, and sponsor messages in audio."
+    },
+    {
+      "name": "Chromecast and playback controls",
+      "description": "Requests for or complaints about Chromecast support and lockscreen or notification-bar media controls such as pause, skip and fast forward."
+    },
+    {
+      "name": "Offline and SD card",
+      "description": "Requests for downloading audio or articles for offline listening and the ability to move the app to the SD card."
+    },
+    {
+      "name": "Article text and media display",
+      "description": "How article content is displayed, including garbled or overlapping text, missing images, videos or tweets, font size and readability, and crashes when viewing pictures."
+    },
+    {
+      "name": "Content freshness and availability",
+      "description": "Whether programs, stories and hourly newscasts are current and available, including outdated content, missing audio, missing episodes and past shows."
+    },
+    {
+      "name": "Content quality",
+      "description": "Praise or opinion about NPR's programs, reporting, stories and shows as a source of news and listening, separate from app function."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Streaming buffering and dropouts": [
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Live station streaming": [
+      "Live radio and stations"
+    ],
+    "Crashes and freezing": [
+      "Crashes and bugs",
+      "Devices and platforms",
+      "Updates"
+    ],
+    "Political bias": [
+      "Accuracy and bias"
+    ],
+    "Screen orientation and tablets": [
+      "Auto rotation and orientation"
+    ],
+    "Interface design": [
+      "Design and interface"
+    ],
+    "Background running and battery": [
+      "Battery use"
+    ],
+    "Ads": [
+      "Ads"
+    ],
+    "Chromecast and playback controls": [
+      "Chromecast and casting"
+    ],
+    "Offline and SD card": [
+      "Offline use",
+      "Storage and permissions"
+    ],
+    "Article text and media display": [
+      "Text size and display"
+    ],
+    "Content freshness and availability": [
+      "News content"
+    ],
+    "Content quality": [
+      "News content"
+    ]
+  }
+}

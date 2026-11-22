@@ -280,7 +280,9 @@ def score_report(key: Key, report: dict) -> ClassificationScore:
     general_names = {theme["name"] for theme in report["themes"] if theme.get("kind") == "general"} | {GENERAL}
     result = ClassificationScore(report.get("run_id", "?"), report.get("model", "?"), report.get("prompt_version"))
     examples = {example["review_id"]: example for example in report["examples"]}
-    missing = [review_id for review_id in key.tags if review_id not in examples]
+    # Every review in the key: some have only new points, so no theme tags.
+    review_ids = list(key.tags) + [review_id for review_id in key.new_points if review_id not in key.tags]
+    missing = [review_id for review_id in review_ids if review_id not in examples]
     if missing:
         raise SystemExit(f"Run {result.report} doesn't have {len(missing)} of the key's reviews (e.g. {missing[0]}).")
     unknown = {
@@ -290,7 +292,8 @@ def score_report(key: Key, report: dict) -> ClassificationScore:
     if unknown:
         raise SystemExit(f"Run {result.report} has themes the key wasn't drafted against: {', '.join(sorted(unknown))}. "
                          f"The key is for the themes of {key.themes_report}.")
-    for review_id, expected in key.tags.items():
+    for review_id in review_ids:
+        expected = key.tags.get(review_id, {})
         given: dict[str, str | None] = {}
         new_given = 0
         for tag in examples[review_id]["tags"]:

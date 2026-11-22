@@ -720,3 +720,94 @@ Cochon's development key, drafted against run 1492's themes: 372 theme tags, 151
 no theme covers, such as charcuterie, short ribs, livers, location), no General. The judgement left
 the generic "Oysters" entry (8 points) out of "Wood-fired oysters" and put "Potatoes" under
 "Brisket"; those are for the hand check.
+
+### Discovery v11 checked on NPR News (2026-11-21)
+
+v11 had been run only on Cochon. Its first two runs on NPR News came back thin (10 and 9 themes,
+Devices and platforms missed, 74% and 72% of mentions), and run 1495, saved as NPR's themes, was one
+of them. Six runs of each prompt on NPR's development set (the v10 runs made with the v11 prompt
+minus its closing overlap paragraph):
+
+| | themes | clear groups (of 9) | mentions covered | overlaps | spanning |
+|---|---|---|---|---|---|
+| v10 | 18, 11, 18, 15, 16, 14 | 9, 9, 9, 8, 9, 9 | 95, 81, 92, 91, 90, 91% | 7, 2, 2, 1, 3, 5 | 6, 1, 2, 3, 3, 7 |
+| v11 | 10, 9, 19, 15, 18, 18 | 8, 8, 9, 9, 9, 9 | 74, 72, 92, 92, 92, 95% | 1, 1, 1, 1, 4, 3 | 0, 1, 1, 2, 2, 4 |
+
+Both prompts have thin runs (v11 two of six, v10 one), so the first two v11 runs were mostly bad
+luck. v11 does what it was added for: about half the overlaps and spanning themes of v10, on an app
+as on Cochon. v11 is kept.
+
+## Classification prompt v6: sentiment defined, and judgements that cover several topics (2026-11-21)
+
+**Baseline.** Prompt v5, Haiku, twice on Cochon's development set against run 1492's themes and the
+hand-checked key (388 theme tags, 146 new points): 95% of key tags found, 26-28 tags not in the key,
+sentiment as in the key 79% and 82%. The errors: positive tagged neutral 29 and 21 (praise covering
+several topics at once, the open issue above), positive tagged mixed 13-14, mixed tagged negative 13
+and 9, neutral tagged negative 12 and 6. The two runs differ by 3 points with the same prompt, so a
+change under about 4 points on two runs each is noise.
+
+**Change.** The sentiment rule defines each value (mixed: something good and something bad about
+the same topic, even a single remark on one side; neutral: no judgement, or a lukewarm word such as
+"decent"), and a new rule applies a judgement that covers several topics to each of them (a list, a
+range, a judgement of the whole or of everything of one kind after the topics are named), with what
+is said about a topic itself overriding it, one area's judgement not reaching another, and criticism
+working the same way. The examples come from hotels, phones, apps and support, not from Cochon's
+food, so the prompt stays domain-agnostic ("not about the whole visit" went too).
+
+**Result** (two runs each):
+
+| | found | not in key | new points titled | sentiment | positive as neutral | neutral as positive | mixed as negative |
+|---|---|---|---|---|---|---|---|
+| v5 | 95, 95% | 28, 26 | 109, 111 of 146 | 79, 82% | 29, 21 | 4, 8 | 13, 9 |
+| v6 | 95, 95% | 31, 29 | 108, 108 of 146 | 82, 83% | 18, 16 | 4, 5 | 11, 12 |
+
+Praise tagged neutral fell by about a third, and genuinely neutral mentions did not turn positive.
+The mixed rule changed nothing: of the 11 mixed points both v6 runs tag negative, most are one theme
+holding two people or things the review judges differently (a rude waitress and a good waiter, bad
+waitstaff and a helpful manager, a nice bar but beers out of stock), which the key combines to mixed
+and the model reads as negative on balance. Of the 13 positive points both runs leave neutral, five
+are reservations the labeller read as positive ("easy to get a reservation"), the rest dishes in
+lists.
+
+## Classification prompt v7: mixed covers the theme's whole scope (2026-11-21)
+
+**Change.** The mixed definition says the topic is everything the theme's description covers, so
+praise of one person or thing under a theme and a complaint about another make it mixed (a rude
+front desk and a helpful concierge, for a staff theme), and that one side is not weighed against
+the other.
+
+**Result** (two runs, 1511 and 1512, against v6's 1509 and 1510):
+
+| | found | not in key | new points titled | sentiment | positive as neutral | positive as mixed | mixed as negative |
+|---|---|---|---|---|---|---|---|
+| v6 | 95, 95% | 31, 29 | 108, 108 of 146 | 82, 83% | 18, 16 | about 13 | 11, 12 |
+| v7 | 93, 95% | 26, 29 | 109, 110 of 146 | 82, 83% | 16, 17 | 19, 15 | 10, 8 |
+
+No gain. Mixed tagged negative fell by two or three, and positive tagged mixed rose by about as
+many. Most of the remaining mixed-as-negative points are long reviews of a bad visit with one good
+person or thing in them (53483's good waitress on an earlier visit, 55710, 55999, 56734), still read
+as negative. The new positive-as-mixed points are dishes with a small reservation that the key
+calls positive: a gumbo "the best I had" that "tasted slightly burned to my wife", alligator "a bit
+tough at first", rabbit "good but did not give me the wow". "Don't weigh one side against the
+other" works in both directions, so the rule moves the boundary rather than fixing the reading. The
+disagreement here is about where a small reservation stops being positive, which the key itself
+has to settle before a prompt can be tuned to it.
+
+v7 was reverted, and v6 is the classification prompt.
+
+## Classification with thinking off (2026-11-21)
+
+Prompt v6 with Haiku's thinking disabled (runs 1513 and 1514), against v6 with adaptive thinking
+at low effort (1509 and 1510), on Cochon's development set:
+
+| | found | not in key | new points titled | sentiment | output tokens |
+|---|---|---|---|---|---|
+| thinking | 95, 95% | 31, 29 | 108, 108 of 146 | 82, 83% | about 37,000 |
+| no thinking | 96, 96% | 86, 99 | 69, 63 of 146 | 79, 80% | about 18,600 |
+
+Half the output tokens, but the classifier stretches the established themes instead of naming new
+points: tags not in the key triple, mostly on dish themes and "Price and portions" (other pork
+dishes tagged "Pork cheeks", a review that never mentions oysters tagged "Wood-fired oysters"), and
+new points given a title fall by about 40. Sentiment is 3 points worse too. The saving is about
+$0.009 per 100 reviews (about $0.40 for all of Cochon), so thinking stays on. The `--no-thinking`
+flag used for the test was removed.

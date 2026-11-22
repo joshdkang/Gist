@@ -213,6 +213,12 @@ def test_a_key_is_drafted_from_the_labels_and_scores_a_report(tmp_path):
     assert (result.new_expected, result.new_found, result.new_extra) == (1, 1, 1)
     assert result.agreed == 2 and result.disagreements == [(1, "Sides", "mixed", "positive")]
 
+    # A review with only a new point in the key is scored too.
+    read.new_points[4] = 1
+    report["examples"].append({"review_id": 4, "tags": [{"theme": "Sides", "sentiment": "positive"}]})
+    result = cl.score_report(read, report)
+    assert (result.new_expected, result.new_found) == (2, 1) and result.extras[-1] == (4, "Sides", "positive")
+
     report["examples"][0]["tags"].append({"theme": "Desserts", "sentiment": "positive"})
     with pytest.raises(SystemExit, match="wasn't drafted against"):
         cl.score_report(read, report)

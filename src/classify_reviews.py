@@ -55,7 +55,7 @@ from models import (
 from tracking import begin_step
 
 MODEL = "claude-haiku-5-5"  # the cheapest model; compare against Sonnet with --model
-PROMPT_VERSION = 5  # see docs/decisions.md
+PROMPT_VERSION = 6  # see docs/decisions.md
 CHUNK_SIZE = 20  # reviews per request
 # Requests in flight at once. Each chunk takes about 24 seconds and writes about 6,600 tokens (the
 # model's thinking included), so 5 at a time came to about 80,000 output tokens a minute, which
@@ -90,9 +90,25 @@ Rules:
 - Assign a review to every established theme whose topic it reasonably discusses, whatever its
   sentiment. Most reviews discuss one to three themes. Do not stretch a theme to cover unrelated
   feedback.
-- Sentiment is the reviewer's feeling about that theme's topic only, not about the whole visit:
-  positive, negative, mixed (both within that topic), or neutral (mentioned without a clear
-  feeling).
+- Sentiment is the reviewer's feeling about that theme's topic only:
+  - positive or negative: the reviewer likes or dislikes it.
+  - mixed: the review says something good and something bad about that same topic, even when
+    one side is a single remark ("the battery lasts all day but takes hours to charge", "the new
+    layout looks cleaner but is harder to navigate"). A complaint about one topic doesn't make
+    another topic mixed.
+  - neutral: the topic is mentioned without any judgement of it ("we booked through the
+    website", "I mostly use it for podcasts", "I bought it as a gift"), or with a lukewarm word
+    that is neither praise nor complaint ("decent", "okay", "average").
+- A judgement that covers several topics at once applies to each topic it covers, even when the
+  review names a topic without judging it on its own. That includes a list ("the pool, the gym
+  and the spa were all excellent"), a range ("everything from setup to customer support was
+  painless"), or a judgement of the whole or of everything of one kind ("best hotel we've stayed
+  in", "every feature I've tried works well") after the review has named topics it covers. What
+  the review says about a topic itself overrides it: "great phone, though the camera is weak"
+  makes the camera negative. A judgement of one area doesn't reach another: praise of the staff
+  doesn't cover the rooms, and praise of the support team doesn't cover the product itself.
+  Criticism works the same way: "worst stay I've ever had" makes each part of the stay the
+  review names negative.
 - If a review makes a specific point that no established theme covers, add one more assignment
   for that point. If it matches an emerging theme from the list (when there is one), use that
   theme's id. Otherwise set theme_id to null and give new_theme_title: a short, opinion-free

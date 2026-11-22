@@ -1,0 +1,122 @@
+{
+  "report": "entity1591_20261121_181958_run1504.json",
+  "prompt_version": 10,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2324,
+  "output_tokens": 245,
+  "themes": [
+    {
+      "name": "Push notification controls",
+      "description": "Reviews about push or breaking-news notifications, including the lack of an in-app option to disable them, notifications that persist after being opened, or ones that keep arriving after being turned off. Also includes praise for useful news alerts."
+    },
+    {
+      "name": "Live station streaming",
+      "description": "Reviews about streaming live radio and local stations: connecting, finding or losing stations, the live stream failing to start or stay connected, and dropped streams when switching networks or taking calls."
+    },
+    {
+      "name": "Audio buffering and playback interruptions",
+      "description": "Reviews about audio that buffers, stalls, skips, jumps, rewinds, repeats, or cuts out mid-story or mid-podcast, and stories that start midway or fail to play through to the end."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Reviews about saving stories to the playlist or queue, including playlists that disappear on close or update, difficulty finding or reordering the playlist, and next-story behavior in the queue."
+    },
+    {
+      "name": "Audio unavailable errors",
+      "description": "Reviews reporting error messages such as 'unable to play this media', 'no audio available', or 'can't connect', where programs, podcasts, or stories will not play at all."
+    },
+    {
+      "name": "Landscape and tablet support",
+      "description": "Reviews about screen rotation, portrait-only orientation, and the app's layout or usability on tablets."
+    },
+    {
+      "name": "Interface design and navigation",
+      "description": "Reviews about the look, layout, and ease of use of the app, including outdated or non-Material design, wasted screen space, the number of taps needed, and navigation of lists and stories."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "Reviews about the app running constantly in the background, battery drain, memory use, inability to fully close or exit the app, and audio that keeps playing after closing."
+    },
+    {
+      "name": "Chromecast support",
+      "description": "Requests for Chromecast or Google Cast support, often comparing the app with the NPR One app."
+    },
+    {
+      "name": "Crashes and app stability",
+      "description": "Reviews about the app crashing, freezing, hanging, force closing, or glitching, including device-specific problems such as the Note 3 lock screen loop and crashes on opening photo captions."
+    },
+    {
+      "name": "Updates and developer maintenance",
+      "description": "Reviews about app updates, regressions after updates, the app not being updated or maintained for years, and unresponsive developer support or feedback channels."
+    },
+    {
+      "name": "Offline listening and reading",
+      "description": "Requests or comments about downloading podcasts and articles for offline use, and about the lack of offline access."
+    },
+    {
+      "name": "Editorial bias and trust",
+      "description": "Reviews about NPR's political slant, perceived bias, or objectivity, and trustworthiness of its reporting, whether praised or criticized."
+    },
+    {
+      "name": "News content quality",
+      "description": "Reviews about the quality, depth, and variety of NPR's news stories and programming, apart from the app itself."
+    },
+    {
+      "name": "Article display and text options",
+      "description": "Reviews about reading articles in the app, including font size, display themes, missing images or charts, article loading, and how stories scroll or display."
+    }
+  ],
+  "covers": {
+    "Push notification controls": [
+      "Push notifications"
+    ],
+    "Live station streaming": [
+      "Live radio and stations",
+      "Streaming",
+      "Network connection"
+    ],
+    "Audio buffering and playback interruptions": [
+      "Buffering",
+      "Streaming issues"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Audio unavailable errors": [
+      "Streaming"
+    ],
+    "Landscape and tablet support": [
+      "Devices and platforms",
+      "Auto rotation and orientation"
+    ],
+    "Interface design and navigation": [
+      "Design and interface"
+    ],
+    "Background activity and battery": [
+      "Battery use"
+    ],
+    "Chromecast support": [
+      "Chromecast and casting"
+    ],
+    "Crashes and app stability": [
+      "Crashes and bugs"
+    ],
+    "Updates and developer maintenance": [
+      "Support and feedback",
+      "Updates"
+    ],
+    "Offline listening and reading": [
+      "Offline use"
+    ],
+    "Editorial bias and trust": [
+      "Accuracy and bias"
+    ],
+    "News content quality": [
+      "News content"
+    ],
+    "Article display and text options": [
+      "Text size and display"
+    ]
+  }
+}

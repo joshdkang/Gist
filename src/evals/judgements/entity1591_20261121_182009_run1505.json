@@ -1,0 +1,130 @@
+{
+  "report": "entity1591_20261121_182009_run1505.json",
+  "prompt_version": 10,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2243,
+  "output_tokens": 262,
+  "themes": [
+    {
+      "name": "Push notification controls",
+      "description": "Notifications and alerts from the app, including the inability to turn them off or customize them, their frequency and content, and having to dismiss them manually after opening."
+    },
+    {
+      "name": "Live stream reliability",
+      "description": "Whether live radio and station streams connect, play continuously and stay connected, including endless buffering, spinning or connecting screens, dropouts, and errors such as 'can't play this media'."
+    },
+    {
+      "name": "Playback skipping and position",
+      "description": "Podcast and story playback that skips, repeats, restarts, starts mid-story or loses the listener's place, and the ability to seek or fast forward within an item."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "How the playlist or queue behaves, including playlists being cleared or deleted, adding and managing stories, and playing whole programs rather than individual segments."
+    },
+    {
+      "name": "Crashes and device compatibility",
+      "description": "App crashes, freezes, force closes, and problems tied to specific devices or OS updates, such as lock screen glitches, Android version incompatibilities and failure to open."
+    },
+    {
+      "name": "Background running and battery",
+      "description": "The app running in the background or starting by itself, battery and data drain, memory use, and the lack of a way to quit or shut it down."
+    },
+    {
+      "name": "Tablet and landscape orientation",
+      "description": "Support for landscape or auto-rotate mode and use of the app on tablets."
+    },
+    {
+      "name": "Visual design and interface",
+      "description": "The look, layout, and ease of navigation of the app, including dated appearance, clunky or intuitive navigation, and display of menus and screens."
+    },
+    {
+      "name": "Ads and popups",
+      "description": "Banner ads, pop-up ads and ads that block content or cannot be closed, as well as sponsor messages in audio."
+    },
+    {
+      "name": "Offline listening and downloads",
+      "description": "Wanting or lacking the ability to download audio, podcasts or articles for offline use and for areas without a connection."
+    },
+    {
+      "name": "Chromecast and external controls",
+      "description": "Casting support such as Chromecast and controls from outside the app, including lock screen and notification media controls, widgets and Bluetooth."
+    },
+    {
+      "name": "Local station access",
+      "description": "Finding, saving and streaming local and member stations across the country, including stations missing or disappearing from the list."
+    },
+    {
+      "name": "Hourly news and program availability",
+      "description": "Availability and freshness of the hourly newscast and specific programs or episodes, including missing shows, delayed updates and archive access."
+    },
+    {
+      "name": "Article display and media",
+      "description": "How articles render in the app, including images, charts, text overlap, missing links, font size and text settings, and reading features."
+    },
+    {
+      "name": "SD card installation",
+      "description": "Requests or complaints about moving the app to the SD card or its internal storage footprint."
+    },
+    {
+      "name": "News content and bias",
+      "description": "Opinions on the quality, trustworthiness, and political leaning of NPR's reporting and coverage."
+    }
+  ],
+  "covers": {
+    "Push notification controls": [
+      "Push notifications"
+    ],
+    "Live stream reliability": [
+      "Live radio and stations",
+      "Streaming",
+      "Buffering",
+      "Streaming issues"
+    ],
+    "Playback skipping and position": [
+      "Streaming issues"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Crashes and device compatibility": [
+      "Devices and platforms",
+      "Crashes and bugs"
+    ],
+    "Background running and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Tablet and landscape orientation": [
+      "Auto rotation and orientation"
+    ],
+    "Visual design and interface": [
+      "Design and interface"
+    ],
+    "Ads and popups": [
+      "Ads"
+    ],
+    "Offline listening and downloads": [
+      "Offline use"
+    ],
+    "Chromecast and external controls": [
+      "Chromecast and casting"
+    ],
+    "Local station access": [
+      "Live radio and stations"
+    ],
+    "Hourly news and program availability": [
+      "News content"
+    ],
+    "Article display and media": [
+      "Text size and display"
+    ],
+    "SD card installation": [
+      "Storage and permissions"
+    ],
+    "News content and bias": [
+      "News content",
+      "Accuracy and bias"
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "report": "entity1591_20261121_180344_run1495.json",
+  "prompt_version": 11,
+  "codebook": "198d647f9d1a4c08",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2101,
+  "output_tokens": 168,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Reviews about push or news alerts from the app, including whether they can be turned off or controlled in settings, how often they arrive, and whether they clear after being read."
+    },
+    {
+      "name": "Streaming reliability",
+      "description": "Reviews about live and on-demand audio that buffers, drops, disconnects, fails to connect, or gives errors such as 'no audio available' or 'cannot play this media'. This includes interruptions from phone calls, notification sounds and switching between WiFi and mobile data."
+    },
+    {
+      "name": "Playlist persistence",
+      "description": "Reviews about the playlist or queue: whether saved items are kept or deleted, how it is organized, edited or found, and how well it supports listening to whole programs."
+    },
+    {
+      "name": "Audio skipping and cutoffs",
+      "description": "Reviews about audio that jumps forward or backward, starts a story partway through, repeats snippets, or cuts off before the end of a story or program."
+    },
+    {
+      "name": "App crashes and freezing",
+      "description": "Reviews about the app force-closing, freezing, hanging, or becoming unresponsive. This includes crashes tied to specific actions such as opening photos, and complaints that the app is buggy in general."
+    },
+    {
+      "name": "Station availability",
+      "description": "Reviews about whether particular local or regional stations and their streams are listed, searchable, or selectable. This includes stations that disappear, are missing from search or nearest lists, or show only podcasts instead of the live stream."
+    },
+    {
+      "name": "Political bias and trust",
+      "description": "Reviews that judge NPR's fairness, objectivity, political slant, or trustworthiness as a news source, whether praising it as unbiased and honest or criticizing it as biased."
+    },
+    {
+      "name": "Interface design and usability",
+      "description": "Reviews about the app's look, layout, navigation, and ease of use. This includes outdated design, Material Design requests, clutter, and clean, simple or intuitive design."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "Reviews about the app running in the background or at startup, battery and data consumption, playing or reopening on its own after being closed, and the lack of a way to exit or stop it."
+    },
+    {
+      "name": "Program and podcast catalog",
+      "description": "Reviews about which shows and podcasts are available in the app, such as missing programs or episodes, a non-working programs tab, and content that is out of date or not updating."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Streaming reliability": [
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Playlist persistence": [
+      "Playlist"
+    ],
+    "Audio skipping and cutoffs": [
+      "Streaming issues"
+    ],
+    "App crashes and freezing": [
+      "Crashes and bugs"
+    ],
+    "Station availability": [
+      "Live radio and stations"
+    ],
+    "Political bias and trust": [
+      "Accuracy and bias"
+    ],
+    "Interface design and usability": [
+      "Design and interface"
+    ],
+    "Background activity and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Program and podcast catalog": [
+      "News content"
+    ]
+  }
+}
