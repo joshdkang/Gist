@@ -701,3 +701,22 @@ dry run against the labels (one labelled point, two themes), which is where to c
 Cochon's saved themes were replaced with run 1492's (v11, no check; 18 themes, one service theme,
 Desserts, Gumbo and Brisket among them, 13 of 16 clear groups and no codebook overlaps), so they
 come from discovery as it now works.
+
+## A classification key per labelled set (2026-11-20)
+
+The dry runs above were scored by mapping each labelled topic to a theme through Sonnet's judgement
+of which codebook entries each theme covers, and counting a sentiment as right when the model matched
+any of the labelled sentiments under that theme. That is lenient and partly wrong: when one theme
+covers a positive and a negative topic of the same review, the right answer by the app's own rule is
+mixed, and some "positive tagged mixed" cases were correct; and a stretched tag (a theme the review
+doesn't raise) can't be counted at all. So each set gets a key, checked against the entity's actual
+saved themes: `evals/classification.py key` drafts it from the labels (never from the model's tags,
+so checking it isn't anchored on the classifier), the labeller corrects it, and `score` scores dry
+runs against it (key tags found, tags not in the key, new points given a title, sentiment agreement
+and its table). The free-form labels stay the record; the key is tied to one theme list and is
+redrafted if the themes change. Test sets are keyed and scored once, at the end (`--final`).
+
+Cochon's development key, drafted against run 1492's themes: 372 theme tags, 151 new points (topics
+no theme covers, such as charcuterie, short ribs, livers, location), no General. The judgement left
+the generic "Oysters" entry (8 points) out of "Wood-fired oysters" and put "Potatoes" under
+"Brisket"; those are for the hand check.

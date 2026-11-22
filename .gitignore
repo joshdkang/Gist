@@ -12,3 +12,4 @@ src/app_reviews.parquet
 # Labelling workbooks hold Yelp review text; the ID lists and the codebook are kept
 src/evals/*_dev.xlsx
 src/evals/*_test.xlsx
+src/evals/*_key.xlsx

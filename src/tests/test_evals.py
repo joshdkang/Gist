@@ -7,7 +7,7 @@ from openpyxl import load_workbook
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "evals"))
 import codebook as cb  # noqa: E402
-from labels import LabelSet, TopicLabel, parse_labels  # noqa: E402
+from labels import STUDIES, LabelSet, TopicLabel, parse_labels  # noqa: E402
 from make_label_sheets import GUIDES, write_workbook  # noqa: E402
 
 
@@ -171,3 +171,48 @@ def test_a_group_is_covered_when_its_covered_entries_hold_half_its_mentions():
     label_set = LabelSet("dev", [1, 2, 3, 4], dict.fromkeys([1, 2, 3, 4], "random"), labels)
     assert cb.score_themes(codebook, label_set, {"Gumbo": ["Gumbo"]}).missed_groups == ["Sides"]
     assert cb.score_themes(codebook, label_set, {"Jambalaya": ["Jambalaya"]}).missed_groups == []
+
+
+def test_a_key_is_drafted_from_the_labels_and_scores_a_report(tmp_path):
+    import classification as cl
+
+    codebook = sample_codebook()
+    labels = [
+        TopicLabel(1, "gumbo", "positive"), TopicLabel(1, "duck gumbo", "negative"),  # one theme: mixed
+        TopicLabel(1, "parking", "negative"),  # no theme covers Parking: a new point
+        TopicLabel(2, "overall", "positive"),  # only a verdict: General
+        TopicLabel(3, "wait for a table", "neutral"), TopicLabel(3, "jambalaya", "positive"),
+    ]
+    label_set = LabelSet("dev", [1, 2, 3], dict.fromkeys([1, 2, 3], "random"), labels)
+    covers = {"Sides": ["Gumbo", "Jambalaya"], "Host stand": ["Wait for a table"]}
+    key = cl.draft_key(codebook, label_set, covers)
+    assert [(tag.theme, tag.sentiment) for tag in key[1]] == [("Sides", "mixed"), (cl.NEW_POINT, "negative")]
+    assert [(tag.theme, tag.sentiment) for tag in key[2]] == [(cl.GENERAL, "positive")]
+    assert {(tag.theme, tag.sentiment) for tag in key[3]} == {("Host stand", "neutral"), ("Sides", "positive")}
+
+    themes = [{"name": "Sides", "description": "Side dishes."}, {"name": "Host stand", "description": "Seating."}]
+    path = tmp_path / "key.xlsx"
+    cl.write_key(path, STUDIES["cochon"], "dev", "report.json", themes, {1: "One", 2: "Two", 3: "Three"}, key)
+    read = cl.read_key(path)
+    assert read.problems == [] and read.themes == {"Sides", "Host stand"} and read.themes_report == "report.json"
+    assert dict(read.tags) == {1: {"Sides": "mixed"}, 2: {cl.GENERAL: "positive"},
+                               3: {"Host stand": "neutral", "Sides": "positive"}}
+    assert read.new_points == {1: 1}
+
+    report = {"run_id": 7, "model": "m", "prompt_version": 6, "themes": [{"name": "General", "kind": "general"}],
+              "examples": [
+                  {"review_id": 1, "tags": [{"theme": "Sides", "sentiment": "positive"},
+                                            {"theme": "(new) Parking", "sentiment": "negative"}]},
+                  {"review_id": 2, "tags": [{"theme": "General", "sentiment": "positive"}]},
+                  {"review_id": 3, "tags": [{"theme": "Sides", "sentiment": "positive"},
+                                            {"theme": "(new) Valet", "sentiment": "negative"}]},
+              ]}
+    result = cl.score_report(read, report)
+    assert (result.expected, result.found, result.extra) == (4, 3, 0)
+    assert result.missed == [(3, "Host stand", "neutral")]
+    assert (result.new_expected, result.new_found, result.new_extra) == (1, 1, 1)
+    assert result.agreed == 2 and result.disagreements == [(1, "Sides", "mixed", "positive")]
+
+    report["examples"][0]["tags"].append({"theme": "Desserts", "sentiment": "positive"})
+    with pytest.raises(SystemExit, match="wasn't drafted against"):
+        cl.score_report(read, report)
