@@ -1,0 +1,154 @@
+{
+  "report": "entity1591_20261122_190755_run1530.json",
+  "prompt_version": 12,
+  "codebook": "4d1fdafbf277baa0",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2499,
+  "output_tokens": 320,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Push or breaking-news alerts, including the lack of an option to turn them off or customize them, and notifications that don't clear after being tapped."
+    },
+    {
+      "name": "Playlist persistence",
+      "description": "Saved playlists or queues being deleted, cleared when the app closes, or not remembered between sessions."
+    },
+    {
+      "name": "Playlist playback and management",
+      "description": "How the playlist plays and is managed: stories starting mid-way or skipping to the next, reordering and deleting items, finding the playlist, and building it from top stories."
+    },
+    {
+      "name": "Live stream connectivity",
+      "description": "Whether live radio and local station streams connect and play, including 'unable to play this media' errors, endless connecting or loading, and station search and finding nearby stations."
+    },
+    {
+      "name": "Buffering and dropouts",
+      "description": "Audio that buffers, stalls, cuts out, or stops unexpectedly during streaming or podcast playback, including drops on network changes or signal loss and cutoffs at around 20 minutes."
+    },
+    {
+      "name": "Audio skipping and position",
+      "description": "Audio that jumps backward or forward, repeats, or cuts off the end of stories, and failure to remember the listening position or resume where it left off."
+    },
+    {
+      "name": "App crashes and freezes",
+      "description": "The app crashing, force closing, freezing, hanging, failing to open, or stopping working after an Android or app update."
+    },
+    {
+      "name": "Background activity and battery",
+      "description": "The app running or starting by itself in the background, restarting, or using excessive battery, memory, or data while not in use."
+    },
+    {
+      "name": "Lock screen and wallpaper bug",
+      "description": "A Samsung Note 3 or KitKat issue where the app flashes against the lock screen, making it hard to unlock the phone, and deletes the wallpaper."
+    },
+    {
+      "name": "Chromecast and Android Auto",
+      "description": "Requests for or comments on Chromecast, casting, or Android Auto support."
+    },
+    {
+      "name": "Offline downloads",
+      "description": "Requests or complaints about being unable to download episodes, stories, or playlists for offline listening or caching."
+    },
+    {
+      "name": "Tablet and screen rotation",
+      "description": "Landscape mode, auto-rotation, and tablet-optimized layouts, including tablet-only crashes or display problems."
+    },
+    {
+      "name": "Interface design and navigation",
+      "description": "Visual design, look and feel, Material Design, ease of navigation, number of taps, layout, and dated or iOS-like appearance."
+    },
+    {
+      "name": "Widget",
+      "description": "The home screen widget, including its functionality, resizing, and what controls it offers."
+    },
+    {
+      "name": "Text size and article display",
+      "description": "Font size and readability, garbled or overlapping article text, and missing images, maps, videos, or photos within articles."
+    },
+    {
+      "name": "Political bias",
+      "description": "Perceptions of NPR's political slant or fairness, whether liberal, anti-Trump, or balanced and unbiased."
+    },
+    {
+      "name": "Privacy and permissions",
+      "description": "Concerns about the app accessing phone calls, call history, contacts, or other personal information."
+    },
+    {
+      "name": "Ads and sponsorship",
+      "description": "Banner ads, pop-up ads, and sponsorship or underwriting messages in the app or audio."
+    },
+    {
+      "name": "Program and podcast availability",
+      "description": "Availability of specific shows, episodes, or podcasts, such as missing episodes, programs tab not working, the 'load more' list repeating, and requests to add shows."
+    },
+    {
+      "name": "Content freshness and coverage",
+      "description": "How current the stories and hourly news are, including stale or old stories, hourly news not updating, and lack of coverage on weekends."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Playlist persistence": [
+      "Playlist"
+    ],
+    "Playlist playback and management": [
+      "Playlist"
+    ],
+    "Live stream connectivity": [
+      "Live radio and stations",
+      "Streaming"
+    ],
+    "Buffering and dropouts": [
+      "Buffering",
+      "Streaming issues",
+      "Network connection",
+      "Streaming"
+    ],
+    "Audio skipping and position": [
+      "Streaming issues"
+    ],
+    "App crashes and freezes": [
+      "Crashes and bugs",
+      "Updates"
+    ],
+    "Background activity and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "Lock screen and wallpaper bug": [],
+    "Chromecast and Android Auto": [
+      "Chromecast and casting"
+    ],
+    "Offline downloads": [
+      "Offline use"
+    ],
+    "Tablet and screen rotation": [
+      "Auto rotation and orientation"
+    ],
+    "Interface design and navigation": [
+      "Design and interface"
+    ],
+    "Widget": [],
+    "Text size and article display": [
+      "Text size and display"
+    ],
+    "Political bias": [
+      "Accuracy and bias"
+    ],
+    "Privacy and permissions": [
+      "Storage and permissions"
+    ],
+    "Ads and sponsorship": [
+      "Ads"
+    ],
+    "Program and podcast availability": [
+      "News content"
+    ],
+    "Content freshness and coverage": [
+      "News content"
+    ]
+  }
+}

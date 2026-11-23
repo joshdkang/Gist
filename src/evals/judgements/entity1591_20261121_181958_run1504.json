@@ -1,9 +1,9 @@
 {
   "report": "entity1591_20261121_181958_run1504.json",
   "prompt_version": 10,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2324,
+  "input_tokens": 2366,
   "output_tokens": 245,
   "themes": [
     {
@@ -87,8 +87,8 @@
       "Streaming"
     ],
     "Landscape and tablet support": [
-      "Devices and platforms",
-      "Auto rotation and orientation"
+      "Auto rotation and orientation",
+      "Devices and platforms"
     ],
     "Interface design and navigation": [
       "Design and interface"

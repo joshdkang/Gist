@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261121_181924_run1502.json",
   "prompt_version": 11,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2348,
-  "output_tokens": 292,
+  "input_tokens": 2390,
+  "output_tokens": 290,
   "themes": [
     {
       "name": "Push notifications",
@@ -93,15 +93,14 @@
       "Playlist"
     ],
     "App crashes and freezes": [
-      "Crashes and bugs",
-      "Devices and platforms"
+      "Crashes and bugs"
     ],
     "Background activity and battery": [
       "Battery use",
       "Data usage"
     ],
     "Media unavailable errors": [
-      "Crashes and bugs"
+      "News content"
     ],
     "Station finding and local stations": [
       "Live radio and stations"

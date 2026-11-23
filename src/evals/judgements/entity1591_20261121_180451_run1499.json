@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261121_180451_run1499.json",
   "prompt_version": 11,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2373,
-  "output_tokens": 300,
+  "input_tokens": 2415,
+  "output_tokens": 298,
   "themes": [
     {
       "name": "Push notifications",
@@ -120,8 +120,7 @@
       "Design and interface"
     ],
     "Tablet and screen rotation": [
-      "Auto rotation and orientation",
-      "Devices and platforms"
+      "Auto rotation and orientation"
     ],
     "Political bias and fairness": [
       "Accuracy and bias"

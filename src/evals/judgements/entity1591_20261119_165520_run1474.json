@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261119_165520_run1474.json",
   "prompt_version": 9,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2156,
-  "output_tokens": 238,
+  "input_tokens": 2198,
+  "output_tokens": 234,
   "themes": [
     {
       "name": "Push notifications",
@@ -78,8 +78,7 @@
       "Streaming issues"
     ],
     "App crashes and freezes": [
-      "Crashes and bugs",
-      "Devices and platforms"
+      "Crashes and bugs"
     ],
     "Battery and background activity": [
       "Battery use"
@@ -88,12 +87,11 @@
       "Ads"
     ],
     "Interface design": [
-      "Design and interface",
-      "Text size and display"
+      "Text size and display",
+      "Design and interface"
     ],
     "Tablet and rotation support": [
-      "Auto rotation and orientation",
-      "Devices and platforms"
+      "Auto rotation and orientation"
     ],
     "Station and program availability": [
       "News content",

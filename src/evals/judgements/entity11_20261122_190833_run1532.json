@@ -1,0 +1,177 @@
+{
+  "report": "entity11_20261122_190833_run1532.json",
+  "prompt_version": 12,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 4012,
+  "output_tokens": 359,
+  "themes": [
+    {
+      "name": "Wood-fired oysters",
+      "description": "Comments on the wood-fired or chargrilled oysters with chili garlic butter, including flavor, sauce, size, doneness and how they compare with oysters elsewhere in New Orleans."
+    },
+    {
+      "name": "Fried alligator",
+      "description": "Comments on the fried alligator appetizer, including texture, tenderness, the chili garlic aioli or mayo, and whether it is worth trying."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "Comments on the rabbit and dumplings entree, including the amount of rabbit, the stew or gravy, the dumplings and the seasoning."
+    },
+    {
+      "name": "Louisiana Cochon",
+      "description": "Comments on the signature Louisiana Cochon pulled pork patty with cabbage, turnips and cracklins, including its moisture, flavor and temperature."
+    },
+    {
+      "name": "Pork cheeks",
+      "description": "Comments on the braised or paneed pork cheek dish, including tenderness, portion and flavor."
+    },
+    {
+      "name": "Smoked pork ribs",
+      "description": "Comments on the smoked or BBQ pork ribs with watermelon pickle, including tenderness, sauce, smokiness and spice."
+    },
+    {
+      "name": "Mac and cheese",
+      "description": "Comments on the macaroni and cheese casserole side, including cheese flavor, texture, seasoning and whether it is a standout."
+    },
+    {
+      "name": "Boudin balls",
+      "description": "Comments on the fried boudin balls with pickled peppers, including texture, flavor and dryness."
+    },
+    {
+      "name": "Gumbo",
+      "description": "Comments on the gumbo, including the chicken and andouille, duck or deviled egg versions, its color, spice, saltiness, portion and price."
+    },
+    {
+      "name": "Beef brisket",
+      "description": "Comments on the smoked beef brisket with horseradish potato salad, including tenderness, fattiness, flavor and portion."
+    },
+    {
+      "name": "Bread and rolls",
+      "description": "Comments on the complimentary rolls and bread basket, including their quality and whether or not the table received any."
+    },
+    {
+      "name": "Desserts",
+      "description": "Comments on the dessert menu, including pineapple upside-down cake, puddings, pies and cakes."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "Comments on the cocktails, beer, wine and bourbon selection, including drink quality, strength, variety and drink prices."
+    },
+    {
+      "name": "Saltiness and seasoning",
+      "description": "Comments on the general salt level and seasoning across the menu, such as dishes that taste too salty, bland, over-peppered or under-seasoned."
+    },
+    {
+      "name": "Prices and portion sizes",
+      "description": "Comments on how much dishes cost, how big the portions are, and whether the food is worth the money."
+    },
+    {
+      "name": "Server attentiveness and pacing",
+      "description": "Comments on how attentive or absent servers were, order-taking and food delays, rushed meals, forgotten items, drink refills, being switched between servers, and menu knowledge."
+    },
+    {
+      "name": "Staff attitude",
+      "description": "Comments on the friendliness, warmth, courtesy or rudeness of staff toward guests, including servers, bartenders, hosts and managers, and how they handled complaints or special requests."
+    },
+    {
+      "name": "Reservations and seating waits",
+      "description": "Comments on making or honoring reservations, wait times for a table, host stand seating decisions, table assignments and walk-in or party-size policies."
+    },
+    {
+      "name": "Atmosphere and noise",
+      "description": "Comments on the decor, ambiance, music, noise level, temperature and seating comfort of the dining room."
+    }
+  ],
+  "covers": {
+    "Wood-fired oysters": [
+      "Wood-fired oysters"
+    ],
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Louisiana Cochon": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Pork cheeks": [
+      "Pork cheeks"
+    ],
+    "Smoked pork ribs": [
+      "Pork ribs"
+    ],
+    "Mac and cheese": [
+      "Mac and cheese"
+    ],
+    "Boudin balls": [
+      "Boudin"
+    ],
+    "Gumbo": [
+      "Gumbo"
+    ],
+    "Beef brisket": [
+      "Brisket",
+      "Potatoes"
+    ],
+    "Bread and rolls": [
+      "Bread and rolls"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ],
+    "Cocktails and drinks": [
+      "Bartenders",
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Whiskey and bourbon",
+      "Wine"
+    ],
+    "Saltiness and seasoning": [
+      "Saltiness"
+    ],
+    "Prices and portion sizes": [
+      "Portion size",
+      "Price"
+    ],
+    "Server attentiveness and pacing": [
+      "Servers",
+      "Service",
+      "Wait time"
+    ],
+    "Staff attitude": [
+      "Bartenders",
+      "Hostess",
+      "Manager",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Reservations and seating waits": [
+      "Large groups",
+      "Seating",
+      "Hostess",
+      "Reservations",
+      "Wait time"
+    ],
+    "Atmosphere and noise": [
+      "Air-conditioning",
+      "Atmosphere",
+      "Decor",
+      "Music",
+      "Noise",
+      "Seating"
+    ]
+  }
+}

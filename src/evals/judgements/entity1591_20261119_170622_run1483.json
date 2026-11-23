@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261119_170622_run1483.json",
   "prompt_version": 10,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2397,
-  "output_tokens": 289,
+  "input_tokens": 2439,
+  "output_tokens": 295,
   "themes": [
     {
       "name": "Push notification controls",
@@ -90,10 +90,12 @@
     "Buffering and playback interruptions": [
       "Buffering",
       "Network connection",
-      "Streaming issues"
+      "Streaming issues",
+      "Streaming"
     ],
     "Audio skipping and playlist position": [
-      "Streaming issues"
+      "Streaming issues",
+      "Playlist"
     ],
     "Playlist and queue behavior": [
       "Playlist"
@@ -106,7 +108,8 @@
       "Data usage"
     ],
     "Lock screen glitch": [
-      "Devices and platforms"
+      "Crashes and bugs",
+      "Updates"
     ],
     "Banner ads and sponsorship": [
       "Ads"
@@ -115,8 +118,8 @@
       "Design and interface"
     ],
     "Tablet and orientation support": [
-      "Devices and platforms",
-      "Auto rotation and orientation"
+      "Auto rotation and orientation",
+      "Devices and platforms"
     ],
     "Chromecast and casting": [
       "Chromecast and casting"

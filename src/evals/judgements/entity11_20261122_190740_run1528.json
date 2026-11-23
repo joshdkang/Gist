@@ -1,0 +1,163 @@
+{
+  "report": "entity11_20261122_190740_run1528.json",
+  "prompt_version": 12,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 4061,
+  "output_tokens": 330,
+  "themes": [
+    {
+      "name": "Wood-fired oysters",
+      "description": "Comments on the wood-fired or chargrilled oysters with chili garlic butter, including flavor, size, preparation and the sauce they are served in. Also covers oysters being unavailable or served differently than expected."
+    },
+    {
+      "name": "Fried alligator",
+      "description": "Comments on the fried alligator appetizer, including texture, the chili garlic mayo or aioli coating, seasoning and how it compares to other gator."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "Comments on the rabbit and dumplings entree, including the rabbit meat, the biscuit-style dumplings, the gravy, seasoning and portion."
+    },
+    {
+      "name": "Louisiana Cochon entree",
+      "description": "Comments on the signature Louisiana cochon pulled-pork dish with cabbage, cracklins and pickled peaches or turnips, including moisture, temperature and how it lives up to being the namesake dish."
+    },
+    {
+      "name": "Pork cheeks",
+      "description": "Comments on the braised or paneed pork cheeks, including tenderness, sauce, accompaniments and portion size."
+    },
+    {
+      "name": "Smoked pork ribs",
+      "description": "Comments on the smoked pork ribs with watermelon pickle, including tenderness, dryness, sauce, spice and how many ribs come on the plate."
+    },
+    {
+      "name": "Macaroni and cheese",
+      "description": "Comments on the mac and cheese casserole side, including cheesiness, flavor, richness and size."
+    },
+    {
+      "name": "Fried boudin",
+      "description": "Comments on the fried boudin balls served with mustard and pickled peppers, including texture, filling and flavor."
+    },
+    {
+      "name": "Smoked ham hock",
+      "description": "Comments on the smoked ham hock entree and its accompaniments such as black-eyed peas, sweet potatoes or greens, including tenderness, smokiness and saltiness."
+    },
+    {
+      "name": "Gumbo",
+      "description": "Comments on the gumbo, including the varieties offered, flavor, saltiness, serving size and price."
+    },
+    {
+      "name": "Complimentary bread",
+      "description": "Comments on the free warm rolls and butter, including how good they are, and whether they were offered, delayed, refilled or withheld."
+    },
+    {
+      "name": "Desserts",
+      "description": "Comments on the desserts, such as the pineapple upside-down cake, hummingbird cake, pies and chocolate cake, including taste and quality."
+    },
+    {
+      "name": "Cocktails and drink selection",
+      "description": "Comments on the drinks themselves, including cocktails, bourbon and whiskey flights, moonshine, beer and wine lists, and drink prices. Behavior of bartenders or servers belongs under service, not here."
+    },
+    {
+      "name": "Prices and portion sizes",
+      "description": "Comments on cost, value for money and how much food is served relative to what is charged, including small plates, bill totals and leaving hungry."
+    },
+    {
+      "name": "Waitstaff and bar service",
+      "description": "Comments on servers, bartenders and runners, including attentiveness, speed, friendliness, attitude, menu knowledge, order accuracy, check handling and how problems were handled."
+    },
+    {
+      "name": "Reservations and seating",
+      "description": "Comments on the host stand, reservation handling, wait times, walk-ins, table assignment and seating policies. Includes hostess behavior and being turned away or seated late."
+    },
+    {
+      "name": "Atmosphere and noise",
+      "description": "Comments on the decor, space, ambiance, noise level, crowding, temperature and comfort of the dining room and seating."
+    },
+    {
+      "name": "Cochon Butcher comparison",
+      "description": "Comments comparing the restaurant to its sister sandwich shop, Cochon Butcher next door, or mixing up the two, including preferences between them."
+    }
+  ],
+  "covers": {
+    "Wood-fired oysters": [
+      "Oysters",
+      "Wood-fired oysters"
+    ],
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Louisiana Cochon entree": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Pork cheeks": [
+      "Pork cheeks"
+    ],
+    "Smoked pork ribs": [
+      "Pork ribs"
+    ],
+    "Macaroni and cheese": [
+      "Mac and cheese"
+    ],
+    "Fried boudin": [
+      "Boudin"
+    ],
+    "Smoked ham hock": [
+      "Ham hock"
+    ],
+    "Gumbo": [
+      "Gumbo"
+    ],
+    "Complimentary bread": [
+      "Bread and rolls"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ],
+    "Cocktails and drink selection": [
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Whiskey and bourbon",
+      "Wine"
+    ],
+    "Prices and portion sizes": [
+      "Portion size",
+      "Price"
+    ],
+    "Waitstaff and bar service": [
+      "Bartenders",
+      "Manager",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Reservations and seating": [
+      "Hostess",
+      "Reservations",
+      "Wait time"
+    ],
+    "Atmosphere and noise": [
+      "Air-conditioning",
+      "Atmosphere",
+      "Decor",
+      "Noise",
+      "Seating"
+    ],
+    "Cochon Butcher comparison": [
+      "Cochon Butcher"
+    ]
+  }
+}

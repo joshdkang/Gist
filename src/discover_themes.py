@@ -42,7 +42,7 @@ from models import (
 from tracking import begin_step, set_step_outcome
 
 MODEL = "claude-sonnet-5-5"
-PROMPT_VERSION = 11  # see docs/decisions.md
+PROMPT_VERSION = 12  # see docs/decisions.md
 # No upper limit: the reviews decide the count, and confirm_themes.py demotes any theme that the
 # classified reviews show to be under the threshold. A cap of 15 made the model pack related topics
 # into one theme to fit.
@@ -94,8 +94,12 @@ review belongs to it.
 
 Do not include catch-all themes such as "Other" or "General". Do not include a theme that is a
 verdict on the whole product or visit, such as "Overall experience", "Overall satisfaction", or
-"Overall quality". Every theme must name a specific aspect that a reader could act on. Reviews
-that fit no theme are handled separately."""
+"Overall quality". General praise or criticism of what the business offers is such a verdict,
+whatever the theme is called ("Content quality", "Food quality", "Product quality"): a review
+that only says the food, the product or the content is good or bad gives a verdict, not a topic.
+Don't create a theme for it, and don't add it to another theme's description. Name the specific
+aspect instead, such as one program, one dish, or one feature. Every theme must name a specific
+aspect that a reader could act on. Reviews that fit no theme are handled separately."""
 
 SYSTEM_PROMPT_TEMPLATE = """You analyze customer reviews of {subject}.
 Identify the themes that recur in a significant share of the reviews. A theme must be raised

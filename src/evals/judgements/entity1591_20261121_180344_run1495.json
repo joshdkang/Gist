@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261121_180344_run1495.json",
   "prompt_version": 11,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2101,
-  "output_tokens": 168,
+  "input_tokens": 2143,
+  "output_tokens": 170,
   "themes": [
     {
       "name": "Push notifications",
@@ -77,7 +77,8 @@
     ],
     "Background activity and battery": [
       "Battery use",
-      "Data usage"
+      "Data usage",
+      "App works alone"
     ],
     "Program and podcast catalog": [
       "News content"

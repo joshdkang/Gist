@@ -1,0 +1,230 @@
+{
+  "report": "entity11_20261119_180816_run1490_checked.json",
+  "prompt_version": 11,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 4455,
+  "output_tokens": 472,
+  "themes": [
+    {
+      "name": "Service and staff",
+      "description": "How attentive, well-paced, friendly or rude the servers, bartenders, hosts and managers were, including greetings, check-ins, order timing, and how complaints, apologies and comps were handled."
+    },
+    {
+      "name": "Reservations and seating policy",
+      "description": "Reservation handling, walk-in and wait times, hosts refusing or delaying seating such as requiring a full party, and lost reservations."
+    },
+    {
+      "name": "Prices and portion sizes",
+      "description": "Whether the cost of dishes, drinks and the total bill felt justified, and whether portions were small or generous relative to the price."
+    },
+    {
+      "name": "Food saltiness and seasoning",
+      "description": "Comments on whether dishes were too salty, over- or under-seasoned, bland, or well-flavored in general."
+    },
+    {
+      "name": "Wood-fired oysters",
+      "description": "The signature wood-fired or char-grilled oysters with chili garlic butter, including their sauce, size, preparation and freshness."
+    },
+    {
+      "name": "Fried alligator",
+      "description": "The fried alligator appetizer with chili garlic aioli, including its texture, chewiness, taste compared to chicken and the sauce."
+    },
+    {
+      "name": "Louisiana Cochon",
+      "description": "The signature Louisiana cochon dish of pulled pork patty with cabbage, cracklins and pickled turnips or peaches, including its dryness, flavor and cracklins."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "The rabbit and dumplings entree, including how the rabbit, sauce and biscuit-like dumplings compare to expectations such as a pot pie."
+    },
+    {
+      "name": "Pork cheeks",
+      "description": "The braised or paneed pork cheek dish, including tenderness, flavor and accompaniments."
+    },
+    {
+      "name": "Smoked ribs",
+      "description": "The smoked or grilled pork ribs with watermelon pickle, including tenderness, sauce, spice and flavor."
+    },
+    {
+      "name": "Mac and cheese",
+      "description": "The macaroni and cheese casserole side, including creaminess, flavor, saltiness and whether it stood out."
+    },
+    {
+      "name": "Gumbo",
+      "description": "The gumbo varieties such as chicken and andouille, duck, or deviled egg gumbo, including flavor, saltiness, portion and comparison to other gumbos."
+    },
+    {
+      "name": "Brisket and horseradish potato salad",
+      "description": "The smoked beef brisket entree and its horseradish potato salad, including tenderness, fattiness, saltiness and portion."
+    },
+    {
+      "name": "Ham hock",
+      "description": "The smoked ham hock entree, including its dryness, smokiness, saltiness and flavor."
+    },
+    {
+      "name": "Gulf fish and catfish",
+      "description": "The fish entrees, such as oven-roasted gulf fish, redfish, and catfish courtbouillon, including freshness, fishiness, flavor and preparation."
+    },
+    {
+      "name": "Boudin and livers",
+      "description": "The fried boudin balls and the fried chicken or rabbit livers with pepper jelly, including flavor, texture and quality compared to elsewhere."
+    },
+    {
+      "name": "Boucherie and charcuterie",
+      "description": "The boucherie plate, head cheese, pate, terrines and other house-cured meats, including variety, quality and value."
+    },
+    {
+      "name": "Bread and rolls",
+      "description": "The complimentary warm rolls or bread service, including their quality, butter, refills and whether they were brought to the table."
+    },
+    {
+      "name": "Desserts",
+      "description": "Dessert items such as pineapple upside-down cake, chocolate cake, banana cream pie, hummingbird cake and sorbets, including quality and whether dessert was offered."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "Cocktails, beer, wine, bourbon and moonshine selection and quality, including drink prices and bar drinks."
+    },
+    {
+      "name": "Noise and seating comfort",
+      "description": "How loud the dining room was, how tightly packed tables, benches and chairs were, and how that affected conversation and comfort."
+    },
+    {
+      "name": "Decor and ambiance",
+      "description": "The look, vibe and atmosphere of the restaurant, including the decor, wood design, open kitchen, trendiness and lighting or music."
+    },
+    {
+      "name": "Hype and expectations",
+      "description": "Comparisons of the restaurant to its reviews, awards and reputation, including whether it was overrated, a tourist trap, lived up to the hype, or compared to other New Orleans restaurants."
+    },
+    {
+      "name": "Cleanliness and food safety",
+      "description": "Hygiene and safety concerns such as cockroaches, hair or foreign objects in food, illness after eating, dirty glassware and kitchen handling practices."
+    },
+    {
+      "name": "Menu customization and dietary needs",
+      "description": "How well the restaurant accommodated vegetarians, allergies, substitutions, special requests and menu variety, including limited menu options."
+    },
+    {
+      "name": "Bar and kitchen counter seating",
+      "description": "Experiences sitting at the bar or chef's counter, including the view of the kitchen and how comfortable the bar or counter seating was."
+    }
+  ],
+  "covers": {
+    "Service and staff": [
+      "Bartenders",
+      "Hostess",
+      "Manager",
+      "Servers",
+      "Service",
+      "Staff"
+    ],
+    "Reservations and seating policy": [
+      "Reservations",
+      "Wait time",
+      "Hostess"
+    ],
+    "Prices and portion sizes": [
+      "Portion size",
+      "Price"
+    ],
+    "Food saltiness and seasoning": [
+      "Saltiness"
+    ],
+    "Wood-fired oysters": [
+      "Wood-fired oysters",
+      "Oysters"
+    ],
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Louisiana Cochon": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Pork cheeks": [
+      "Pork cheeks"
+    ],
+    "Smoked ribs": [
+      "Pork ribs"
+    ],
+    "Mac and cheese": [
+      "Mac and cheese"
+    ],
+    "Gumbo": [
+      "Gumbo"
+    ],
+    "Brisket and horseradish potato salad": [
+      "Brisket",
+      "Potatoes"
+    ],
+    "Ham hock": [
+      "Ham hock"
+    ],
+    "Gulf fish and catfish": [
+      "Catfish courtbouillon",
+      "Fish",
+      "Redfish"
+    ],
+    "Boudin and livers": [
+      "Boudin",
+      "Fried livers"
+    ],
+    "Boucherie and charcuterie": [
+      "Charcuterie"
+    ],
+    "Bread and rolls": [
+      "Bread and rolls"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ],
+    "Cocktails and drinks": [
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Whiskey and bourbon",
+      "Wine",
+      "Bartenders",
+      "Bar"
+    ],
+    "Noise and seating comfort": [
+      "Noise",
+      "Seating"
+    ],
+    "Decor and ambiance": [
+      "Atmosphere",
+      "Decor",
+      "Music",
+      "Kitchen",
+      "New Orleans feel",
+      "Air-conditioning"
+    ],
+    "Hype and expectations": [
+      "Reputation",
+      "Overall"
+    ],
+    "Cleanliness and food safety": [
+      "Cleanliness"
+    ],
+    "Menu customization and dietary needs": [
+      "Menu"
+    ],
+    "Bar and kitchen counter seating": [
+      "Bar",
+      "Kitchen"
+    ]
+  }
+}

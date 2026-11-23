@@ -1,0 +1,150 @@
+{
+  "report": "entity1591_20261122_190805_run1531.json",
+  "prompt_version": 12,
+  "codebook": "4d1fdafbf277baa0",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2481,
+  "output_tokens": 308,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Push or breaking-news alerts from the app, including the inability to find or use a setting to turn them off, their frequency or content, and notifications that do not clear after being opened."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Saving stories or podcasts to the playlist/queue, including playlists being erased on close or update, difficulty finding, adding to, removing from or playing the playlist."
+    },
+    {
+      "name": "Live stream buffering and connection",
+      "description": "Live station streaming that buffers, stalls, drops, fails to connect, or takes very long to load, including 'connecting' loops and 'unable to play this media' or 'no audio available' errors."
+    },
+    {
+      "name": "Skipping and mid-story playback",
+      "description": "Audio that skips, jumps back or forward, repeats, starts stories partway through, or cuts off before the end of stories and programs."
+    },
+    {
+      "name": "Crashes and freezes",
+      "description": "The app crashing, freezing, closing unexpectedly, or being generally buggy or unstable, including device-specific issues like lock-screen loops that lock up the phone."
+    },
+    {
+      "name": "Battery and background activity",
+      "description": "Battery drain, data usage, memory use, and the app running, starting or playing on its own in the background, including inability to close or quit the app."
+    },
+    {
+      "name": "Interface design",
+      "description": "The look, layout and navigation of the app, including dated or outdated UI, requests for material design, menus, and usability of the interface."
+    },
+    {
+      "name": "Tablet and landscape support",
+      "description": "Screen rotation, landscape mode, and tablet-optimized layout, including the app being locked to portrait orientation."
+    },
+    {
+      "name": "Local station finder",
+      "description": "Finding, selecting, saving and listening to local NPR stations, including the nearest-stations feature and stations disappearing from favorites or the station list."
+    },
+    {
+      "name": "Chromecast and Android Auto",
+      "description": "Requests for or comments on casting to Chromecast or Google Cast and compatibility with Android Auto or car integration."
+    },
+    {
+      "name": "Ads and sponsorship",
+      "description": "Banner ads that cannot be dismissed, ad placement over content, and sponsor or underwriting spots that play before or during audio."
+    },
+    {
+      "name": "Offline downloads",
+      "description": "Ability to download podcasts, programs or articles for offline listening or reading."
+    },
+    {
+      "name": "Article text and images",
+      "description": "Display of article content, including garbled or overlapping text, missing images, charts, maps and tweets, small font sizes, and stories failing to show in the app."
+    },
+    {
+      "name": "Program and podcast catalog",
+      "description": "Availability of specific NPR shows and podcasts in the app, including missing shows, programs not updating, or the programs tab not working."
+    },
+    {
+      "name": "Content freshness and updates",
+      "description": "Stories, hourly news or shows that are outdated or fail to refresh with new content, and how often content updates."
+    },
+    {
+      "name": "Media controls",
+      "description": "Playback controls such as pause, play, seek, lock screen or notification-bar controls, widget, sleep timer and resuming position."
+    },
+    {
+      "name": "Permissions and privacy",
+      "description": "The permissions the app requests, location or phone access, and data privacy concerns."
+    },
+    {
+      "name": "Editorial bias and trust",
+      "description": "Perceptions of NPR's political slant, objectivity, trustworthiness and accuracy of its reporting."
+    },
+    {
+      "name": "App updates and maintenance",
+      "description": "How the developer handles updates, releases and fixes, including recent updates that broke things, the app seeming neglected, and unresponsive support or feedback channels."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Live stream buffering and connection": [
+      "Live radio and stations",
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Skipping and mid-story playback": [
+      "Streaming issues"
+    ],
+    "Crashes and freezes": [
+      "Crashes and bugs"
+    ],
+    "Battery and background activity": [
+      "Battery use",
+      "Data usage",
+      "App works alone"
+    ],
+    "Interface design": [
+      "Design and interface"
+    ],
+    "Tablet and landscape support": [
+      "Auto rotation and orientation"
+    ],
+    "Local station finder": [
+      "Live radio and stations"
+    ],
+    "Chromecast and Android Auto": [
+      "Chromecast and casting"
+    ],
+    "Ads and sponsorship": [
+      "Ads"
+    ],
+    "Offline downloads": [
+      "Offline use"
+    ],
+    "Article text and images": [
+      "Text size and display"
+    ],
+    "Program and podcast catalog": [
+      "News content"
+    ],
+    "Content freshness and updates": [
+      "News content"
+    ],
+    "Media controls": [],
+    "Permissions and privacy": [
+      "Storage and permissions"
+    ],
+    "Editorial bias and trust": [
+      "Accuracy and bias"
+    ],
+    "App updates and maintenance": [
+      "Support and feedback",
+      "Updates"
+    ]
+  }
+}

@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261119_170144_run1477.json",
   "prompt_version": 9,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2201,
-  "output_tokens": 242,
+  "input_tokens": 2243,
+  "output_tokens": 240,
   "themes": [
     {
       "name": "Push notifications",
@@ -68,20 +68,20 @@
       "Push notifications"
     ],
     "Live station streaming": [
-      "Live radio and stations"
+      "Live radio and stations",
+      "Streaming"
     ],
     "Playback reliability and buffering": [
-      "Streaming",
       "Buffering",
+      "Streaming issues",
       "Network connection",
-      "Streaming issues"
+      "Streaming"
     ],
     "Playlist and queue": [
       "Playlist"
     ],
     "App crashes and stability": [
       "Crashes and bugs",
-      "Devices and platforms",
       "Updates"
     ],
     "Battery and background activity": [
@@ -94,8 +94,7 @@
       "Ads"
     ],
     "Interface design and navigation": [
-      "Design and interface",
-      "Text size and display"
+      "Design and interface"
     ],
     "Screen orientation support": [
       "Auto rotation and orientation"
@@ -108,11 +107,11 @@
       "Accuracy and bias"
     ],
     "Content quality and programs": [
-      "News content"
+      "News content",
+      "Overall"
     ],
     "Article reading experience": [
-      "Text size and display",
-      "News content"
+      "Text size and display"
     ],
     "Offline listening and downloads": [
       "Offline use"

@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261121_182009_run1505.json",
   "prompt_version": 10,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2243,
-  "output_tokens": 262,
+  "input_tokens": 2285,
+  "output_tokens": 260,
   "themes": [
     {
       "name": "Push notification controls",
@@ -88,7 +88,6 @@
       "Playlist"
     ],
     "Crashes and device compatibility": [
-      "Devices and platforms",
       "Crashes and bugs"
     ],
     "Background running and battery": [
@@ -96,7 +95,8 @@
       "Data usage"
     ],
     "Tablet and landscape orientation": [
-      "Auto rotation and orientation"
+      "Auto rotation and orientation",
+      "Devices and platforms"
     ],
     "Visual design and interface": [
       "Design and interface"
@@ -123,7 +123,6 @@
       "Storage and permissions"
     ],
     "News content and bias": [
-      "News content",
       "Accuracy and bias"
     ]
   }

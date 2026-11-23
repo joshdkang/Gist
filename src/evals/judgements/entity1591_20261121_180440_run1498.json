@@ -1,9 +1,9 @@
 {
   "report": "entity1591_20261121_180440_run1498.json",
   "prompt_version": 11,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 1895,
+  "input_tokens": 1937,
   "output_tokens": 153,
   "themes": [
     {

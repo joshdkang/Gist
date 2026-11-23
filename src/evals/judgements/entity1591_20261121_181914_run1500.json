@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261121_181914_run1500.json",
   "prompt_version": 11,
-  "codebook": "198d647f9d1a4c08",
+  "codebook": "4d1fdafbf277baa0",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2220,
-  "output_tokens": 247,
+  "input_tokens": 2262,
+  "output_tokens": 245,
   "themes": [
     {
       "name": "Push notifications",
@@ -84,9 +84,7 @@
       "Live radio and stations"
     ],
     "Crashes and freezing": [
-      "Crashes and bugs",
-      "Devices and platforms",
-      "Updates"
+      "Crashes and bugs"
     ],
     "Political bias": [
       "Accuracy and bias"
@@ -117,7 +115,8 @@
       "News content"
     ],
     "Content quality": [
-      "News content"
+      "News content",
+      "Overall"
     ]
   }
 }

@@ -1,0 +1,168 @@
+{
+  "report": "entity11_20261122_190812_run1529.json",
+  "prompt_version": 12,
+  "codebook": "85f9454548e65b8f",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 4027,
+  "output_tokens": 347,
+  "themes": [
+    {
+      "name": "Fried alligator",
+      "description": "Reviews discussing the fried alligator appetizer, including its texture, chili garlic aioli or mayo sauce, breading and seasoning, and whether it is worth ordering."
+    },
+    {
+      "name": "Wood-fired oysters",
+      "description": "Reviews discussing the wood-fired or char-grilled oysters with chili garlic butter, including flavor, portion count, price, and how they compare with other oysters in town."
+    },
+    {
+      "name": "Louisiana Cochon entree",
+      "description": "Reviews about the signature Louisiana Cochon pork dish (pulled pork patty with cabbage, turnips and cracklins), covering its moisture, temperature, and flavor."
+    },
+    {
+      "name": "Rabbit and dumplings",
+      "description": "Reviews about the rabbit and dumplings entree, including the amount of rabbit, the dumplings, the broth or stew, and the seasoning."
+    },
+    {
+      "name": "Mac and cheese",
+      "description": "Reviews mentioning the macaroni and cheese casserole side, including creaminess, cheese, and seasoning."
+    },
+    {
+      "name": "Smoked pork ribs",
+      "description": "Reviews about the smoked or spicy grilled pork ribs with watermelon pickle, including tenderness, sauce, spiciness, and the pickle."
+    },
+    {
+      "name": "Pork cheeks",
+      "description": "Reviews about the pork cheek dishes, covering tenderness, preparation, garnishes, and portion size."
+    },
+    {
+      "name": "Boudin",
+      "description": "Reviews about the fried boudin or boudin balls appetizer, including flavor, texture, and accompaniments such as mustard and pickled peppers."
+    },
+    {
+      "name": "Complimentary bread",
+      "description": "Reviews mentioning the bread rolls and butter served at the table, including their quality and whether refills were provided or denied."
+    },
+    {
+      "name": "Salt and seasoning",
+      "description": "Reviews commenting on how salty, bland, or well seasoned the food is across dishes, including over-salting and lack of flavor."
+    },
+    {
+      "name": "Waitstaff service",
+      "description": "Reviews about servers' attentiveness, friendliness or rudeness, menu knowledge, recommendations, and how well they check on tables or handle complaints."
+    },
+    {
+      "name": "Meal pacing",
+      "description": "Reviews about the timing of the meal, including long waits for food, courses arriving all at once, and being rushed through dinner or handed the check early."
+    },
+    {
+      "name": "Reservations and seating",
+      "description": "Reviews about booking reservations, wait times to be seated, lost or delayed reservations, and how hosts handle walk-ins and seating."
+    },
+    {
+      "name": "Dietary accommodations",
+      "description": "Reviews about vegetarian options, allergies, and substitution or modification requests, including how well the kitchen and staff handled them."
+    },
+    {
+      "name": "Prices and portions",
+      "description": "Reviews about the cost of dishes and drinks, portion sizes, and whether the food is worth what it costs."
+    },
+    {
+      "name": "Atmosphere and decor",
+      "description": "Reviews about the look and feel of the space, including decor, lighting, vibe, seating comfort, crowding, and the open kitchen."
+    },
+    {
+      "name": "Noise level",
+      "description": "Reviews about how loud the restaurant is, including music volume and difficulty hearing dining companions or servers."
+    },
+    {
+      "name": "Cocktails and drinks",
+      "description": "Reviews about cocktails, beer, wine, and other beverages, including quality, selection, strength, and price."
+    },
+    {
+      "name": "Desserts",
+      "description": "Reviews about dessert offerings such as pineapple upside down cake, chocolate cake, puddings, and pies, including quality and availability."
+    }
+  ],
+  "covers": {
+    "Fried alligator": [
+      "Fried alligator"
+    ],
+    "Wood-fired oysters": [
+      "Oysters",
+      "Wood-fired oysters"
+    ],
+    "Louisiana Cochon entree": [
+      "Cochon",
+      "Cracklins"
+    ],
+    "Rabbit and dumplings": [
+      "Rabbit and dumplings"
+    ],
+    "Mac and cheese": [
+      "Mac and cheese"
+    ],
+    "Smoked pork ribs": [
+      "Pork ribs"
+    ],
+    "Pork cheeks": [
+      "Pork cheeks"
+    ],
+    "Boudin": [],
+    "Complimentary bread": [
+      "Bread and rolls"
+    ],
+    "Salt and seasoning": [
+      "Saltiness"
+    ],
+    "Waitstaff service": [
+      "Servers",
+      "Service",
+      "Staff",
+      "Manager"
+    ],
+    "Meal pacing": [
+      "Wait time"
+    ],
+    "Reservations and seating": [
+      "Reservations",
+      "Wait time",
+      "Hostess"
+    ],
+    "Dietary accommodations": [],
+    "Prices and portions": [
+      "Portion size",
+      "Price"
+    ],
+    "Atmosphere and decor": [
+      "Air-conditioning",
+      "Atmosphere",
+      "Decor",
+      "Kitchen",
+      "Seating"
+    ],
+    "Noise level": [
+      "Music",
+      "Noise"
+    ],
+    "Cocktails and drinks": [
+      "Beer and cider",
+      "Cocktails",
+      "Moonshine",
+      "Drinks menu",
+      "Whiskey and bourbon",
+      "Wine",
+      "Bartenders",
+      "Non-alcoholic drinks"
+    ],
+    "Desserts": [
+      "Banana pudding",
+      "Bread pudding",
+      "Butterscotch pudding",
+      "Cakes",
+      "Chocolate mousse",
+      "Dessert",
+      "Frozen desserts",
+      "Pies"
+    ]
+  }
+}

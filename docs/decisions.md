@@ -911,3 +911,34 @@ NPR as a source of news ("one of the most important sources of information avail
 accuracy") is within its description. The theme joins two topics, bias and the quality of the news,
 which is a discovery problem: under v11's rules quality of the whole is a verdict and bias is a
 topic. v8 is kept: it does what it was written for without harm on either set.
+
+## Discovery prompt v12: general quality is a verdict (2026-11-22)
+
+**Problem.** Classification on NPR put general praise of NPR under "Political bias and trust"
+because run 1503 described that theme as including "journalism quality and reliability as a news
+source". Across all 15 NPR discovery runs (v9 to v11), every run had a clean bias theme, but
+general praise of the content went into a theme of its own in 7 ("News content quality", "Content
+quality and programs"), into the bias theme in 3 (1474, 1503, 1505), into the freshness theme in 1
+(1476), and was left out in only 4. The verdict rule named "Overall quality", but for a news app
+the content is the product, so "Content quality" is the same verdict under another name, and the
+model read it as an aspect.
+
+**Change.** The verdict paragraph of `THEME_RULES` (shared with consolidation) adds: general praise
+or criticism of what the business offers is such a verdict, whatever the theme is called
+("Content quality", "Food quality", "Product quality"); don't create a theme for it or add it to
+another theme's description, and name the specific aspect instead.
+
+**Result** (three runs each). NPR: 1527, 1530, 1531 all leave general quality out; each has a bias
+theme about slant, fairness and trust only, and specific programs stay in program-availability and
+freshness themes. Scores against the codebook (whose general-praise topics are now in Overall):
+
+| | themes | clear groups (of 8) | mentions covered | overlaps | spanning |
+|---|---|---|---|---|---|
+| NPR v11 (1495, 1498, 1499, 1500, 1502, 1503) | 10, 9, 19, 15, 18, 18 | 8 each | 75, 72, 87, 84, 87, 95% | 1, 1, 1, 1, 3, 3 | 1, 1, 0, 1, 1, 4 |
+| NPR v12 (1527, 1530, 1531) | 10, 19, 20 | 8 each | 77, 90, 92% | 1, 4, 3 | 1, 2, 3 |
+
+1527 is a thin run, as v10 and v11 have had. 1531 also has "App updates and maintenance".
+Cochon (1528, 1529, 1532 against v11's 1490 to 1492) is unchanged: no run of either version made a
+food-quality theme; 13, 12 and 13 of 16 clear groups (1529 has no gumbo theme, and the judge gave
+its "Boudin" theme no entry, a judging miss); overlaps 0, 1 and 6 (1532 split service again, as
+v10 did). v12 is kept.

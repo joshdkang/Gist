@@ -1,0 +1,87 @@
+{
+  "report": "entity1591_20261122_190743_run1527.json",
+  "prompt_version": 12,
+  "codebook": "4d1fdafbf277baa0",
+  "model": "claude-sonnet-5-5",
+  "input_tokens": 2106,
+  "output_tokens": 170,
+  "themes": [
+    {
+      "name": "Push notifications",
+      "description": "Reviews about push or breaking-news alerts, including whether they can be turned off, where the setting is, how often they arrive, and whether tapping one clears it. Also covers requests for or praise of news alerts."
+    },
+    {
+      "name": "Live station streaming",
+      "description": "Whether live streams and local or regional NPR stations can be found, selected and played, including the live stream option disappearing, the station list and nearest-stations feature, and a station that won't play or stays on connecting."
+    },
+    {
+      "name": "Buffering and dropouts",
+      "description": "Slow loading, constant buffering, and streams that stall, drop or disconnect during playback. Includes streams breaking when switching between WiFi and mobile data, and weak performance on strong connections."
+    },
+    {
+      "name": "Playlist and queue",
+      "description": "Adding stories to the playlist or queue, finding it, and whether it persists. Covers playlists that vanish or clear after updates, restarts or time, plus the clear-playlist dialog."
+    },
+    {
+      "name": "Story skipping and cutoffs",
+      "description": "Audio segments that start midway, skip ahead or back, repeat, or cut off before the end, especially when a playlist moves from one story to the next."
+    },
+    {
+      "name": "Political bias",
+      "description": "Perceived political slant or impartiality of NPR's coverage, such as claims of liberal bias, complaints about coverage of specific candidates, or praise for unbiased, factual reporting."
+    },
+    {
+      "name": "Background running and battery",
+      "description": "The app running, starting or restarting in the background on its own, being impossible to close, and its resulting drain on battery, memory and data."
+    },
+    {
+      "name": "App crashes",
+      "description": "The app force closing, freezing, failing to open, or crashing the phone, including the lock-screen flashing loop, whether after updates or during use."
+    },
+    {
+      "name": "Interface design and layout",
+      "description": "Look, navigation and layout of the app, including a dated UI, screen rotation and landscape or tablet support, and how easy it is to find programs and content."
+    },
+    {
+      "name": "Program and episode availability",
+      "description": "Which shows and episodes appear in the app, such as missing programs (This American Life, Invisibilia, Radiolab), only the latest episode being listed, and programs not updating or missing a play button."
+    }
+  ],
+  "covers": {
+    "Push notifications": [
+      "Push notifications"
+    ],
+    "Live station streaming": [
+      "Live radio and stations"
+    ],
+    "Buffering and dropouts": [
+      "Streaming",
+      "Buffering",
+      "Network connection",
+      "Streaming issues"
+    ],
+    "Playlist and queue": [
+      "Playlist"
+    ],
+    "Story skipping and cutoffs": [
+      "Streaming issues"
+    ],
+    "Political bias": [
+      "Accuracy and bias"
+    ],
+    "Background running and battery": [
+      "Battery use",
+      "Data usage"
+    ],
+    "App crashes": [
+      "Crashes and bugs"
+    ],
+    "Interface design and layout": [
+      "Auto rotation and orientation",
+      "Design and interface"
+    ],
+    "Program and episode availability": [
+      "News content"
+    ]
+  }
+}
