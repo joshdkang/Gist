@@ -887,3 +887,27 @@ The rest of the gap to Cochon's 95% is the overlap between 1503's themes (backgr
 battery against app crashes and visual design, playback skipping against live streams), which is
 for discovery, and one classifier error all models share: general praise of NPR tagged "Political
 bias and trust" (about 7 reviews).
+
+## Classification prompt v8: a verdict on the whole isn't a narrower theme (2026-11-22)
+
+(v7 was the reverted mixed rule above.) **Change.** One rule after the ban on verdict titles:
+praise or criticism of the company, brand or product as a whole ("a fine company", "love this
+brand", "nothing beats it") is a verdict, not a topic, and doesn't go under a narrower theme such as
+trust, reputation or value unless the review says something about that topic itself. The examples
+are generic, so the prompt stays domain-agnostic.
+
+**Result** (two Haiku runs each, against v6):
+
+| | Cochon found | not in key | new points titled | sentiment | NPR found | not in key | new points titled | sentiment |
+|---|---|---|---|---|---|---|---|---|
+| v6 (1509, 1510; 1517, 1518) | 95, 95% | 31, 29 | 108, 108 of 146 | 82, 83% | 79, 79% | 31, 34 | 7, 6 of 19 | 88, 86% |
+| v8 (1523, 1526; 1524, 1525) | 94, 95% | 33, 28 | 115, 109 | 84, 82% | 80, 82% | 34, 30 | 4, 4 | 88, 86% |
+
+Of the six NPR reviews of general praise that v6 tagged "Political bias and trust" (6 and 5 of
+them), v8 tags 4 and 3; Cochon is unchanged within the noise. The rest isn't the classifier's
+fault: run 1503 describes the theme as "editorial slant, fairness, fake-news accusations,
+trustworthiness, accuracy, or journalism quality and reliability as a news source", so praise of
+NPR as a source of news ("one of the most important sources of information available with ease and
+accuracy") is within its description. The theme joins two topics, bias and the quality of the news,
+which is a discovery problem: under v11's rules quality of the whole is a verdict and bias is a
+topic. v8 is kept: it does what it was written for without harm on either set.
