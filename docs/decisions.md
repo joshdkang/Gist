@@ -811,3 +811,79 @@ dishes tagged "Pork cheeks", a review that never mentions oysters tagged "Wood-f
 new points given a title fall by about 40. Sentiment is 3 points worse too. The saving is about
 $0.009 per 100 reviews (about $0.40 for all of Cochon), so thinking stays on. The `--no-thinking`
 flag used for the test was removed.
+
+## Classification v6 checked on NPR News (2026-11-22)
+
+NPR's development key was checked by hand against run 1503's themes. App updates became new
+points ("Updates" has its own codebook group, which no theme of 1503 is about alone), and topics
+naming a phone model were taken out of the labels, the codebook and the key: a handset named in a
+review is context, not a topic.
+
+Two runs each, Haiku, against the checked key (156 theme tags, 10 new points):
+
+| | found | not in key | new points titled | sentiment |
+|---|---|---|---|---|
+| v5 (1515, 1516) | 65, 66% | 37, 42 | 2, 1 of 10 | 84, 83% |
+| v6 (1517, 1518) | 65, 65% | 33, 36 | 2, 2 of 10 | 87, 86% |
+
+v6 holds up on an app: sentiment is 3 points better, about the run-to-run noise but in the same
+direction as on Cochon, with no new kind of error. Found is far below Cochon's 95%, and mostly
+from the key: of the 25 key tags under "Program availability and updates", whose description is
+programs and episodes appearing and refreshing on time, about 18 are praise of NPR's news content
+in general ("Lots of news", "the best radio news", "Good news coverage"), which both runs leave out
+or put under General. Most of the other misses are between neighbouring themes of 1503 (playback
+skipping, playlist and queue, live stream reliability), the overlaps the key's check flagged.
+
+**News content in the key.** Of the 25 tags under "Program availability and updates", 19 were
+praise of NPR's news itself ("Good news coverage", "the best radio news"), which that theme's
+description doesn't cover; they became new points, and 137971's "love the content" was split off
+the same way. Six stay (the hourly news not playing, topics or stories not loading, the live
+streams gone, the news only through some route, catching up on Science Friday). The key now has
+137 theme tags and 30 new points. Rescored: v5 71, 74% found and 86, 85% sentiment; v6 72, 72% and
+88, 86%.
+
+## A stronger model as a ceiling for classification (2026-11-22)
+
+Prompt v6, one run each of Sonnet 5.5 and Opus 5.5 (effort low, as for Haiku) on both development
+sets:
+
+| | Cochon found | not in key | new points titled | sentiment | NPR found | not in key | new points titled | sentiment | cost per 100 reviews (Cochon) |
+|---|---|---|---|---|---|---|---|---|---|
+| Haiku (1509, 1510; 1517, 1518) | 95, 95% | 31, 29 | 108 of 146 | 82, 83% | 72, 72% | 36, 39 | 4, 6 of 30 | 88, 86% | $0.02 |
+| Sonnet (1519; 1520) | 97% | 30 | 102 | 84% | 72% | 35 | 5 | 89% | $0.26 |
+| Opus (1522; 1521) | 96% | 24 | 86 | 85% | 72% | 34 | 6 | 87% | $0.50 |
+
+The larger models gain 1-3 points of sentiment on Cochon, within or just past the noise, and
+nothing on NPR, at 11 and 22 times the cost (they think less, so the multiple is below the price
+ratio). They name no more new points: Opus names fewer. The misses the three models share are
+conventions, not capacity: on NPR all three leave out praise of the news ("Love NPR, lots of news")
+when the review makes some other specific point (14 or 15 of the 20 such reviews, for every
+model), reading it as a verdict on the whole rather than a topic. Haiku stays the classifier; the
+remaining gap is for the prompt or the key to settle.
+
+**General praise is a verdict, and the key's remaining errors (2026-11-22).** Praise of NPR or its
+news in general ("Npr News", "Good news coverage", "Awesome programs!") is a verdict on the whole,
+like "overall": in the codebook those topics moved to the unscored Overall entry ("News content"
+keeps specific programs and coverage asked for, missing or not loading, still clearly key at 8 of
+100), and in the key they became General where they are all a review says and were dropped where
+it makes other points. Then the rows where one point stood under two neighbouring themes were cut
+to one (a podcast repeating or stopping is playback skipping, a station cutting out is live
+stream reliability), font size moved to Visual design (its description names it), and points no
+theme covers became new points: moving to an SD card, listening through the website, the iOS app
+(the draft's Devices to Tablet mapping was wrong), switching to the BBC app, and closing the app.
+The key's other placements between overlapping themes were left as checked, even where the models
+consistently choose differently, so that the key doesn't drift toward the models.
+
+Rescored (the key now has 19 new points):
+
+| | found | not in key | new points titled | sentiment |
+|---|---|---|---|---|
+| Haiku v5 (1515, 1516) | 79, 79% | 35, 41 | 5, 3 of 19 | 86, 87% |
+| Haiku v6 (1517, 1518) | 79, 79% | 31, 34 | 7, 6 of 19 | 88, 86% |
+| Sonnet v6 (1520) | 79% | 30 | 4 | 89% |
+| Opus v6 (1521) | 80% | 27 | 6 | 88% |
+
+The rest of the gap to Cochon's 95% is the overlap between 1503's themes (background service and
+battery against app crashes and visual design, playback skipping against live streams), which is
+for discovery, and one classifier error all models share: general praise of NPR tagged "Political
+bias and trust" (about 7 reviews).
