@@ -55,7 +55,7 @@ from models import (
 from tracking import begin_step
 
 MODEL = "claude-haiku-5-5"  # the cheapest model; compare against Sonnet with --model
-PROMPT_VERSION = 8  # see docs/decisions.md
+PROMPT_VERSION = 9  # see docs/decisions.md
 CHUNK_SIZE = 20  # reviews per request
 # Requests in flight at once. Each chunk takes about 24 seconds and writes about 6,600 tokens (the
 # model's thinking included), so 5 at a time came to about 80,000 output tokens a minute, which
@@ -121,9 +121,13 @@ Rules:
   "Overall experience", "Everything", or "Recommendation". A review that gives only such a
   verdict has no discernible topic.
 - Praise or criticism of the company, brand or product as a whole ("a fine company", "love this
-  brand", "nothing beats it") is such a verdict, not a topic. Don't assign it to a theme whose
-  topic is narrower, such as trust, reputation or value, unless the review says something about
-  that topic itself ("I've trusted them for years", "worth every penny").
+  brand", "nothing beats it") is such a verdict, not a topic. So is general praise or criticism
+  of what it offers, whatever it is called ("great food", "great content", "good products"), even
+  when the rest of the review is about something else ("great content, but the app crashes").
+  Don't give it a title of its own, and don't assign it to a theme whose topic is narrower, such
+  as trust, reputation or value, unless the review says something about that topic itself ("I've
+  trusted them for years", "worth every penny"). A remark on one particular part of what is
+  offered, such as one dish, one program, or a subject that is covered or missing, is a topic.
 - Use "General" (id {general_id}) only when a review has no discernible topic, such as "Great!",
   "Love it", or "meh". Never combine it with another theme.
 - Every review gets at least one assignment."""

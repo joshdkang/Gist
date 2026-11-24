@@ -996,3 +996,86 @@ Against the 1503 key the same prompt found 79 to 80%; the difference is the key 
 not the classifier. The remaining tags not in the key are mostly a second theme beside the right
 one (Media controls beside Skipping, App updates beside a bug report), and new points are still
 rarely given a title.
+
+## Full pipeline on Cochon with classification v8 (2026-11-24, run 1535)
+
+Cochon (entity 11) had run 1492's 18 provisional themes (discovery v11) and no tags. One `analyze`
+job, run by the worker, did the rest in 37 minutes with no failed steps or retries:
+
+- **Classify:** all 4,480 reviews, Haiku, prompt v8 (1.75M input and 1.64M output tokens, about
+  40% more than run 73's prompt v5, so roughly $1.00).
+- **Confirm:** all 18 themes passed the threshold (4% of classified reviews, 179); none demoted.
+- **Consolidate:** Sonnet merged 684 of 1,537 candidates, leaving 853 (59k input, 28k output).
+- **Promote:** seven candidates became themes, every one a dish: Fish entrees (474 reviews), Ham
+  hock, Short rib, Fried liver, Boucherie plate, Oyster and bacon sandwich, Smothered greens (181,
+  just over the threshold). Each description was rewritten from review evidence (58k input).
+
+Total about $1.50 by estimate. Cochon now has 25 established themes, from Waitstaff service (2,468
+reviews) and Atmosphere and noise (1,551) down to the promoted dishes; General holds 75 reviews
+(1.7%). No theme is a verdict. The largest remaining candidates are Meat pies (168, just under the
+threshold), Grits (147), Shrimp dishes (120) and Eggplant and shrimp dressing (110); "Menu variety
+and changes" (71) is the only one that is not a dish.
+
+## Full pipeline on NPR News with classification v8 (2026-11-24, run 1536)
+
+NPR News (entity 1591, 1,725 reviews) had run 1531's 19 provisional themes (discovery v12) and no
+tags. One `analyze` job took six minutes, with no failures:
+
+- **Classify:** all 1,725 reviews, Haiku, prompt v8 (377k input, 248k output tokens, roughly
+  $0.15); 6 reviews went to General by code for too little text.
+- **Confirm:** 6 of the 19 themes were demoted, under the threshold of 69 reviews (4%): Media
+  controls (67), Tablet and landscape support (50), Ads and sponsorship (45), Chromecast and
+  Android Auto (33), Offline downloads (28), Permissions and privacy (23). They stay as candidates
+  with their tags; the 13 kept range from Live stream buffering and connection (352) to Content
+  freshness and updates (73).
+- **Consolidate:** Sonnet merged 45 of 110 candidates (4k input, 3k output tokens).
+- **Promote:** not run; no candidate reaches 69.
+
+Total about $0.20. General holds 264 reviews (15%, against Cochon's 1.7%), as expected for app
+reviews, many of which are only "great app".
+
+**Weakness.** Classification still gives verdicts on the content titles of their own: "Content"
+(10 reviews), "News content" (4), "Content quality" (3), "Program content" (2), and consolidation
+left them apart. "Content" has reached the 10 reviews at which a candidate is shown to the
+classifier, so later uploads could tag it more. This is the classification side of the problem
+discovery v12 fixed, and close to the open decision on overall-opinion candidates.
+
+## Classification prompt v9: general praise of what is offered is a verdict (2026-11-24)
+
+**Problem.** In NPR's full run (1536, v8), Haiku gave "great content, but the app crashes" a title
+of its own: "Content" (10 reviews), "News content" (4), "Content quality" (3), "Program content"
+(2). v8's rule named praise of the company, brand or product as a whole, and the model didn't read
+"the content" as that. "Content" had reached the 10 reviews at which a candidate is shown to the
+classifier, so later uploads would have tagged it more.
+
+**Considered and rejected: content as a topic.** For an app, the content it delivers is distinct
+from the app itself, so "great content, terrible app" does separate two things. But a theme for
+general remarks on the content is a catch-all: it says the content is good without saying what
+about it. The rule stays as for discovery (v12): general praise or criticism of what a business
+offers (the food, the content, the products) is a verdict, and a topic needs some particular part
+or aspect of it. Food quality is a verdict for the same reason.
+
+**Change.** v8's rule adds: so is general praise or criticism of what it offers, whatever it is
+called ("great food", "great content", "good products"), even when the rest of the review is
+about something else; a remark on one particular part of what is offered (one dish, one program,
+a subject covered or missing) is a topic.
+
+**Result.** Both entities had been analysed since their keys were drafted (Cochon has seven
+promoted themes and more candidates on show, NPR six demoted themes and the "Content" candidate),
+so v8 was rerun on the same state as the baseline, and `evals/classification.py score` gained
+`--extra-as-new`, which scores a tag on a theme the key wasn't drafted against as a new point.
+
+| | found | not in key | new points | sentiment |
+|---|---|---|---|---|
+| Cochon v8 (1537, 1539) | 95, 94% | 27, 26 | 123, 129 of 146 | 81, 82% |
+| Cochon v9 (1541, 1543) | 95, 95% | 26, 27 | 121, 121 of 146 | 82, 82% |
+| NPR v8 (1538, 1540) | 87, 89% | 19, 22 | 4, 3 of 10 | 96, 94% |
+| NPR v9 (1542, 1544) | 91, 88% | 17, 22 | 1, 2 of 10 | 92, 94% |
+
+No change on either set beyond run-to-run noise. On the 23 reviews behind the content candidates
+(run 1545), all 17 "great content, but ..." reviews lost the content tag and kept their specific
+points; one ("in depth ... Tom, Terry and Huckleberry are the best") got titles for the interviews
+and the hosts. Five still went to the listed "Content" candidate, and they are the borderline
+cases of depth and quality of reporting: "For indepth news only NPR", "Thorough news analysis",
+"NPR totally explain stuff", "Relevant information", and a review on the lack of negativity. They
+are left open; the codebook has them in Overall. v9 is kept.

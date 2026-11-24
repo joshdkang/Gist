@@ -23,7 +23,9 @@ workbooks.
 --review-ids) against the key: the key's tags the report has (recall), the report's tags the key
 doesn't (stretched themes, or points the labeller didn't write down), new points given a title, and
 how often the sentiment of a found tag is the key's, with the table of key against model. `--show`
-lists that many disagreements of each kind, to read.
+lists that many disagreements of each kind, to read. Once the entity has been analysed, the
+classifier also sees candidates and themes promoted since the key was drafted; `--extra-as-new`
+scores a tag on one of those as a new point, which is what it is to the key.
 
 The test set is keyed and scored once, at the end: both commands refuse it without --final.
 """
@@ -276,7 +278,7 @@ class ClassificationScore:
         return sum(count for (expected, given), count in self.confusion.items() if expected == given)
 
 
-def score_report(key: Key, report: dict) -> ClassificationScore:
+def score_report(key: Key, report: dict, extra_as_new: bool = False) -> ClassificationScore:
     general_names = {theme["name"] for theme in report["themes"] if theme.get("kind") == "general"} | {GENERAL}
     result = ClassificationScore(report.get("run_id", "?"), report.get("model", "?"), report.get("prompt_version"))
     examples = {example["review_id"]: example for example in report["examples"]}
@@ -289,15 +291,16 @@ def score_report(key: Key, report: dict) -> ClassificationScore:
         tag["theme"] for example in examples.values() for tag in example["tags"]
         if not tag["theme"].startswith(NEW_PREFIX) and tag["theme"] not in key.themes | general_names
     }
-    if unknown:
+    if unknown and not extra_as_new:
         raise SystemExit(f"Run {result.report} has themes the key wasn't drafted against: {', '.join(sorted(unknown))}. "
-                         f"The key is for the themes of {key.themes_report}.")
+                         f"The key is for the themes of {key.themes_report}. "
+                         f"--extra-as-new scores tags on them as new points.")
     for review_id in review_ids:
         expected = key.tags.get(review_id, {})
         given: dict[str, str | None] = {}
         new_given = 0
         for tag in examples[review_id]["tags"]:
-            if tag["theme"].startswith(NEW_PREFIX):
+            if tag["theme"].startswith(NEW_PREFIX) or tag["theme"] in unknown:
                 new_given += 1
             else:
                 given[GENERAL if tag["theme"] in general_names else tag["theme"]] = tag["sentiment"]
@@ -372,7 +375,7 @@ async def make_key(study: Study, themes_report: Path, set_name: str) -> None:
           f"{counts[GENERAL]} General; {flagged} tags flagged as covered by two themes. Check it by hand.")
 
 
-def score(study: Study, report_paths: list[Path], set_name: str, show: int) -> None:
+def score(study: Study, report_paths: list[Path], set_name: str, show: int, extra_as_new: bool = False) -> None:
     path = key_path(study, set_name)
     if not path.exists():
         raise SystemExit(f"No key for {study.name}'s {set_name} set: run `key THEMES_REPORT` first.")
@@ -387,7 +390,7 @@ def score(study: Study, report_paths: list[Path], set_name: str, show: int) -> N
         report = json.loads(report_path.read_text(encoding="utf-8"))
         if report["entity"]["id"] != study.entity_id:
             raise SystemExit(f"{report_path.name} is a report on entity {report['entity']['id']}, not {study.name}.")
-        result = score_report(key, report)
+        result = score_report(key, report, extra_as_new)
         print_classification_score(result, show)
         results.append(result)
     if len(results) > 1:
@@ -412,6 +415,9 @@ def main() -> None:
     score_parser.add_argument("reports", nargs="+", type=Path)
     score_parser.add_argument("--set", default=None)
     score_parser.add_argument("--show", type=int, default=0, help="list this many disagreements of each kind")
+    score_parser.add_argument("--extra-as-new", action="store_true",
+                              help="score tags on themes the key wasn't drafted against (candidates, or themes "
+                                   "promoted since) as new points, for an entity that has been analysed since")
     for subparser in (key_parser, score_parser):
         subparser.add_argument("--final", action="store_true",
                                help="allow the test set: it is keyed and scored once, when tuning is done")
@@ -425,7 +431,7 @@ def main() -> None:
     if args.command == "key":
         asyncio.run(make_key(study, args.themes_report, set_name))
     else:
-        score(study, args.reports, set_name, args.show)
+        score(study, args.reports, set_name, args.show, args.extra_as_new)
 
 
 if __name__ == "__main__":
