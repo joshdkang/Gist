@@ -942,3 +942,57 @@ Cochon (1528, 1529, 1532 against v11's 1490 to 1492) is unchanged: no run of eit
 food-quality theme; 13, 12 and 13 of 16 clear groups (1529 has no gumbo theme, and the judge gave
 its "Boudin" theme no entry, a judging miss); overlaps 0, 1 and 6 (1532 split service again, as
 v10 did). v12 is kept.
+
+**NPR switched to run 1531.** Run 1503's 18 provisional themes (no tags) were deleted and run
+1531's 19 saved. The development key was redrafted against them (156 theme tags, 13 new points,
+13 General); the corrections made on the 1503 key carry over where they were rules (verdicts,
+phone models, updates, now under "App updates and maintenance"), and where a point was flagged as
+covered by two themes and the 1503 key had chosen one that maps onto a 1531 theme (live stream,
+skipping, local stations), that choice was copied. The 1503 key is kept as
+`evals/npr_dev_1503_key.xlsx`.
+
+## NPR development key checked against run 1531; classification v8 scored on it (2026-11-24)
+
+**Key.** The hand check of the redrafted key settled the 15 points the draft had flagged as
+covered by two themes, and then corrected the key wherever a 1531 theme's description names the
+point outright. Rules that came out of it:
+- Each labelled topic sits on one theme, chosen from the theme descriptions (inability to close
+  the app is "Battery and background activity"; seeking and resuming are "Media controls";
+  stories or topics failing to load are "Article text and images"; skipping inside a playlist is
+  "Skipping and mid-story playback", the playlist theme only for managing it).
+- A point no 1531 theme covers is a new point, even when a codebook entry covers it: "Need more
+  poverty news" is a complaint about which subjects the news covers, and neither "Program and
+  podcast catalog" (which shows the app carries) nor "Editorial bias and trust" (slant and
+  accuracy) has that scope.
+- A request for something missing ("need more", "I would like to download") is negative, as the
+  prompt defines it: the reviewer dislikes the absence.
+- "Trusted" is the bias theme's own topic, so a review calling NPR "very trusted" is tagged there,
+  the exception the v8 verdict rule allows.
+
+Some of these corrections were found by reading where both runs disagreed with the key, which
+risks bending the key toward the model; only changes the review text and a theme's description
+support were made, and cases where the key was right and the model wrong ("Awesome programs!",
+"NPR World news." as verdicts; "flash crash" read as an app crash) were left alone. The test set
+remains the real measure. The key now has 131 theme tags and 10 new points.
+
+**Labels and codebook.** The labels in `npr_dev.xlsx` were brought into line with the key in 21
+reviews: vague topics reworded ("audio" to "audio glitching forward and back", "story playing" to
+"stories cutting off", "topics" and "stories loading" to "... failing to load"), incidental or
+verdict topics removed ("usability", "accessibility" duplicating font size, "public radio",
+"android buyers remorse"), sentiments corrected (requests to negative, "easy to find your favorite
+stations" to positive), and three topics added that the key relied on. The codebook gained an entry,
+"Resume playback position", and the new topics were placed, three of them moved by hand from
+Sonnet's proposal; "News content" no longer covers items "not loading", which belong to "Text size
+and display". The codebook change means the discovery judgements are redone at the next score.
+
+**Result** (Haiku, v8, runs 1533 and 1534 against run 1531's themes):
+
+| | found | not in key | new points titled | sentiment |
+|---|---|---|---|---|
+| 1533 | 94% | 23 | 2 of 10 | 92% |
+| 1534 | 90% | 31 | 4 of 10 | 92% |
+
+Against the 1503 key the same prompt found 79 to 80%; the difference is the key and the themes,
+not the classifier. The remaining tags not in the key are mostly a second theme beside the right
+one (Media controls beside Skipping, App updates beside a bug report), and new points are still
+rarely given a title.
