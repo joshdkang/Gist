@@ -1079,3 +1079,12 @@ and the hosts. Five still went to the listed "Content" candidate, and they are t
 cases of depth and quality of reporting: "For indepth news only NPR", "Thorough news analysis",
 "NPR totally explain stuff", "Relevant information", and a review on the lack of negativity. They
 are left open; the codebook has them in Overall. v9 is kept.
+
+**NPR rerun with v9 (run 1546).** Run 1536's tags and the 104 candidates it created were deleted
+and run 1531's themes made provisional again, and the pipeline was run once more (six minutes,
+about $0.20). Confirm demoted the same six themes, Sonnet merged 53 of 126 candidates, and no
+candidate reached the threshold. The 13 established themes have almost the same counts as in 1536.
+No content candidate is left: the largest content-like titles hold one or two reviews ("World
+news", "News analysis", "Relevant information", "Stories and coverage"), and specific subjects
+are titled as such ("Science coverage", "Religion coverage", "Poverty news"). General rose from 264
+to 289 reviews (17%), where the "great content" verdicts went.
