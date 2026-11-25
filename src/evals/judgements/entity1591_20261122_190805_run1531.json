@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261122_190805_run1531.json",
   "prompt_version": 12,
-  "codebook": "4d1fdafbf277baa0",
+  "codebook": "13a43fc13be7391e",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2481,
-  "output_tokens": 308,
+  "input_tokens": 2670,
+  "output_tokens": 316,
   "themes": [
     {
       "name": "Push notifications",
@@ -91,13 +91,14 @@
       "Playlist"
     ],
     "Live stream buffering and connection": [
+      "Playback errors",
       "Live radio and stations",
-      "Streaming",
       "Buffering",
-      "Network connection",
+      "Streaming",
       "Streaming issues"
     ],
     "Skipping and mid-story playback": [
+      "Playback controls",
       "Streaming issues"
     ],
     "Crashes and freezes": [
@@ -112,7 +113,8 @@
       "Design and interface"
     ],
     "Tablet and landscape support": [
-      "Auto rotation and orientation"
+      "Auto rotation and orientation",
+      "Devices and platforms"
     ],
     "Local station finder": [
       "Live radio and stations"
@@ -132,10 +134,12 @@
     "Program and podcast catalog": [
       "News content"
     ],
-    "Content freshness and updates": [
-      "News content"
+    "Content freshness and updates": [],
+    "Media controls": [
+      "Playback controls",
+      "Resume playback position",
+      "Widget"
     ],
-    "Media controls": [],
     "Permissions and privacy": [
       "Storage and permissions"
     ],

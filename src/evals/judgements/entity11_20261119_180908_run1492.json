@@ -1,10 +1,10 @@
 {
   "report": "entity11_20261119_180908_run1492.json",
   "prompt_version": 11,
-  "codebook": "85f9454548e65b8f",
+  "codebook": "99c84de53349cca5",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 4022,
-  "output_tokens": 338,
+  "input_tokens": 4516,
+  "output_tokens": 348,
   "themes": [
     {
       "name": "Fried alligator",
@@ -126,10 +126,10 @@
       "Pies"
     ],
     "Cocktails and drinks": [
-      "Bar",
       "Beer and cider",
       "Cocktails",
       "Moonshine",
+      "Drink service",
       "Drinks menu",
       "Non-alcoholic drinks",
       "Whiskey and bourbon",
@@ -137,16 +137,18 @@
     ],
     "Waitstaff service": [
       "Bartenders",
+      "Chef and owner",
+      "Food speed",
       "Manager",
       "Servers",
       "Service",
-      "Staff"
+      "Staff",
+      "Staff recommendations"
     ],
     "Host stand and wait times": [
       "Hostess",
       "Reservations",
-      "Wait time",
-      "Large groups"
+      "Wait time"
     ],
     "Price and portions": [
       "Portion size",
@@ -155,13 +157,16 @@
     "Atmosphere and noise": [
       "Air-conditioning",
       "Atmosphere",
+      "Bar",
       "Decor",
       "Music",
       "Noise",
+      "Chef's table",
       "Seating"
     ],
     "Cochon Butcher": [
       "Cochon Butcher"
     ]
-  }
+  },
+  "corrected": "by hand: Sonnet's coverage from the previous codebook kept, with Food speed under Waitstaff service"
 }
