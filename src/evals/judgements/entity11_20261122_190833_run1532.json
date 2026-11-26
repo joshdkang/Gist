@@ -1,10 +1,10 @@
 {
   "report": "entity11_20261122_190833_run1532.json",
   "prompt_version": 12,
-  "codebook": "85f9454548e65b8f",
+  "codebook": "99c84de53349cca5",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 4012,
-  "output_tokens": 359,
+  "input_tokens": 4506,
+  "output_tokens": 365,
   "themes": [
     {
       "name": "Wood-fired oysters",
@@ -85,6 +85,7 @@
   ],
   "covers": {
     "Wood-fired oysters": [
+      "Oysters",
       "Wood-fired oysters"
     ],
     "Fried alligator": [
@@ -130,25 +131,28 @@
       "Pies"
     ],
     "Cocktails and drinks": [
-      "Bartenders",
       "Beer and cider",
       "Cocktails",
       "Moonshine",
+      "Drink service",
       "Drinks menu",
       "Whiskey and bourbon",
-      "Wine"
+      "Wine",
+      "Non-alcoholic drinks"
     ],
     "Saltiness and seasoning": [
-      "Saltiness"
+      "Saltiness",
+      "Seasoning"
     ],
     "Prices and portion sizes": [
       "Portion size",
       "Price"
     ],
     "Server attentiveness and pacing": [
+      "Food speed",
       "Servers",
       "Service",
-      "Wait time"
+      "Staff recommendations"
     ],
     "Staff attitude": [
       "Bartenders",
@@ -159,11 +163,10 @@
       "Staff"
     ],
     "Reservations and seating waits": [
-      "Large groups",
-      "Seating",
       "Hostess",
       "Reservations",
-      "Wait time"
+      "Wait time",
+      "Large groups"
     ],
     "Atmosphere and noise": [
       "Air-conditioning",

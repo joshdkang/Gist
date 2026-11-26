@@ -1,10 +1,10 @@
 {
   "report": "entity11_20261122_190740_run1528.json",
   "prompt_version": 12,
-  "codebook": "85f9454548e65b8f",
+  "codebook": "99c84de53349cca5",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 4061,
-  "output_tokens": 330,
+  "input_tokens": 4555,
+  "output_tokens": 332,
   "themes": [
     {
       "name": "Wood-fired oysters",
@@ -131,7 +131,8 @@
       "Moonshine",
       "Drinks menu",
       "Whiskey and bourbon",
-      "Wine"
+      "Wine",
+      "Drink service"
     ],
     "Prices and portion sizes": [
       "Portion size",
@@ -139,10 +140,10 @@
     ],
     "Waitstaff and bar service": [
       "Bartenders",
-      "Manager",
       "Servers",
       "Service",
-      "Staff"
+      "Staff",
+      "Staff recommendations"
     ],
     "Reservations and seating": [
       "Hostess",

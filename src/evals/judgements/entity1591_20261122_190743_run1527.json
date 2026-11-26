@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261122_190743_run1527.json",
   "prompt_version": 12,
-  "codebook": "4d1fdafbf277baa0",
+  "codebook": "3861ebf9cc4eef07",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2106,
-  "output_tokens": 170,
+  "input_tokens": 2315,
+  "output_tokens": 174,
   "themes": [
     {
       "name": "Push notifications",
@@ -55,16 +55,17 @@
       "Live radio and stations"
     ],
     "Buffering and dropouts": [
-      "Streaming",
       "Buffering",
       "Network connection",
+      "Streaming",
       "Streaming issues"
     ],
     "Playlist and queue": [
       "Playlist"
     ],
     "Story skipping and cutoffs": [
-      "Streaming issues"
+      "Streaming issues",
+      "Playlist"
     ],
     "Political bias": [
       "Accuracy and bias"
@@ -77,6 +78,7 @@
       "Crashes and bugs"
     ],
     "Interface design and layout": [
+      "Tablet version",
       "Auto rotation and orientation",
       "Design and interface"
     ],

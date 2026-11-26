@@ -1,10 +1,10 @@
 {
   "report": "entity1591_20261122_190755_run1530.json",
   "prompt_version": 12,
-  "codebook": "4d1fdafbf277baa0",
+  "codebook": "3861ebf9cc4eef07",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 2499,
-  "output_tokens": 320,
+  "input_tokens": 2708,
+  "output_tokens": 325,
   "themes": [
     {
       "name": "Push notifications",
@@ -99,20 +99,20 @@
     ],
     "Live stream connectivity": [
       "Live radio and stations",
+      "Playback errors",
       "Streaming"
     ],
     "Buffering and dropouts": [
       "Buffering",
       "Streaming issues",
-      "Network connection",
-      "Streaming"
+      "Network connection"
     ],
     "Audio skipping and position": [
-      "Streaming issues"
+      "Streaming issues",
+      "Resume playback position"
     ],
     "App crashes and freezes": [
-      "Crashes and bugs",
-      "Updates"
+      "Crashes and bugs"
     ],
     "Background activity and battery": [
       "Battery use",
@@ -126,12 +126,16 @@
       "Offline use"
     ],
     "Tablet and screen rotation": [
-      "Auto rotation and orientation"
+      "Auto rotation and orientation",
+      "Tablet version"
     ],
     "Interface design and navigation": [
-      "Design and interface"
+      "Design and interface",
+      "iOS comparison"
     ],
-    "Widget": [],
+    "Widget": [
+      "Widget"
+    ],
     "Text size and article display": [
       "Text size and display"
     ],

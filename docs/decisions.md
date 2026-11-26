@@ -1088,3 +1088,80 @@ No content candidate is left: the largest content-like titles hold one or two re
 news", "News analysis", "Relevant information", "Stories and coverage"), and specific subjects
 are titled as such ("Science coverage", "Religion coverage", "Poverty news"). General rose from 264
 to 289 reviews (17%), where the "great content" verdicts went.
+
+## Test sets scored (2026-11-25)
+
+The test sets (100 random reviews each for Cochon and NPR, none read while tuning) were scored once,
+with the prompts as they stand: classification v9 (Haiku, thinking at low effort) and discovery v12.
+
+**Keys.** The test topics were added to both codebooks first (c8b24bf), then the keys were drafted
+against the themes the dev keys use (Cochon run 1492, NPR run 1531) and checked by hand. The checks
+changed the codebooks where an entry joined things a reader would keep apart, never to fit a model
+output (no model output on the test sets existed yet):
+- Cochon: Wait time held both waiting for a table and how fast food comes out, so Host stand and wait
+  times covered food speed. A new entry, Food speed (speed of the food and pacing of courses), is
+  covered by Waitstaff service, whose description includes pacing.
+- NPR: Devices and platforms held three different kinds of topic: a missing tablet version (now the
+  entry Tablet version, covered by Tablet and landscape support), comparisons with the iOS app (now
+  iOS comparison, scored and covered by no theme: "so much better on iOS" is a real complaint about the
+  Android app), and the reviewer's phone ("my Galaxy S5"), which is context, not feedback, and was
+  dropped from the labels.
+- Topics the checked key made verdicts were mapped to Overall ("inoffensive", "update world"), and a
+  few topics were remapped to where the key put them (station names asked for under News content).
+The judgements for runs 1492 and 1531 were then corrected by hand rather than redone, because a new
+judgement also changed entries nobody had touched (it dropped Chef and owner from Waitstaff service,
+for example). Each judgement file records its corrections in `corrected`. In 1531's, Widget moved to
+Interface design, and Playback errors (errors playing recorded media) is covered by no theme, since
+whether an error is about the live stream depends on the review.
+
+**Classification** (two dry runs each, scored with `--extra-as-new`), with the dev scores of the same
+prompt:
+
+| | found | not in key | new points | sentiment |
+|---|---|---|---|---|
+| Cochon dev v9 (1541, 1543) | 95, 95% | 26, 27 | 121, 121 of 146 | 82, 82% |
+| Cochon test v9 (1548, 1550) | 92, 94% | 38, 41 | 109, 107 of 162 | 92, 90% |
+| NPR dev v9 (1542, 1544) | 91, 88% | 17, 22 | 1, 2 of 10 | 92, 94% |
+| NPR test v9 (1547, 1549) | 82, 81% | 34, 29 | 2, 2 of 11 | 95, 95% |
+
+Cochon holds up: recall drops two or three points. Sentiment is higher than on the dev set,
+which was enriched with the hard case (positive reviews with a neutral dish tag); positive given as
+neutral is still the main confusion (8 and 10 tags). About ten extra tags per run are general
+oysters put under Wood-fired oysters, which the key makes new points because that theme doesn't
+cover the general Oysters entry (a defensible reading on this menu, and most of the drop in new-point
+titles). Another ten are value remarks under Price and portions that the labels don't hold as topics.
+
+NPR generalises less well: recall is 81 to 82% against 88 to 91% on its dev set. About ten of each
+run's 27 or 28 misses are Program and podcast catalog, and most are not empty misses but a neighbour
+chosen instead: a station's programming under Local station finder, "a sampling of NPR news items"
+under Article text and images, "public radio" as General. The boundary v9 draws between a specific
+program or subject (a topic) and praise of the content (a verdict) is the weak point on unseen
+reviews, together with the neighbouring playback themes (Media controls against Skipping and
+mid-story playback), which account for most of the extra tags. Sentiment is the best of any set.
+New points are still almost never titled (2 of 11), as on dev: on NPR the model prefers a listed
+theme or General to a title of its own.
+
+**Discovery** (the codebook's `score`, judgements redone for the current codebooks):
+
+| | themes | key entries | key groups | mentions covered | overlaps |
+|---|---|---|---|---|---|
+| Cochon dev (1492; v12 1528, 1529, 1532) | 18, 18, 19, 19 | 13, 13, 12, 13 of 13 | 14, 14, 13, 14 of 17 | 72, 71, 69, 73% | 0, 0, 0, 3 |
+| Cochon test (same runs) | 18, 18, 19, 19 | 19, 21, 18, 19 of 25 | 19, 17, 15, 17 of 25 | 70, 70, 68, 69% | 0, 0, 0, 3 |
+| NPR dev (v12 1527, 1530, 1531) | 10, 20, 19 | 6, 6, 6 of 6 | 7, 8, 8 of 8 | 76, 91, 92% | 2, 3, 3 |
+| NPR test (same runs) | 10, 20, 19 | 7, 7, 8 of 8 | 8, 8, 10 of 10 | 73, 84, 92% | 2, 3, 3 |
+
+NPR's saved run 1531 covers every key entry and group of the test set and the same share of
+mentions as on dev (92%); the two other runs miss only Updates. Cochon's test set has more key
+entries (25 against 13), because a random sample spreads over more dishes, and the runs cover 18 to
+21 of them while mention coverage stays at 68 to 70%. The misses are of three kinds. Dishes that
+classification later promoted (Ham hock is a theme since run 1535) are not misses of the pipeline.
+Topics at 8 to 10% of a hundred reviews (Reputation, Salads, Location) are within sampling error of
+the 4% threshold on the full entity and may be real misses or not. Flavor (8%), in the "Food in
+general" group (21%), is missed by every run, because discovery v12 treats general food quality as a
+verdict and flavor sits right at that line: the labeller kept Flavor, Food creativity and Food
+freshness as topics, and the prompt doesn't make the distinction.
+
+**Conclusion.** Classification is accurate on sentiment (90 to 95%) and finds most tags on a domain
+it was tuned on (92 to 94%), and loses about seven points on the second domain, at the boundary
+between content and verdict. Discovery's saved themes cover the test sets as well as the dev sets.
+The test sets are now spent: further prompt work needs new labelled reviews to check it on.

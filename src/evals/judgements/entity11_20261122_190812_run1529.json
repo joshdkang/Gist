@@ -1,10 +1,10 @@
 {
   "report": "entity11_20261122_190812_run1529.json",
   "prompt_version": 12,
-  "codebook": "85f9454548e65b8f",
+  "codebook": "99c84de53349cca5",
   "model": "claude-sonnet-5-5",
-  "input_tokens": 4027,
-  "output_tokens": 347,
+  "input_tokens": 4521,
+  "output_tokens": 357,
   "themes": [
     {
       "name": "Fried alligator",
@@ -88,8 +88,8 @@
       "Fried alligator"
     ],
     "Wood-fired oysters": [
-      "Oysters",
-      "Wood-fired oysters"
+      "Wood-fired oysters",
+      "Oysters"
     ],
     "Louisiana Cochon entree": [
       "Cochon",
@@ -107,52 +107,60 @@
     "Pork cheeks": [
       "Pork cheeks"
     ],
-    "Boudin": [],
+    "Boudin": [
+      "Boudin"
+    ],
     "Complimentary bread": [
       "Bread and rolls"
     ],
     "Salt and seasoning": [
-      "Saltiness"
+      "Saltiness",
+      "Seasoning"
     ],
     "Waitstaff service": [
       "Servers",
       "Service",
       "Staff",
-      "Manager"
+      "Staff recommendations",
+      "Manager",
+      "Bartenders"
     ],
     "Meal pacing": [
-      "Wait time"
+      "Food speed"
     ],
     "Reservations and seating": [
       "Reservations",
       "Wait time",
       "Hostess"
     ],
-    "Dietary accommodations": [],
+    "Dietary accommodations": [
+      "Dietary accommodations"
+    ],
     "Prices and portions": [
       "Portion size",
       "Price"
     ],
     "Atmosphere and decor": [
-      "Air-conditioning",
       "Atmosphere",
       "Decor",
+      "Air-conditioning",
       "Kitchen",
-      "Seating"
+      "Seating",
+      "Chef's table"
     ],
     "Noise level": [
-      "Music",
-      "Noise"
+      "Noise",
+      "Music"
     ],
     "Cocktails and drinks": [
-      "Beer and cider",
       "Cocktails",
       "Moonshine",
+      "Beer and cider",
       "Drinks menu",
+      "Drink service",
+      "Non-alcoholic drinks",
       "Whiskey and bourbon",
-      "Wine",
-      "Bartenders",
-      "Non-alcoholic drinks"
+      "Wine"
     ],
     "Desserts": [
       "Banana pudding",
