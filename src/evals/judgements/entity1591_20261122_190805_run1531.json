@@ -1,7 +1,7 @@
 {
   "report": "entity1591_20261122_190805_run1531.json",
   "prompt_version": 12,
-  "codebook": "13a43fc13be7391e",
+  "codebook": "3861ebf9cc4eef07",
   "model": "claude-sonnet-5-5",
   "input_tokens": 2670,
   "output_tokens": 316,
@@ -91,7 +91,6 @@
       "Playlist"
     ],
     "Live stream buffering and connection": [
-      "Playback errors",
       "Live radio and stations",
       "Buffering",
       "Streaming",
@@ -110,11 +109,12 @@
       "App works alone"
     ],
     "Interface design": [
-      "Design and interface"
+      "Design and interface",
+      "Widget"
     ],
     "Tablet and landscape support": [
       "Auto rotation and orientation",
-      "Devices and platforms"
+      "Tablet version"
     ],
     "Local station finder": [
       "Live radio and stations"
@@ -137,8 +137,7 @@
     "Content freshness and updates": [],
     "Media controls": [
       "Playback controls",
-      "Resume playback position",
-      "Widget"
+      "Resume playback position"
     ],
     "Permissions and privacy": [
       "Storage and permissions"
@@ -150,5 +149,6 @@
       "Support and feedback",
       "Updates"
     ]
-  }
+  },
+  "corrected": "by hand: Devices and platforms split into iOS comparison (no theme covers it) and Tablet version (under Tablet and landscape support); Widget moved from Media controls to Interface design; Playback errors left uncovered (whether it is the live stream depends on the review)"
 }
