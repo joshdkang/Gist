@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -33,6 +34,7 @@ class RunType(enum.StrEnum):
     DISCOVER = "discover"        # the kinds below are runs a script made for a single step
     CLASSIFY = "classify"
     CONSOLIDATE = "consolidate"
+    EMBED = "embed"
 
 
 class RunStatus(enum.StrEnum):
@@ -43,6 +45,7 @@ class RunStatus(enum.StrEnum):
 
 
 class StepKind(enum.StrEnum):
+    EMBED = "embed"              # store an embedding for each review that has none (embeddings.py)
     DISCOVER = "discover"        # find the first themes from a sample
     CLASSIFY = "classify"        # tag the reviews that have no tags
     CONSOLIDATE = "consolidate"  # group overlapping candidates
@@ -291,3 +294,42 @@ class ReviewTheme(Base):
     run_id: Mapped[int] = mapped_column(
         ForeignKey("analysis_runs.id", ondelete="CASCADE"), index=True
     )
+
+
+# The length of every stored embedding. The column type fixes it, so a model with another length
+# needs a migration (and every review embedded again).
+EMBEDDING_DIMENSIONS = 1024
+
+
+class ReviewEmbedding(Base):
+    """A review's embedding (embeddings.py), for search by meaning and the features built on it.
+    In a table of its own so the reviews table and its queries stay lean, and so a change of model
+    is explicit: `model` says which model made the vector, and only vectors of the configured model
+    are used. Searches are always within one entity, which `entity_id` filters on directly."""
+    __tablename__ = "review_embeddings"
+
+    review_id: Mapped[int] = mapped_column(
+        ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
+    )
+    entity_id: Mapped[int] = mapped_column(
+        ForeignKey("entities.id", ondelete="CASCADE"), index=True
+    )
+    model: Mapped[str]
+    embedding: Mapped[Any] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
+    created_at: Mapped[datetime] = created_at_column()
+
+
+class ThemeEmbedding(Base):
+    """The embedding of a theme's name, for matching a new candidate title to an existing candidate
+    by meaning (classify_reviews.ThemeResolver)."""
+    __tablename__ = "theme_embeddings"
+
+    theme_id: Mapped[int] = mapped_column(
+        ForeignKey("themes.id", ondelete="CASCADE"), primary_key=True
+    )
+    entity_id: Mapped[int] = mapped_column(
+        ForeignKey("entities.id", ondelete="CASCADE"), index=True
+    )
+    model: Mapped[str]
+    embedding: Mapped[Any] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
+    created_at: Mapped[datetime] = created_at_column()

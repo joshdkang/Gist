@@ -4,6 +4,9 @@ These run against the database in DATABASE_URL, inside a transaction that is rol
 of each test, so nothing is left behind. Sign-in uses tokens signed with a key generated for the run,
 so no Supabase request is made.
 """
+import hashlib
+import math
+import re
 import time
 import types
 import uuid
@@ -20,9 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import auth
 from database import engine, get_db
+from embeddings import Embedded
 from entities import create_entity
 from main import app
 from models import (
+    EMBEDDING_DIMENSIONS,
     AnalysisRun,
     Import,
     ImportStatus,
@@ -218,3 +223,35 @@ async def public_entity(db):
     entity = await create_entity(db, name="Public sample", is_public=True)
     await db.commit()
     return entity
+
+
+class FakeEmbedder:
+    """Stands in for embeddings.Embedder: a review's vector is its words hashed into the vector's
+    dimensions, so texts that share words are close and the tests need no network. Counts the texts
+    it was asked for, as a stand-in for tokens."""
+
+    model = "fake-embedder"
+
+    def __init__(self):
+        self.calls: list[tuple[str, list[str]]] = []
+
+    @staticmethod
+    def vector(text: str) -> list[float]:
+        values = [0.0] * EMBEDDING_DIMENSIONS
+        for word in re.findall(r"[a-z]+", text.lower()):
+            values[int(hashlib.sha256(word.encode()).hexdigest(), 16) % EMBEDDING_DIMENSIONS] += 1.0
+        norm = math.sqrt(sum(value * value for value in values)) or 1.0
+        return [value / norm for value in values] if any(values) else [1.0] + [0.0] * (EMBEDDING_DIMENSIONS - 1)
+
+    async def embed_documents(self, texts):
+        self.calls.append(("document", list(texts)))
+        return Embedded([self.vector(text) for text in texts], len(texts))
+
+    async def embed_query(self, query: str) -> list[float]:
+        self.calls.append(("query", [query]))
+        return self.vector(query)
+
+
+@pytest.fixture
+def fake_embedder() -> FakeEmbedder:
+    return FakeEmbedder()

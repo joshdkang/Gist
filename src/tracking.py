@@ -28,6 +28,7 @@ STALE_AFTER = timedelta(minutes=2)  # several missed beats
 
 # A script that does one step makes a run of the matching type.
 RUN_TYPE_FOR_STEP = {
+    StepKind.EMBED: RunType.EMBED,
     StepKind.DISCOVER: RunType.DISCOVER,
     StepKind.CLASSIFY: RunType.CLASSIFY,
     StepKind.CONSOLIDATE: RunType.CONSOLIDATE,

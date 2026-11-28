@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     supabase_service_role_key: SecretStr | None = None
     supabase_anon_key: SecretStr | None = None
 
+    # Voyage AI, for review embeddings (embeddings.py). Without the key, meaning search and the
+    # embed step are off; everything else works. The model's vectors must have EMBEDDING_DIMENSIONS.
+    voyage_api_key: SecretStr | None = None
+    embedding_model: str = "voyage-4-lite"
+
     # Browser origins allowed to call the API (the Next.js frontend). In .env, a JSON list:
     # CORS_ORIGINS=["https://gist.example.com"]
     cors_origins: list[str] = ["http://localhost:3000"]

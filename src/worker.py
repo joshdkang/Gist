@@ -5,6 +5,8 @@
 Every job is the same kind, `analyze`. When it runs, it looks at the entity's state and does
 whatever is needed, in order, one recorded step each (see run_steps):
 
+0. embed: if any review has no embedding and Voyage is configured (embeddings.py). Nothing after it
+   needs the vectors, so a failed embed is noted and the job carries on;
 1. discover: if themes were never discovered for the entity (needs at least MIN_SAMPLE_SIZE, 125, reviews);
 2. classify: if any review has no tags;
 3. confirm: once every review is tagged, demote the discovered themes too few reviews raise;
@@ -51,6 +53,7 @@ from discover_themes import (
     run_discovery,
     save_discovered_themes,
 )
+from embeddings import configured_embedder, count_missing_embeddings, embed_missing_reviews
 from models import (
     AnalysisRun,
     Entity,
@@ -227,6 +230,15 @@ async def analyze(db: AsyncSession, client: AsyncAnthropic, run: AnalysisRun) ->
     entity = await db.get(Entity, entity_id)
     notes: list[str] = []
 
+    async def embed_step() -> None:
+        tracked = await begin_step(db, entity_id, StepKind.EMBED, embedder.model, run)
+        try:
+            embedded, tokens = await embed_missing_reviews(db, embedder, entity_id)
+        except Exception as error:
+            await tracked.fail(db, error)
+            raise
+        await tracked.succeed(db, reviews_processed=embedded, input_tokens=tokens, outcome="saved")
+
     async def discover_step() -> None:
         await db.refresh(entity)
         _, result, _ = await run_discovery(db, client, entity, run=run)
@@ -277,6 +289,13 @@ async def analyze(db: AsyncSession, client: AsyncAnthropic, run: AnalysisRun) ->
             outcome="promoted" if summary.promoted else "nothing promoted",
             warnings=f"Promoted {', '.join(summary.promoted)}." if summary.promoted else None,
         )
+
+    embedder = configured_embedder()
+    if embedder is not None and await count_missing_embeddings(db, entity_id, embedder.model):
+        try:
+            notes += await attempt(db, run, StepKind.EMBED, embed_step)
+        except JobFailed as failure:  # search by meaning waits; the analysis doesn't need the vectors
+            notes.append(str(failure))
 
     # Not "has no themes": confirming can demote every theme, and discovering again would only
     # repeat the same sample-based guess and spend the same money.
