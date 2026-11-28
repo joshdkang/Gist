@@ -18,7 +18,7 @@ import { BackLink, buttonPrimary, buttonSecondary, card, ErrorNote, Loading, Pag
 import { ApiError } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent } from "@/lib/format";
 import { useLayout } from "@/lib/layout";
-import { describeFilters, filterQuery, type PeriodsFilter, readPeriodsFilter, readSearch } from "@/lib/periodFilter";
+import { describeFilters, filterQuery, type PeriodsFilter, readPeriodsFilter, readSearch, type Search } from "@/lib/periodFilter";
 import {
   isActive,
   useEntity,
@@ -82,7 +82,7 @@ function ThemesSection({
   list: ThemeList;
   ratingFilter: RatingFilter | null;
   periodsFilter: PeriodsFilter | null;
-  search: string | null;
+  search: Search | null;
   /** The list shown is the previous filter's while this one loads. */
   updating: boolean;
 }) {
@@ -299,7 +299,7 @@ export default function EntityPage() {
     if (filter) setView("themes");
   }
 
-  function searchReviews(next: string | null) {
+  function searchReviews(next: Search | null) {
     replaceParams(filterQuery(ratingFilter, periodsFilter, next));
     if (next) setView("themes");
   }

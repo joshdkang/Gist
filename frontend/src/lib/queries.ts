@@ -4,7 +4,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useEffect, useRef } from "react";
 
 import { api } from "@/lib/api";
-import { appendPeriodsFilter, appendSearch, type PeriodsFilter } from "@/lib/periodFilter";
+import { appendPeriodsFilter, appendSearch, type PeriodsFilter, type Search } from "@/lib/periodFilter";
 import { appendRatingFilter } from "@/lib/ratingFilter";
 import type {
   EntityDetail,
@@ -42,7 +42,7 @@ export function useThemes(
   entityId: string,
   ratingFilter: RatingFilter | null = null,
   periodsFilter: PeriodsFilter | null = null,
-  search: string | null = null,
+  search: Search | null = null,
 ) {
   const params = appendSearch(
     appendRatingFilter(

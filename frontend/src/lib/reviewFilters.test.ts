@@ -46,8 +46,8 @@ describe("the rating filter in a URL", () => {
 describe("search terms for highlighting", () => {
   it("drops quotes, or and excluded words, and shortens long words to a stem-like prefix", () => {
     // Words over five letters lose up to three ("birthday" to "birth", "dinner" to "dinn").
-    expect(searchTerms('"birthday dinner" or valet -parking')).toEqual(["birth", "dinn", "valet"]);
-    expect(searchTerms("waiting")).toEqual(["wait"]);
+    expect(searchTerms({ text: '"birthday dinner" or valet -parking', mode: "words" })).toEqual(["birth", "dinn", "valet"]);
+    expect(searchTerms({ text: "waiting", mode: "meaning" })).toEqual(["wait"]); // meaning matches the words too
     expect(searchTerms(null)).toEqual([]);
   });
 });

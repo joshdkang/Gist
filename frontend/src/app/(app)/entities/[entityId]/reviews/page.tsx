@@ -21,7 +21,7 @@ import {
   filterQuery,
   type PeriodsFilter,
   readPeriodsFilter,
-  readSearch,
+  readSearch, type Search
 } from "@/lib/periodFilter";
 import { useEntity, useReviewFacets } from "@/lib/queries";
 import { appendRatingFilter, describeRatingFilter, readRatingFilter } from "@/lib/ratingFilter";
@@ -51,7 +51,7 @@ interface Filters {
   match: Match;
   ratingFilter: RatingFilter | null;
   periodsFilter: PeriodsFilter | null;
-  search: string | null;
+  search: Search | null;
 }
 
 /** The filters as query parameters: the API's, which the page's URL uses too. */

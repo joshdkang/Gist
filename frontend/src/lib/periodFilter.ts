@@ -28,25 +28,41 @@ export function readPeriodsFilter(params: { get(name: string): string | null; ge
   return starts.length > 0 && interval ? ({ interval, starts } satisfies PeriodsFilter) : null;
 }
 
-/** A search in a URL: `q`, the parameter the API takes. */
-export function appendSearch(params: URLSearchParams, search: string | null): URLSearchParams {
-  if (search) params.set("q", search);
+/**
+ * A search: its words, and how they match. "words" is keyword search; "meaning" also finds reviews
+ * that say it in other words (the API's `search_mode=meaning`, keywords or close in meaning).
+ */
+export type SearchMode = "words" | "meaning";
+export interface Search {
+  text: string;
+  mode: SearchMode;
+}
+
+/** A search in a URL: `q`, and `search_mode` when it isn't words, the parameters the API takes. */
+export function appendSearch(params: URLSearchParams, search: Search | null): URLSearchParams {
+  if (search) {
+    params.set("q", search.text);
+    if (search.mode === "meaning") params.set("search_mode", "meaning");
+  }
   return params;
 }
 
 /** The search in a page's URL, or null when there is none. */
-export function readSearch(params: { get(name: string): string | null }): string | null {
-  return params.get("q")?.trim() || null;
+export function readSearch(params: { get(name: string): string | null }): Search | null {
+  const text = params.get("q")?.trim();
+  if (!text) return null;
+  return { text, mode: params.get("search_mode") === "meaning" ? "meaning" : "words" };
 }
 
-/** 'mentioning "valet"': a search, as the filter descriptions name it. */
-export const describeSearch = (search: string) => `mentioning “${search}”`;
+/** 'mentioning "valet"', or 'about "valet"' by meaning: a search, as the filter descriptions name it. */
+export const describeSearch = (search: Search) =>
+  search.mode === "meaning" ? `about “${search.text}”` : `mentioning “${search.text}”`;
 
 /** "?interval=…&period=…&rating_scale=…&rating=…&q=…" for the filters given, or "" with none. */
 export function filterQuery(
   ratingFilter: RatingFilter | null,
   periodsFilter: PeriodsFilter | null,
-  search: string | null = null,
+  search: Search | null = null,
 ): string {
   const params = appendSearch(
     appendRatingFilter(appendPeriodsFilter(new URLSearchParams(), periodsFilter), ratingFilter),
@@ -59,7 +75,7 @@ export function filterQuery(
 export function describeFilters(
   ratingFilter: RatingFilter | null,
   periodsFilter: PeriodsFilter | null,
-  search: string | null = null,
+  search: Search | null = null,
 ): string {
   return [
     periodsFilter && describePeriodsFilter(periodsFilter),

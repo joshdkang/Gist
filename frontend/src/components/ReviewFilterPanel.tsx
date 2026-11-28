@@ -1,5 +1,6 @@
 "use client";
 
+import type { Search } from "@/lib/periodFilter";
 import Link from "next/link";
 
 import { PeriodList } from "@/components/PeriodList";
@@ -115,12 +116,12 @@ export function ReviewFilterPanel({
   themes: ThemeChoices;
   match: Match;
   ratingFilter: RatingFilter | null;
-  search: string | null;
+  search: Search | null;
   themeHref: (themeId: number) => string;
   onThemes: (themes: ThemeChoices) => void;
   onMatch: (match: Match) => void;
   onRatingFilter: (filter: RatingFilter | null) => void;
-  onSearch: (search: string | null) => void;
+  onSearch: (search: Search | null) => void;
 }) {
   const scale = facets.ratings.scales[0];
   const chosenRatings = scale && ratingFilter && sameScale(ratingFilter.scale, scale.scale) ? ratingFilter.labels : [];

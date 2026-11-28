@@ -18,7 +18,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 import httpx2
-from fastapi import HTTPException, status
 from sqlalchemy import delete, exists, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -139,12 +138,10 @@ def configured_embedder() -> Embedder | None:
     return _embedder
 
 
-def get_embedder() -> Embedder:
-    """FastAPI dependency: the embedder, or 503 when embeddings aren't configured."""
-    embedder = configured_embedder()
-    if embedder is None:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Search by meaning isn't configured on this server.")
-    return embedder
+def get_embedder() -> Embedder | None:
+    """FastAPI dependency: the embedder, or None when embeddings aren't configured (search.py
+    answers 503 then, and only to a request that needs it)."""
+    return configured_embedder()
 
 
 def missing_embedding(model: str):

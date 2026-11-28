@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ExportButton, smallButtonClass } from "@/components/ExportButton";
 import { SearchBox } from "@/components/SearchBox";
 import { formatNumber } from "@/lib/format";
-import { describePeriodsFilter, describeSearch, type PeriodsFilter } from "@/lib/periodFilter";
+import { describePeriodsFilter, describeSearch, type PeriodsFilter, type Search } from "@/lib/periodFilter";
 import { describeRatingFilter } from "@/lib/ratingFilter";
 import type { RatingFilter } from "@/lib/types";
 
@@ -58,8 +58,8 @@ export function FilterBar({
   /** Every filter at once: one URL change, since each of the others keeps the rest as they were. */
   onClearAll: () => void;
   /** The search in force, and how to change it (null clears it). */
-  search: string | null;
-  onSearch: (search: string | null) => void;
+  search: Search | null;
+  onSearch: (search: Search | null) => void;
   /** Every filter as a query string, for the exports. */
   query: string;
   /** The view switch (Themes or Ratings by theme), when there is one. */

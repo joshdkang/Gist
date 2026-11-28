@@ -31,6 +31,7 @@ from routers.themes import (
     RATING_SCALE_DESCRIPTION,
     RECENT_DAYS,
     SEARCH_DESCRIPTION,
+    SEARCH_MODE_DESCRIPTION,
     TrendInterval,
     both,
     get_theme,
@@ -41,7 +42,8 @@ from routers.themes import (
     rating_filter,
 )
 from routers.reviews import THEME_DESCRIPTION, Match, ReviewFilters, parse_themes, resolve_themes
-from search import search_filter
+from embeddings import Embedder, get_embedder
+from search import SearchMode, review_search
 from theme_stats import per_review_theme_sentiment
 
 router = APIRouter(prefix="/entities/{entity_id}/exports", tags=["exports"])
@@ -147,8 +149,10 @@ async def export_themes(
     period: list[datetime] = Query([], description=PERIOD_DESCRIPTION),
     interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    search_mode: SearchMode = Query(SearchMode.WORDS, description=SEARCH_MODE_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
+    embedder: Embedder | None = Depends(get_embedder),
 ):
     """The theme list as a table: one row per theme and listed emerging topic, then `general`.
 
@@ -165,8 +169,10 @@ async def export_themes(
         period=period,
         interval=interval,
         q=q,
+        search_mode=search_mode,
         entity=entity,
         db=db,
+        embedder=embedder,
     )
     ratings = await list_theme_ratings(rating_scale=None, entity=entity, db=db)
     impacts = {impact.id: impact for impact in ratings.themes}
@@ -267,10 +273,12 @@ async def export_reviews(
     rating: list[str] = Query([], description=RATING_DESCRIPTION),
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    search_mode: SearchMode = Query(SearchMode.WORDS, description=SEARCH_MODE_DESCRIPTION),
     themes: list[str] = Query([], alias="theme", description=THEME_DESCRIPTION),
     match_mode: Match = Query(Match.ANY, alias="match", description="How several `theme` filters combine"),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
+    embedder: Embedder | None = Depends(get_embedder),
 ):
     """Tagged reviews: one row per review and theme it raises (merged candidates under the theme
     they merged into), with the review's sentiment for that theme, newest first. With `theme_id`,
@@ -279,7 +287,9 @@ async def export_reviews(
     as the All reviews page does (each review still lists all its themes)."""
     chosen = await resolve_themes(db, entity, parse_themes(themes))
     by_theme = ReviewFilters(entity.id, chosen, match_mode, None, None, None).theme_condition()
-    match = both(rating_filter(rating_scale, rating), period_filter(period, interval), search_filter(q), by_theme)
+    match = both(rating_filter(rating_scale, rating), period_filter(period, interval),
+        await review_search(db, entity.id, q, search_mode, embedder), by_theme,
+    )
     theme = await get_theme(db, entity, theme_id) if theme_id is not None else None
 
     per_review, combined = per_review_theme_sentiment(entity.id, theme.id if theme else None)

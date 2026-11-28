@@ -1165,3 +1165,60 @@ freshness as topics, and the prompt doesn't make the distinction.
 it was tuned on (92 to 94%), and loses about seven points on the second domain, at the boundary
 between content and verdict. Discovery's saved themes cover the test sets as well as the dev sets.
 The test sets are now spent: further prompt work needs new labelled reviews to check it on.
+
+## Search by meaning (2026-11-27)
+
+Roadmap step 10 adds one embedding per review (Voyage AI `voyage-4-lite`, 1024 dimensions, stored in
+pgvector; migration `e4a7c2d9b815`), and the first feature on it is search by meaning: a Words /
+Meaning choice beside every search box, carried as `search_mode=meaning` to every endpoint and export
+that takes `q`.
+
+**Provider.** Anthropic has no embeddings API; Voyage is the provider it recommends. Its API is
+called over HTTP with httpx2 (already installed by the Anthropic SDK) rather than through Voyage's
+SDK, which brings tokenizers, langchain and pillow into both Docker images for one POST request.
+Embedding Cochon and NPR took 0.7M tokens, inside the 200M free tokens. Without a payment method on
+the account Voyage limits requests to 10K tokens a minute, which a single batch exceeds; adding one
+lifts it, and the free tokens still apply.
+
+**No approximate index.** A search is always within one entity (at most about 11,000 reviews), so an
+exact scan of its vectors through the `entity_id` index is fast and never misses. HNSW can come if
+entities grow much larger.
+
+**Calibration** (`evals/search_cutoff.py`). Each scored codebook entry that a set's labels give at
+least three reviews is a search, its name the query ("Wait time", "Gumbo", "Live stream"), and the
+labelled reviews the right answers. Precision is a lower bound, since labels name the topics a review
+raises, not everything it mentions. Mean F1 over the searches, dev sets (59 Cochon, 17 NPR):
+
+| rule | Cochon | NPR |
+|---|---|---|
+| keyword search | 62% | 30% |
+| similarity at least 0.30 | 27% | 51% |
+| at least 1.7 sd above the entity's mean similarity | 38% | 62% |
+| keywords, or at least 2.3 sd above the mean | 61% | 58% |
+| chosen: keywords, or at least 2.3 sd above the mean and at least 0.28 | 62% | 57% |
+
+- A fixed cutoff does worst: one query's scores sit higher than another's (the best match for "slow
+  service" on Cochon is 0.40, the median review 0.14), so the cutoff is relative to the entity's
+  similarities for that query.
+- Meaning alone loses to keywords on Cochon, where most searches are dishes: an exact name is what
+  keywords are good at, and in a restaurant's reviews every dish is close to every other. It wins on
+  NPR's app topics ("Data usage": keywords find none of four, meaning all four). Keywords or meaning
+  matches the better of the two on both, so Meaning mode never loses what Words finds.
+- The floor of 0.28 is a judgement, not a measurement. A relative cutoff always admits the top one or
+  two percent, so "parking" at a restaurant drifted into getting there and the neighbourhood (73
+  reviews added, down to 0.24) while the weakest additions for "slow service" (0.28) were still about
+  service. The labelled searches are all topics the reviews raise, so they can't see this case; the
+  floor costs them half a point. With it, "parking" adds 25 reviews.
+
+**Test sets, checked once** with the chosen rule (58 Cochon and 13 NPR searches): keywords 56% and
+21%, Meaning mode 58% and 40%. It holds: never worse than keywords, and nearly twice as good on the
+app. Meaning alone scored higher on NPR's test set (53%), as on its dev set; the floor costs recall
+there, which is the price of not padding rare searches.
+
+**On Cochon**, "slow service" finds 70 reviews by its words and 164 in Meaning mode ("Service can
+only be described as glacial", "it took forever"), 162 of them under Waitstaff service. The matching
+reviews are found in one query per request (similarities, mean and spread as window functions) and
+passed on as a list of IDs, so the several counts of a page request don't compare every vector again;
+the query vector is cached, so the endpoints a page calls embed the search once. A new upload's
+reviews are found by their words until the worker's embed step has run, and an entity with no
+vectors at all answers 409. Not done: a "most relevant" sort for the review lists.

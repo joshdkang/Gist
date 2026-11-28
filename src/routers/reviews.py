@@ -34,6 +34,7 @@ from routers.themes import (
     RATING_DESCRIPTION,
     RATING_SCALE_DESCRIPTION,
     SEARCH_DESCRIPTION,
+    SEARCH_MODE_DESCRIPTION,
     TrendInterval,
     both,
     period_filter,
@@ -41,7 +42,8 @@ from routers.themes import (
     sentiment_counts,
 )
 from schemas import PeriodCount, ReviewFacets, ReviewListItem, ReviewTag, ThemeFacet
-from search import search_filter
+from embeddings import Embedder, get_embedder
+from search import SearchMode, review_search
 from theme_stats import per_review_theme_sentiment
 
 router = APIRouter(prefix="/entities/{entity_id}/reviews", tags=["reviews"])
@@ -157,11 +159,14 @@ async def review_filters(
     period: list[datetime],
     interval: TrendInterval | None,
     q: str | None,
+    search_mode: SearchMode,
+    embedder: Embedder | None,
 ) -> ReviewFilters:
     """The request's filters. 422 for a bad filter, 404 for another entity's theme."""
     themes = await resolve_themes(db, entity, parse_themes(theme))
     return ReviewFilters(
-        entity.id, themes, match, rating_filter(rating_scale, rating), period_filter(period, interval), search_filter(q)
+        entity.id, themes, match, rating_filter(rating_scale, rating), period_filter(period, interval),
+        await review_search(db, entity.id, q, search_mode, embedder),
     )
 
 
@@ -184,15 +189,17 @@ async def list_reviews(
     period: list[datetime] = Query([], description=PERIOD_DESCRIPTION),
     interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    search_mode: SearchMode = Query(SearchMode.WORDS, description=SEARCH_MODE_DESCRIPTION),
     sort: Sort = Query(Sort.NEWEST),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
+    embedder: Embedder | None = Depends(get_embedder),
 ):
     """Classified reviews matching the filters, each with the themes it raises. Two queries: the page of
     reviews, then their themes."""
-    filters = await review_filters(db, entity, theme, match, rating, rating_scale, period, interval, q)
+    filters = await review_filters(db, entity, theme, match, rating, rating_scale, period, interval, q, search_mode, embedder)
     reviews = (
         await db.scalars(select(Review).where(filters.condition()).order_by(*ORDER[sort]).limit(limit).offset(offset))
     ).all()
@@ -231,9 +238,11 @@ async def review_facets(
     period: list[datetime] = Query([], description=PERIOD_DESCRIPTION),
     interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    search_mode: SearchMode = Query(SearchMode.WORDS, description=SEARCH_MODE_DESCRIPTION),
     period_interval: TrendInterval = Query(TrendInterval.QUARTER, description="The interval `periods` counts by"),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
+    embedder: Embedder | None = Depends(get_embedder),
 ):
     """The counts behind the filter column, for the same filters as the list:
 
@@ -248,7 +257,7 @@ async def review_facets(
     - `periods`: the reviews per period on `period_interval` that the other filters select, oldest
       first; undated reviews and periods without reviews are left out.
     """
-    filters = await review_filters(db, entity, theme, match, rating, rating_scale, period, interval, q)
+    filters = await review_filters(db, entity, theme, match, rating, rating_scale, period, interval, q, search_mode, embedder)
     per_review, combined = filters.per_review, filters.combined
     base = both(Review.entity_id == entity.id, filters.others)
 

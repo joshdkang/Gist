@@ -23,7 +23,7 @@ import {
   describePeriodsFilter,
   describeSearch,
   filterQuery,
-  readSearch,
+  readSearch, type Search
 } from "@/lib/periodFilter";
 import { appendThemeChoices } from "@/lib/reviewFilters";
 import { appendRatingFilter, describeRatingFilter, readRatingFilter } from "@/lib/ratingFilter";
@@ -111,8 +111,8 @@ function Reviews({
   onClearPeriods: () => void;
   ratingFilter: RatingFilter | null;
   onClearRating: () => void;
-  search: string | null;
-  onSearch: (search: string | null) => void;
+  search: Search | null;
+  onSearch: (search: Search | null) => void;
   /** The rating filter and the search together, in one change to the URL. */
   onClearUrlFilters: () => void;
   desktop: boolean;
@@ -342,7 +342,7 @@ function useTrend(
   themeId: number | undefined,
   interval: TrendInterval,
   ratingFilter: RatingFilter | null,
-  search: string | null,
+  search: Search | null,
 ) {
   const params = appendSearch(appendRatingFilter(new URLSearchParams({ interval }), ratingFilter), search);
   return useQuery({
@@ -411,7 +411,7 @@ export default function ThemePage() {
     replaceParams(filterQuery(filter, null, search));
   }
 
-  function changeSearch(next: string | null) {
+  function changeSearch(next: Search | null) {
     replaceParams(filterQuery(ratingFilter, null, next));
   }
 

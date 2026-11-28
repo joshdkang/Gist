@@ -15,7 +15,8 @@ from access import get_readable_entity
 from database import get_db
 from models import Entity, Review, Sentiment, Theme, ThemeKind
 from rating_stats import parse_scale, rating_condition, rating_summary, theme_rating_moments
-from search import search_filter
+from embeddings import Embedder, get_embedder
+from search import SearchMode, review_search
 from schemas import (
     GeneralSummary,
     SentimentCounts,
@@ -63,6 +64,7 @@ INTERVAL_DESCRIPTION = "The interval the periods are from"
 SEARCH_DESCRIPTION = (
     "Only reviews whose title or text matches this search (English stemming; \"quoted phrases\", or, -word)"
 )
+SEARCH_MODE_DESCRIPTION = "words: the search's words; meaning: its words, or reviews close to it in meaning"
 
 
 class TrendInterval(enum.StrEnum):
@@ -137,8 +139,10 @@ async def list_themes(
     period: list[datetime] = Query([], description=PERIOD_DESCRIPTION),
     interval: TrendInterval | None = Query(None, description=INTERVAL_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    search_mode: SearchMode = Query(SearchMode.WORDS, description=SEARCH_MODE_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
+    embedder: Embedder | None = Depends(get_embedder),
 ):
     """Themes ranked by mentions in the recent window, then by total mentions.
 
@@ -158,7 +162,7 @@ async def list_themes(
     if kind == ThemeKind.GENERAL:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "general is reported separately.")
     in_periods = period_filter(period, interval)
-    match = both(rating_filter(rating_scale, rating), in_periods, search_filter(q))
+    match = both(rating_filter(rating_scale, rating), in_periods, await review_search(db, entity.id, q, search_mode, embedder))
     reviews = select(Review).where(Review.entity_id == entity.id)
     matching_reviews = (reviews.where(match) if match is not None else reviews).subquery()
     latest = select(func.max(Review.review_date)).where(Review.entity_id == entity.id)
@@ -435,15 +439,17 @@ async def list_theme_reviews(
     rating: list[str] = Query([], description=RATING_DESCRIPTION),
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    search_mode: SearchMode = Query(SearchMode.WORDS, description=SEARCH_MODE_DESCRIPTION),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
+    embedder: Embedder | None = Depends(get_embedder),
 ):
     """The reviews that raise a theme, newest first, optionally only one sentiment, some trend
     periods, some ratings (the theme list's rating filter), or those matching a search. These are the
     example quotes and the drill-down. A merged candidate shows the theme it merged into."""
-    match = both(rating_filter(rating_scale, rating), period_filter(period, interval), search_filter(q))
+    match = both(rating_filter(rating_scale, rating), period_filter(period, interval), await review_search(db, entity.id, q, search_mode, embedder))
     theme = await get_theme(db, entity, theme_id)
     per_review, combined = per_review_theme_sentiment(entity.id, theme.id)
     query = (
@@ -492,14 +498,16 @@ async def read_theme_trend(
     rating: list[str] = Query([], description=RATING_DESCRIPTION),
     rating_scale: str | None = Query(None, description=RATING_SCALE_DESCRIPTION),
     q: str | None = Query(None, description=SEARCH_DESCRIPTION),
+    search_mode: SearchMode = Query(SearchMode.WORDS, description=SEARCH_MODE_DESCRIPTION),
     entity: Entity = Depends(get_readable_entity),
     db: AsyncSession = Depends(get_db),
+    embedder: Embedder | None = Depends(get_embedder),
 ):
     """The theme's reviews per period by sentiment, oldest first, with the entity's reviews in each
     period so a client can show the theme's share. Every period in which the entity has classified
     reviews is listed, including those where none raise the theme; undated reviews are left out.
     With a rating filter or a search, both counts cover only the reviews they select."""
-    match = both(rating_filter(rating_scale, rating), search_filter(q))
+    match = both(rating_filter(rating_scale, rating), await review_search(db, entity.id, q, search_mode, embedder))
     theme = await get_theme(db, entity, theme_id)
     periods = await period_review_counts(db, entity.id, interval.value, match)
     trend = dict(await theme_trend(db, entity.id, theme.id, interval.value, match))

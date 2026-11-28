@@ -60,11 +60,20 @@ describe("filters in a URL", () => {
 
   it("round-trips the period filter, the rating filter and the search", () => {
     const periods = { interval: "quarter" as const, starts: [start(2019, 4), start(2019, 7)] };
-    const query = filterQuery(rating, periods, "valet");
+    const query = filterQuery(rating, periods, { text: "valet", mode: "words" });
     const params = new URLSearchParams(query.slice(1));
     expect(readPeriodsFilter(params)).toEqual(periods);
-    expect(readSearch(params)).toBe("valet");
+    expect(readSearch(params)).toEqual({ text: "valet", mode: "words" });
+    expect(params.has("search_mode")).toBe(false); // words is the API's default
     expect(params.getAll("rating")).toEqual(["1", "2"]);
+  });
+
+  it("carries a search by meaning as search_mode, and reads anything else as words", () => {
+    const query = filterQuery(null, null, { text: "slow service", mode: "meaning" });
+    expect(query).toBe("?q=slow+service&search_mode=meaning");
+    expect(readSearch(new URLSearchParams(query.slice(1)))).toEqual({ text: "slow service", mode: "meaning" });
+    expect(readSearch(new URLSearchParams("q=valet&search_mode=sideways"))).toEqual({ text: "valet", mode: "words" });
+    expect(filterQuery(null, null, null)).toBe("");
   });
 
   it("is empty with no filter, and ignores an unknown interval or a blank search", () => {
@@ -79,9 +88,10 @@ describe("filters in a URL", () => {
   });
 
   it("describes every filter in force in one phrase", () => {
-    expect(describeFilters(rating, { interval: "year", starts: [start(2019)] }, "valet")).toBe(
+    expect(describeFilters(rating, { interval: "year", starts: [start(2019)] }, { text: "valet", mode: "words" })).toBe(
       "from 2019 rated 1 or 2 mentioning “valet”",
     );
+    expect(describeFilters(null, null, { text: "slow service", mode: "meaning" })).toBe("about “slow service”");
     expect(describeFilters(null, null, null)).toBe("");
   });
 });

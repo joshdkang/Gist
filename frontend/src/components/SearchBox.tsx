@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 
+import type { Search, SearchMode } from "@/lib/periodFilter";
+
 /**
  * A box that searches review text. The search runs when the user presses Enter (or the search
  * button), not on every keystroke, since each search recounts every theme. The × clears it.
  * `value` is the search in force (from the page's URL); the box keeps its own draft while typing.
+ * The mode chooses words (keyword search) or meaning (the words, or reviews that say it otherwise);
+ * changing it reruns a search in force.
  */
 export function SearchBox({
   value,
@@ -13,25 +17,31 @@ export function SearchBox({
   placeholder = "Search reviews",
   className = "",
 }: {
-  value: string | null;
-  onSearch: (search: string | null) => void;
+  value: Search | null;
+  onSearch: (search: Search | null) => void;
   placeholder?: string;
   className?: string;
 }) {
-  const [draft, setDraft] = useState(value ?? "");
-  // A search changed elsewhere (a chip removed, Clear all) replaces the draft.
-  const [shown, setShown] = useState(value);
-  if (value !== shown) {
-    setShown(value);
-    setDraft(value ?? "");
+  const [draft, setDraft] = useState(value?.text ?? "");
+  const [mode, setMode] = useState<SearchMode>(value?.mode ?? "words");
+  // A search changed elsewhere (a chip removed, Clear all, a link) replaces the draft and the mode.
+  // Compared as a string: the page may hand over a new object for the same search.
+  const valueKey = value ? `${value.mode}:${value.text}` : "";
+  const [shown, setShown] = useState(valueKey);
+  if (valueKey !== shown) {
+    setShown(valueKey);
+    setDraft(value?.text ?? "");
+    if (value) setMode(value.mode);
   }
+  const submit = (text: string, searchMode: SearchMode) =>
+    onSearch(text.trim() ? { text: text.trim(), mode: searchMode } : null);
 
   return (
     <form
       role="search"
       onSubmit={(event) => {
         event.preventDefault();
-        onSearch(draft.trim() || null);
+        submit(draft, mode);
       }}
       className={`flex h-9 items-center rounded-lg border border-line-strong bg-surface focus-within:border-link ${className}`}
     >
@@ -65,18 +75,33 @@ export function SearchBox({
           </svg>
         </button>
       )}
+      <select
+        value={mode}
+        onChange={(event) => {
+          const next = event.target.value as SearchMode;
+          setMode(next);
+          if (value) submit(value.text, next);
+        }}
+        aria-label="Match the search by"
+        title="Words: reviews with these words. Meaning: also reviews that say it in other words."
+        className="h-full shrink-0 rounded-r-lg border-l border-line-strong bg-transparent pr-1 pl-2 text-xs text-muted outline-none hover:text-fg"
+      >
+        <option value="words">Words</option>
+        <option value="meaning">Meaning</option>
+      </select>
     </form>
   );
 }
 
 /**
- * The words of a search, for highlighting matches in a review: quotes, `or` and excluded (`-word`)
+ * The words of a search, for highlighting matches in a review (in either mode: a search by meaning
+ * matches the words too, and a review found by meaning alone just has nothing marked): quotes, `or` and excluded (`-word`)
  * terms are dropped. Postgres matched on word stems ("waited" for "waiting"), which plain text can't
  * reproduce, so each word is shortened to a stem-like prefix and any word starting with it is marked.
  */
-export function searchTerms(search: string | null): string[] {
+export function searchTerms(search: Search | null): string[] {
   if (!search) return [];
-  return search
+  return search.text
     .replace(/"/g, " ")
     .split(/\s+/)
     .filter((word) => word && word.toLowerCase() !== "or" && !word.startsWith("-"))
